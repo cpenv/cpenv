@@ -12,9 +12,6 @@ def activate(name_or_path):
 
     env_path = api.get_env_path(name_or_path)
 
-    # Activate for this python process first allows for path expansion
-    api.activate(env_path)
-
     if not os.path.exists(env_path):
         raise EnvironmentError('No Environment: {}'.format(env_path))
 
@@ -33,6 +30,9 @@ def activate(name_or_path):
             script.run_cmd('export', 'PS1')
 
         script.set_env('_CLEAN_ENV', clean_env)
+
+    # Activate for this python process first allows for path expansion
+    api.activate(env_path)
 
     if platform == 'win':
         script_path = unipath(env_path, 'Scripts', 'activate.bat')
@@ -84,8 +84,6 @@ def create(name_or_path, config=None):
     '''
 
     env_path = api.create(name_or_path, config)
-
-    return activate(env_path)
 
 
 def remove(name_or_path):

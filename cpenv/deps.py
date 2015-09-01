@@ -8,22 +8,17 @@ from .utils import unipath
 logger = logging.getLogger('cpenv')
 
 
-def get_pip_path():
+def get_pip_path(env_path):
     '''Returns path to pip for current environment'''
-
-    from .api import get_active_env
-    active_env = get_active_env()
-    if active_env:
-        if platform == 'win':
-            return unipath(active_env, 'Scripts', 'pip')
-        return unipath(active_env, 'bin', 'pip')
-    return 'pip'
+    if platform == 'win':
+        return unipath(env_path, 'Scripts', 'pip')
+    return unipath(env_path, 'bin', 'pip')
 
 
-def pip_install(package):
+def pip_install(env_path, package):
     '''Quietly install a python package using pip'''
 
-    cmd_args = [get_pip_path(), '-q', 'install', package]
+    cmd_args = [get_pip_path(env_path), '-q', 'install', package]
     try:
         subprocess.check_call(cmd_args, env=os.environ, shell=True)
         logger.debug('pip installed ' + package)

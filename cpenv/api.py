@@ -117,12 +117,13 @@ def activate(name_or_path):
 def deactivate():
     '''Deactivate the current virtual environment'''
 
-    restore_env_from_file(os.environ['_CLEAN_ENV'])
 
     active_env = get_active_env()
     for path in sys.path[:]:
         if path.startswith(active_env):
             sys.path.remove(path)
+
+    restore_env_from_file(os.environ['_CLEAN_ENV'])
 
 
 def remove(name_or_path):
@@ -172,15 +173,13 @@ def _post_create(env_path, config_path, config):
         with open(unipath(env_path, 'environment.yml'), 'w') as f:
             f.write(yaml.dump(environment, default_flow_style=False))
 
-    activate(env_path)
-
     if dependencies:
         pip_installs = dependencies.get('pip', [])
         git_clones = dependencies.get('git', [])
         includes = dependencies.get('include', [])
 
         for package in pip_installs:
-            deps.pip_install(package)
+            deps.pip_install(env_path, package)
 
         for repo, destination in git_clones:
             deps.git_clone(repo, unipath(env_path, destination))
