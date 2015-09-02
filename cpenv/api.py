@@ -1,301 +1,245 @@
-# -*- coding: utf-8 -*-
-import collections
 import os
-import tempfile
-import virtualenv
-import random
-import shutil
-import sys
 import site
-from .vendor import yaml
+import sys
+import virtualenv
+from . import platform, envutils, scripts, shell
 from .utils import unipath
-from . import platform, deps
 
 
-def get_home_path():
-    '''Returns CPENV_HOME path'''
+def get_home_path(platform=platform):
+    '''Returns the path to CPENV_HOME for the current platform.
+    '''
 
-    cpenv_home = os.environ.get('CPENV_HOME', unipath('~/.cpenvs'))
-    return unipath(cpenv_home, platform)
+    home_path = os.environ.get('CPENV_HOME', '~/.cpenv')
+    return unipath(home_path, platform)
 
 
 def get_active_env():
     '''Returns the active environment'''
 
-    return os.environ.get('ACTIVE_ENV', None)
-
-
-def get_env_path(name_or_path):
-    '''Returns the full path for an environment. If there are path separators
-    we return a normalized path. If there are no path separators we return
-    name_or_path within your CPENV_HOME director.'''
-
-    if '/' in name_or_path or '\\' in name_or_path:
-        return unipath(name_or_path)
-    return unipath(get_home_path(), name_or_path)
-
-
-def get_wheelhouse():
-    '''Returns the os specific path to cpenv wheelhouse'''
-
-    wheelhouse = unipath(get_home_path(), '.wheelhouse')
-    if not os.path.exists(wheelhouse):
-        os.makedirs(wheelhouse)
-    return wheelhouse
+    active_env = os.environ.get('ACTIVE_ENV', None)
+    if active_env:
+        return VirtualEnvironment(active_env)
+    return None
 
 
 def get_environments():
-    '''Returns a list of environments in your cpenv home path'''
-
-    envs = []
+    '''Returns a list of VirtualEnvironment objects in CPENV_HOME'''
 
     home_path = get_home_path()
     if not os.path.exists(home_path):
-        return envs
+        return None
 
-    for f in os.listdir(home_path):
-        if os.path.isdir(os.path.join(home_path, f)):
-            if f == '.wheelhouse':
-                continue
-            envs.append(f)
+    envs = []
+    for d in os.listdir(home_path):
+        if d == '.wheelhouse':
+            continue
+        envs.append(VirtualEnvironment(unipath(home_path, d)))
 
     return envs
 
 
-def activate(name_or_path):
-    '''Activate a virtual environment in your CPENV_HOME path.'''
+def get_environment_named(name, platform=platform):
+    '''Returns a VirtualEnvironment object of the specified name.
 
-    env_path = get_env_path(name_or_path)
+    :param name: Name of the environment to lookup
+    :param platform: Platform to use in lookup (default: current platform)
+    '''
 
-    if not os.path.exists(env_path):
-        raise EnvironmentError('No Environment: {}'.format(env_path))
+    env_root = unipath(get_home_path(platform), name)
 
-    active_env = get_active_env()
-    if active_env:
-        deactivate()
+    if os.path.exists(env_root):
+        return VirtualEnvironment(env_root)
 
-    if not '_CLEAN_ENV' in os.environ:
-        clean_env_path = store_env()
-        set_envvar('_CLEAN_ENV', clean_env_path)
+    raise NameError('{} does not exist for platform {}'.format(name, platform))
 
-    if platform == 'win':
-        site_path = unipath(env_path, 'Lib', 'site-packages')
-        bin_path = unipath(env_path, 'Scripts')
-    else:
-        py_ver = 'python{}'.format(sys.version[:3])
-        site_path = unipath(env_path, 'lib', py_ver, 'site-packages')
-        bin_path = unipath(env_path, 'bin')
 
-    old_path = os.environ.get('PATH', '')
-    os.environ['PATH'] = bin_path + os.pathsep + old_path
+def create_environment_named(name, config=None):
+    '''Create a virtual environment with a specified name in CPENV_HOME.
 
-    old_pypath = os.environ.get('PYTHONPATH', '')
-    os.environ['PYTHONPATH'] = site_path + os.pathsep + ''
+    :param name: Name of the environment to create
+    '''
 
-    old_syspath = set(sys.path)
-    site.addsitedir(site_path)
-    site.addsitedir(bin_path)
-    new_syspaths = set(sys.path) - old_syspath
-    for path in new_syspaths:
-        sys.path.remove(path)
-        sys.path.insert(1, path)
+    env_root = unipath(get_home_path(), name)
 
-    sys.real_prefix = sys.prefix
-    sys.prefix = env_path
+    if not os.path.exists(env_root):
+        raise EnvironmentError('{} already exists.'.format(name))
 
-    wheelhouse = get_wheelhouse()
-    set_envvar('WHEELHOUSE', wheelhouse)
-    set_envvar('PIP_FIND_LINKS', wheelhouse)
-    set_envvar('PIP_WHEEL_DIR', wheelhouse)
-    set_envvar('ACTIVE_ENV', env_path)
+    return create_environment(env_root, config)
 
-    env_file = unipath(env_path, 'environment.yml')
-    if os.path.exists(env_file):
-        set_env_from_file(env_file)
+
+def create_environment(root, config=None):
+    '''Create a virtual envrionment in the specified root.
+
+    :param root: Root path for new environment
+    :param config: Optional environment configuration to use for post creation
+    '''
+
+    if os.path.exists(root):
+        raise EnvironmentError('{} already exists.'.format(name))
+
+    virtualenv.create_environment(root)
+
+    if config:
+        _post_create(root, config)
+
+    return VirtualEnvironment(root)
+
+
+def _post_create(root, config):
+    # Do post create
+    pass
 
 
 def deactivate():
-    '''Deactivate the current virtual environment'''
+    # Deactivate active evironment
+    pass
 
 
-    active_env = get_active_env()
-    for path in sys.path[:]:
-        if path.startswith(active_env):
-            sys.path.remove(path)
-
-    restore_env_from_file(os.environ['_CLEAN_ENV'])
+def deactivate_script():
+    deactivate()
+    script = scripts.restore_env(**os.environ.data)
 
 
-def remove(name_or_path):
-    '''Remove an environment in CPENV_HOME.'''
+class VirtualEnvironment(object):
 
-    env_path = get_env_path(name_or_path)
-    if not os.path.exists(env_path):
-        raise EnvironmentError('No Environment {}'.format(env_path))
-    active_env = get_active_env()
-    if active_env == env_path:
-        deactivate()
+    def __init__(self, root):
 
-    shutil.rmtree(env_path)
+        if not os.path.exists(root):
+            raise EnvironmentError('{} does not exist'.format(root))
 
+        self.root = unipath(root)
+        self.env_file = unipath(root, 'environment.yml')
+        self.name = os.path.basename(root)
+        self.modules_root = unipath(root, 'modules')
 
-def create(name_or_path, config=None, **kwargs):
-    '''Create an environment in your CPENV_HOME directory. Optionally pass
-    a yaml configuration file to use in configuring the new environment.
+    def __eq__(self, other):
+        if isinstance(other, VirtualEnvironment):
+            return self.root == other.root
+        return self.root == other
 
-    :param name: Name of the environment to create
-    :param config: Path to a yaml configuration file
-    '''
+    def __repr__(self):
+        return '<VirtualEnvironment>({})'.format(self.name)
 
-    env_path = get_env_path(name_or_path)
+    def _pre_activate(self):
+        '''Prior to activating, store everything necessary to deactivate this
+        environment.
+        '''
 
-    if os.path.exists(env_path):
-        raise EnvironmentError('Environment exists: {}'.format(env_path))
+        if not '_CLEAN_ENV' in os.environ:
+            if platform == 'win':
+                os.environ['PROMPT'] = '$P$G'
+            else:
+                os.environ['PS1'] = '\u@\h:\w\$'
+            os.environ['_PYPREFIX'] = sys.prefix
+            clean_env_path = envutils.get_store_env_tmp()
+            os.environ['_CLEAN_ENV'] = clean_env_path
+            envutils.store_env(path=clean_env_path)
 
-    virtualenv.create_environment(env_path, **kwargs)
+    def _activate(self):
+        '''Active this environment.'''
 
-    if config and os.path.exists(config):
-        config_dict = {}
-        with open(config, 'r') as f:
-            config_dict.update(yaml.load(f.read()))
-
-        _post_create(env_path, config, config_dict)
-
-    return env_path
-
-
-def _post_create(env_path, config_path, config):
-
-    environment = config.get('environment', None)
-    dependencies = config.get('dependencies', None)
-
-    if environment:
-        with open(unipath(env_path, 'environment.yml'), 'w') as f:
-            f.write(yaml.dump(environment, default_flow_style=False))
-
-    if dependencies:
-        pip_installs = dependencies.get('pip', [])
-        git_clones = dependencies.get('git', [])
-        includes = dependencies.get('include', [])
-
-        for package in pip_installs:
-            deps.pip_install(env_path, package)
-
-        for repo, destination in git_clones:
-            deps.git_clone(repo, unipath(env_path, destination))
-
-        for source, destination in includes:
-            deps.copy_tree(unipath(config_path, '..', source),
-                           unipath(env_path, destination))
-
-
-def get_store_env_tmp():
-    '''Returns an unused random filepath.'''
-
-    tempdir = tempfile.gettempdir()
-    temp_name = 'envstore{0:0>3d}'
-    temp_path = unipath(tempdir, temp_name.format(random.getrandbits(9)))
-    if not os.path.exists(temp_path):
-        return temp_path
-    else:
-        return get_store_env_tmp()
-
-
-def store_env(path=None):
-    '''Encode current environment as yaml and store in path or a temporary
-    file. Return the path to the stored environment.
-    '''
-
-    path = path or get_store_env_tmp()
-
-    env_dict = yaml.safe_dump(os.environ.data, default_flow_style=False)
-
-    with open(path, 'w') as f:
-        f.write(env_dict)
-    return path
-
-
-def set_envvar(var, value):
-    '''Set an environment variable.
-
-    :param var: Environment variable to set
-    :param value: Value of the variable'''
-
-    if isinstance(value, basestring):
-        os.environ[var] = str(unipath(value))
-    elif isinstance(value, collections.Sequence):
-        paths = [unipath(path) for path in value]
-        old_value = os.environ.get(var, None)
-        if old_value:
-            old_paths = old_value.split(os.pathsep)
-            for path in old_paths:
-                if not path in paths:
-                    paths.append(path)
-        os.environ[var] = str(os.pathsep.join(paths))
-    elif isinstance(value, (int, long, float)):
-        os.environ[var] = str(value)
-    elif isinstance(value, dict):
-        if platform in value:
-            set_envvar(var, value[platform])
+        # Setup Terminal Prompts
+        if platform == 'win':
+            os.environ['PROMPT'] = '[{}] $P$G'.format(self.name)
         else:
-            raise EnvironmentError(
-                "Failed to set {}={}\n <type 'dict'> values must include "
-                "platforms win, linux, osx".format(var, value))
-    else:
-        typ = type(value)
-        raise EnvironmentError(
-            'Environment variables must be sequences, strings or numbers.\n'
-            'Received type: {} for var {}'.format(typ, var))
+            os.environ['PS1'] = '[{}] \u@\h:\w\$'.format(self.name)
+
+        # Activate Environment
+
+        if platform == 'win':
+            site_path = unipath(self.root, 'Lib', 'site-packages')
+            bin_path = unipath(self.root, 'Scripts')
+        else:
+            py_ver = 'python{}'.format(sys.version[:3])
+            site_path = unipath(self.root, 'lib', py_ver, 'site-packages')
+            bin_path = unipath(self.root, 'bin')
+
+        old_path = os.environ.get('PATH', '')
+        os.environ['PATH'] = bin_path + os.pathsep + old_path
+
+        old_pypath = os.environ.get('PYTHONPATH', '')
+        os.environ['PYTHONPATH'] = site_path + os.pathsep + ''
+
+        old_syspath = set(sys.path)
+        site.addsitedir(site_path)
+        site.addsitedir(bin_path)
+        new_syspaths = set(sys.path) - old_syspath
+        for path in new_syspaths:
+            sys.path.remove(path)
+            sys.path.insert(1, path)
+
+        sys.real_prefix = sys.prefix
+        sys.prefix = self.root
+
+        os.environ['WHEELHOUSE'] = self.wheelhouse
+        os.environ['PIP_FIND_LINKS'] = self.wheelhouse
+        os.environ['PIP_WHEEL_DIR'] = self.wheelhouse
+        os.environ['ACTIVE_ENV'] = self.root
+
+    def _post_activate(self):
+        '''Setup environment based on environment.yml file'''
+
+        if os.path.exists(self.env_file):
+            envutils.set_env_from_file(self.env_file)
+
+    @property
+    def wheelhouse(self):
+
+        wheelhouse = unipath(get_home_path(), '.wheelhouse')
+        if not os.path.exists(wheelhouse):
+            os.makedirs(wheelhouse)
+        return wheelhouse
+
+    def activate(self):
+        '''Activate this environment'''
+
+        active_env = get_active_env()
+
+        if active_env == self:
+            return
+        else:
+            deactivate()
+
+        self._pre_activate()
+        self._activate()
+        self._post_activate()
+
+    def activate_script(self):
+        '''Generate Activate Shell Script'''
+
+        self.activate()
+
+        script = shell.ShellScript()
+        if platform != 'win':
+            script.run_cmd('export PS1')
+
+        script.extend(scripts.set_env(**os.environ.data))
+
+        return script
+
+    def get_application_modules(self):
+        modules = []
+        for d in os.listdir(self.modules_root):
+            modules.append(ApplicationModule(unipath(self.modules_root, d)))
+        return modules
 
 
-def unset_envvar(var):
-    if var in os.environ:
-        os.environ.pop(var)
+class ApplicationModule(object):
 
+    def __init__(self, root):
+        self.root = root
+        self.name = os.path.basename(self.root)
+        self.env_file = unipath(self.root, 'environment.yml')
 
-def set_env(**env_dict):
-    '''Set environment variables in the current python process from a dict
-    containing envvars and values.'''
+    def __repr__(self):
+        return '<ApplicationModule>({})'.format(self.name)
 
-    for k, v in env_dict.iteritems():
-        set_envvar(k, v)
+    def load(self):
+        if os.path.exists(self.env_file):
+            # Apply environment
+            pass
 
-
-def set_env_from_file(env_file):
-    '''Restore the current environment from an environment stored in a yaml
-    yaml file.
-
-    :param env_file: Path to environment yaml file.
-    '''
-
-    with open(env_file, 'r') as f:
-        env_dict = yaml.load(f.read())
-
-    set_env(**env_dict)
-    for k, v in os.environ.items():
-        os.environ[k] = unipath(v) # Expand all paths
-
-
-def restore_env(**env_dict):
-    '''Set environment variables in the current python process from a dict
-    containing envvars and values.'''
-
-    unset_variables = set(os.environ.keys()) - set(env_dict.keys())
-    for envvar in unset_variables:
-        unset_envvar(envvar)
-
-    for k, v in env_dict.iteritems():
-        set_envvar(k, v)
-
-
-def restore_env_from_file(env_file):
-    '''Restore the current environment from an environment stored in a yaml
-    yaml file.
-
-    :param env_file: Path to environment yaml file.
-    '''
-
-    with open(env_file, 'r') as f:
-        env_dict = yaml.load(f.read())
-
-    restore_env(**env_dict)
+    def launch(self):
+        # Apply module environment and launch application
+        pass

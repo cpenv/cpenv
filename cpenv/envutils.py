@@ -1,16 +1,47 @@
 import collections
 import os
-from .vendor import yaml
-from .shell import ShellScript
+import random
+import tempfile
 from .utils import unipath
+from .vendor import yaml
 from . import platform
 
 
-def format_envvar(var, value):
+def get_store_env_tmp():
+    '''Returns an unused random filepath.'''
+
+    tempdir = tempfile.gettempdir()
+    temp_name = 'envstore{0:0>3d}'
+    temp_path = unipath(tempdir, temp_name.format(random.getrandbits(9)))
+    if not os.path.exists(temp_path):
+        return temp_path
+    else:
+        return get_store_env_tmp()
+
+
+def store_env(path=None):
+    '''Encode current environment as yaml and store in path or a temporary
+    file. Return the path to the stored environment.
+    '''
+
+    path = path or get_store_env_tmp()
+
+    env_dict = yaml.safe_dump(os.environ.data, default_flow_style=False)
+
+    with open(path, 'w') as f:
+        f.write(env_dict)
+    return path
+
+
+def set_envvar(var, value):
+    '''Set an environment variable.
+
+    :param var: Environment variable to set
+    :param value: Value of the variable'''
 
     if isinstance(value, basestring):
-        return str(unipath(value))
-    if isinstance(value, collections.Sequence):
+        os.environ[var] = str(unipath(value))
+    elif isinstance(value, collections.Sequence):
         paths = [unipath(path) for path in value]
         old_value = os.environ.get(var, None)
         if old_value:
@@ -18,12 +49,12 @@ def format_envvar(var, value):
             for path in old_paths:
                 if not path in paths:
                     paths.append(path)
-        return str(os.pathsep.join(paths))
-    if isinstance(value, (int, long, float)):
-        return str(value)
-    if isinstance(value, dict):
+        os.environ[var] = str(os.pathsep.join(paths))
+    elif isinstance(value, (int, long, float)):
+        os.environ[var] = str(value)
+    elif isinstance(value, dict):
         if platform in value:
-            return format_envvar(var, value[platform])
+            set_envvar(var, value[platform])
         else:
             raise EnvironmentError(
                 "Failed to set {}={}\n <type 'dict'> values must include "
@@ -35,16 +66,17 @@ def format_envvar(var, value):
             'Received type: {} for var {}'.format(typ, var))
 
 
+def unset_envvar(var):
+    if var in os.environ:
+        os.environ.pop(var)
+
+
 def set_env(**env_dict):
-    '''Generate a shell script to set environment variables from a dictionary
+    '''Set environment variables in the current python process from a dict
     containing envvars and values.'''
 
-    script = ShellScript()
-
     for k, v in env_dict.iteritems():
-        script.set_env(k, format_envvar(k, v))
-
-    return script
+        set_envvar(k, v)
 
 
 def set_env_from_file(env_file):
@@ -57,23 +89,21 @@ def set_env_from_file(env_file):
     with open(env_file, 'r') as f:
         env_dict = yaml.load(f.read())
 
-    return set_env(**env_dict)
+    set_env(**env_dict)
+    for k, v in os.environ.items():
+        os.environ[k] = os.path.expandvars(v)
 
 
 def restore_env(**env_dict):
-    '''Generate a shell script to restore an environment from a dictionary
+    '''Set environment variables in the current python process from a dict
     containing envvars and values.'''
-
-    script = ShellScript()
 
     unset_variables = set(os.environ.keys()) - set(env_dict.keys())
     for envvar in unset_variables:
-        script.unset_env(envvar)
+        unset_envvar(envvar)
 
     for k, v in env_dict.iteritems():
-        script.set_env(k, format_envvar(k, v))
-
-    return script
+        set_envvar(k, v)
 
 
 def restore_env_from_file(env_file):
@@ -86,4 +116,4 @@ def restore_env_from_file(env_file):
     with open(env_file, 'r') as f:
         env_dict = yaml.load(f.read())
 
-    return restore_env(**env_dict)
+    restore_env(**env_dict)
