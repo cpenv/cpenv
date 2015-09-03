@@ -1,6 +1,7 @@
 import collections
 import os
 import random
+import sys
 import tempfile
 from .utils import unipath
 from .vendor import yaml
@@ -97,6 +98,10 @@ def set_env_from_file(env_file):
 def restore_env(**env_dict):
     '''Set environment variables in the current python process from a dict
     containing envvars and values.'''
+
+    if hasattr(sys, 'real_prefix'):
+        sys.prefix = sys.real_prefix
+        del(sys.real_prefix)
 
     unset_variables = set(os.environ.keys()) - set(env_dict.keys())
     for envvar in unset_variables:

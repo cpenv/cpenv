@@ -18,8 +18,8 @@ Cross-platform ShellScript Generation.
 
 import collections
 import os
-from . import platform
-from .utils import unipath
+from .. import platform
+from ..utils import unipath
 from abc import ABCMeta, abstractmethod
 ABC = ABCMeta(str("ABC"), (), {}) # 2n3 compatible metaclassing
 

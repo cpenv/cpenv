@@ -1,9 +1,15 @@
+import logging
 import os
 import site
+import shutil
+import subprocess
 import sys
 import virtualenv
-from . import platform, envutils, scripts, shell
+from . import platform, envutils, shell
 from .utils import unipath
+from .vendor import yaml
+
+logger = logging.getLogger('cpenv')
 
 
 def get_home_path(platform=platform):
@@ -23,7 +29,16 @@ def get_active_env():
     return None
 
 
-def get_environments():
+def get_home_environment(name=None):
+
+    home_env = unipath(get_home_path(), name)
+    if not os.path.exists(home_env):
+        raise NameError('No environment named {} in CPENV_HOME'.format(name))
+
+    return VirtualEnvironment(home_env)
+
+
+def get_home_environments():
     '''Returns a list of VirtualEnvironment objects in CPENV_HOME'''
 
     home_path = get_home_path()
@@ -32,81 +47,131 @@ def get_environments():
 
     envs = []
     for d in os.listdir(home_path):
-        if d == '.wheelhouse':
+        if d == '.wheelhouse' or not os.path.isdir(unipath(home_path, d)):
             continue
         envs.append(VirtualEnvironment(unipath(home_path, d)))
 
     return envs
 
 
-def get_environment_named(name, platform=platform):
-    '''Returns a VirtualEnvironment object of the specified name.
+def get_environments(name=None, root=None):
 
-    :param name: Name of the environment to lookup
-    :param platform: Platform to use in lookup (default: current platform)
-    '''
+    if not name and not root:
+        return list(ENV_CACHE.union(set(get_home_environments())))
 
-    env_root = unipath(get_home_path(platform), name)
+    if root:
+        root = unipath(root)
+        if os.path.exists(root):
+            env = VirtualEnvironment(root)
+            ENV_CACHE.add(env)
+            ENV_CACHE.save()
+            return [env]
+    else:
+        root = '_FALSE_'
 
-    if os.path.exists(env_root):
-        return VirtualEnvironment(env_root)
+    found = []
+    for env in ENV_CACHE:
+        if env.name == name or env.root.startswith(root):
+            found.append(env)
 
-    raise NameError('{} does not exist for platform {}'.format(name, platform))
+    for env in get_home_environments():
+        if env.name == name or env.root.startswith(root):
+            found.append(env)
 
-
-def create_environment_named(name, config=None):
-    '''Create a virtual environment with a specified name in CPENV_HOME.
-
-    :param name: Name of the environment to create
-    '''
-
-    env_root = unipath(get_home_path(), name)
-
-    if not os.path.exists(env_root):
-        raise EnvironmentError('{} already exists.'.format(name))
-
-    return create_environment(env_root, config)
+    return list(set(found))
 
 
-def create_environment(root, config=None):
+def create_environment(name=None, root=None, config=None):
     '''Create a virtual envrionment in the specified root.
 
+    :param name: Name of the environment to create in cpenv_home
     :param root: Root path for new environment
     :param config: Optional environment configuration to use for post creation
     '''
+
+    if not name and not root:
+        raise ValueError('Must pass either name or root keyword argument')
+
+    if name:
+        root = unipath(get_home_path(), name)
 
     if os.path.exists(root):
         raise EnvironmentError('{} already exists.'.format(name))
 
     virtualenv.create_environment(root)
+    env = VirtualEnvironment(root)
 
+    if config and not os.path.exists(config):
+        logger.debug('Config does not exist: {}'.format(config))
     if config:
-        _post_create(root, config)
+        try:
+            _post_create(env, config)
+        except:
+            logger.debug('Failed to configure environment...')
 
-    return VirtualEnvironment(root)
+    ENV_CACHE.add(env)
+    ENV_CACHE.save()
+
+    return env
 
 
-def _post_create(root, config):
-    # Do post create
-    pass
+def _post_create(env, config_path):
+
+    with open(config_path, 'r') as f:
+        config = yaml.load(f.read())
+
+    environment = config.get('environment', None)
+    dependencies = config.get('dependencies', None)
+
+    if environment:
+        with open(unipath(env_path, 'environment.yml'), 'w') as f:
+            f.write(yaml.dump(environment, default_flow_style=False))
+
+    if dependencies:
+        pip_installs = dependencies.get('pip', [])
+        git_clones = dependencies.get('git', [])
+        app_modules = dependencies.get('appmodules', [])
+        includes = dependencies.get('include', [])
+
+        for package in pip_installs:
+            env.pip_install(env_path, package)
+
+        for repo, destination in git_clones:
+            env.git_clone(repo, destination)
+
+        for repo, name in app_modules:
+            env.add_application_module(repo, name)
+
+        for source, destination in includes:
+            env.copy_tree(unipath(config_path, source), destination)
 
 
 def deactivate():
-    # Deactivate active evironment
-    pass
+    if not 'ACTIVE_ENV' in os.environ:
+        return
+    if not 'CPENV_CLEAN_ENV' in os.environ:
+        raise EnvironmentError('Can not deactivate environment...')
+
+    clean_env_path = os.environ.get('CPENV_CLEAN_ENV')
+
+    with open(clean_env_path, 'r') as f:
+        env_data = yaml.load(f.read())
+
+    envutils.restore_env_from_file(clean_env_path)
 
 
 def deactivate_script():
-    deactivate()
-    script = scripts.restore_env(**os.environ.data)
+    if not 'ACTIVE_ENV' in os.environ:
+        return
+    if not 'CPENV_CLEAN_ENV' in os.environ:
+        raise EnvironmentError('Can not deactivate environment...')
+
+    return shell.envutils.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
 
 
 class VirtualEnvironment(object):
 
     def __init__(self, root):
-
-        if not os.path.exists(root):
-            raise EnvironmentError('{} does not exist'.format(root))
 
         self.root = unipath(root)
         self.env_file = unipath(root, 'environment.yml')
@@ -118,6 +183,9 @@ class VirtualEnvironment(object):
             return self.root == other.root
         return self.root == other
 
+    def __hash__(self):
+        return hash(self.root)
+
     def __repr__(self):
         return '<VirtualEnvironment>({})'.format(self.name)
 
@@ -126,14 +194,14 @@ class VirtualEnvironment(object):
         environment.
         '''
 
-        if not '_CLEAN_ENV' in os.environ:
+        if not 'CPENV_CLEAN_ENV' in os.environ:
             if platform == 'win':
                 os.environ['PROMPT'] = '$P$G'
             else:
                 os.environ['PS1'] = '\u@\h:\w\$'
             os.environ['_PYPREFIX'] = sys.prefix
             clean_env_path = envutils.get_store_env_tmp()
-            os.environ['_CLEAN_ENV'] = clean_env_path
+            os.environ['CPENV_CLEAN_ENV'] = clean_env_path
             envutils.store_env(path=clean_env_path)
 
     def _activate(self):
@@ -156,14 +224,14 @@ class VirtualEnvironment(object):
             bin_path = unipath(self.root, 'bin')
 
         old_path = os.environ.get('PATH', '')
-        os.environ['PATH'] = bin_path + os.pathsep + old_path
+        os.environ['PATH'] = self.bin_path + os.pathsep + old_path
 
         old_pypath = os.environ.get('PYTHONPATH', '')
-        os.environ['PYTHONPATH'] = site_path + os.pathsep + ''
+        os.environ['PYTHONPATH'] = self.site_path + os.pathsep + ''
 
         old_syspath = set(sys.path)
-        site.addsitedir(site_path)
-        site.addsitedir(bin_path)
+        site.addsitedir(self.site_path)
+        site.addsitedir(self.bin_path)
         new_syspaths = set(sys.path) - old_syspath
         for path in new_syspaths:
             sys.path.remove(path)
@@ -182,14 +250,6 @@ class VirtualEnvironment(object):
 
         if os.path.exists(self.env_file):
             envutils.set_env_from_file(self.env_file)
-
-    @property
-    def wheelhouse(self):
-
-        wheelhouse = unipath(get_home_path(), '.wheelhouse')
-        if not os.path.exists(wheelhouse):
-            os.makedirs(wheelhouse)
-        return wheelhouse
 
     def activate(self):
         '''Activate this environment'''
@@ -214,9 +274,97 @@ class VirtualEnvironment(object):
         if platform != 'win':
             script.run_cmd('export PS1')
 
-        script.extend(scripts.set_env(**os.environ.data))
+        script.extend(shell.envutils.set_env(**os.environ.data))
 
         return script
+
+    def remove(self):
+        try:
+            shutil.rmtree(self.root)
+            ENV_CACHE.remove(self)
+            ENV_CACHE.save()
+            return True
+        except:
+            raise
+
+    @property
+    def site_path(self):
+        if platform == 'win':
+            return unipath(self.root, 'Lib', 'site-packages')
+
+        py_ver = 'python{}'.format(sys.version[:3])
+        return unipath(self.root, 'lib', py_ver, 'site-packages')
+
+    @property
+    def bin_path(self):
+        if platform == 'win':
+            return unipath(self.root, 'Scripts')
+
+        return unipath(self.root, 'bin')
+
+    @property
+    def exists(self):
+        return os.path.exists(self.root)
+
+    @property
+    def is_valid(self):
+        return os.path.exists(self.site_path) and os.path.exists(self.bin_path)
+
+    @property
+    def wheelhouse(self):
+
+        wheelhouse = unipath(get_home_path(), '.wheelhouse')
+        if not os.path.exists(wheelhouse):
+            os.makedirs(wheelhouse)
+        return wheelhouse
+
+    @property
+    def pip_path(self):
+        '''Returns path to pip for current environment'''
+        return unipath(self.bin_path, 'pip')
+
+    def pip_install(self, package):
+        '''Quietly install a python package using pip to'''
+
+        cmd_args = [self.pip_path, '-q', 'install', package]
+
+        try:
+            subprocess.check_call(cmd_args, env=os.environ, shell=True)
+            logger.debug('pip installed ' + package)
+        except subprocess.CalledProcessError:
+            logger.debug('pip failed to install ' + package)
+
+    def git_clone(self, repo, destination):
+        '''Clone a repository to a destination relative to envrionment root'''
+
+        if not destination.startswith(self.root):
+            destination = unipath(self.root, destination)
+
+        cmd_args = ['git', 'clone', '-q', repo, destination]
+
+        try:
+            subprocess.check_call(cmd_args, env=os.environ, shell=True)
+            logger.debug('cloned {} to {}'.format(repo, destination))
+        except subprocess.CalledProcessError:
+            logger.debug('git failed to clone ' + repo)
+
+    def copy_tree(self, source, destination):
+        '''Copy a tree to a destination relative to environment root'''
+
+        if not destination.startswith(self.root):
+            destination = unipath(self.root, destination)
+
+        try:
+            shutil.copytree(source, destination)
+        except:
+            logger.debug('Failed to include ' + source)
+
+    def add_application_module(self, repo, name):
+        if name in self.get_application_modules():
+            logger.debug('Application Module {} already exists'.format(name))
+            return
+
+        self.git_clone(repo, unipath('appmodules', name))
 
     def get_application_modules(self):
         modules = []
@@ -230,16 +378,62 @@ class ApplicationModule(object):
     def __init__(self, root):
         self.root = root
         self.name = os.path.basename(self.root)
-        self.env_file = unipath(self.root, 'environment.yml')
+        self.mod_file = unipath(self.root, 'appmodule.yml')
+
+    def __eq__(self, other):
+        if isinstance(other, VirtualEnvironment):
+            return self.root == other.root
+        return self.root == other
+
+    def __hash__(self):
+        return hash(self.root)
 
     def __repr__(self):
         return '<ApplicationModule>({})'.format(self.name)
 
+    @property
+    def is_module(self):
+        return os.path.exists(self.mod_file)
+
     def load(self):
-        if os.path.exists(self.env_file):
+        if os.path.exists(self.mod_file):
             # Apply environment
             pass
 
     def launch(self):
         # Apply module environment and launch application
         pass
+
+
+class EnvironmentCache(set):
+
+    def __init__(self, path):
+        super(EnvironmentCache, self).__init__()
+        self.path = path
+        self.load()
+        self.validate()
+
+    def validate(self):
+        for env in list(self):
+            if not env.exists or not env.is_valid:
+                self.remove(env)
+
+    def load(self):
+
+        if not os.path.exists(self.path):
+            return
+
+        with open(self.path, 'r') as f:
+            env_data = yaml.load(f.read())
+
+        for env in env_data:
+            self.add(VirtualEnvironment(env['root']))
+
+    def save(self):
+        env_data = [dict(name=env.name, root=env.root) for env in self]
+        encode = yaml.safe_dump(env_data, default_flow_style=False)
+
+        with open(self.path, 'w') as f:
+            f.write(encode)
+
+ENV_CACHE = EnvironmentCache(unipath(get_home_path(), '.envcache.yml'))

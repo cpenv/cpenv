@@ -1,9 +1,9 @@
 import collections
 import os
-from .vendor import yaml
 from .shell import ShellScript
-from .utils import unipath
-from . import platform
+from ..vendor import yaml
+from ..utils import unipath
+from .. import platform
 
 
 def format_envvar(var, value):

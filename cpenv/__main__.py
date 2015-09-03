@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .vendor import yaml, click
-from . import api, scripts
+from . import api
 from .shell import ShellScript
 from .utils import unipath
 import logging
@@ -9,6 +9,17 @@ logger = logging.getLogger('cpenv')
 # Couple aliases to clarify what's going on
 echo = logger.debug
 returns = click.echo
+
+
+def is_path(input_str):
+    return '\\' in input_str or '/' in input_str
+
+
+def get_environments(name_or_path):
+    if is_path(name_or_path):
+        return api.get_environments(root=name_or_path)
+    else:
+        return api.get_environments(name=name_or_path)
 
 
 @click.group()
@@ -28,8 +39,12 @@ def create(ctx, name_or_path, config):
         config = unipath(config)
         echo('Using configuration ' + config)
 
-    scripts.create(name_or_path, config)
-    ctx.invoke(activate, name_or_path=name_or_path)
+    if is_path(name_or_path):
+        env = api.create_environment(root=name_or_path)
+    else:
+        env = api.create_environment(name=name_or_path)
+
+    returns(env.activate_script().as_string())
 
 
 @cli.command()
@@ -37,14 +52,22 @@ def create(ctx, name_or_path, config):
 def remove(name_or_path):
     '''Remove a virtual environment.'''
 
-    echo('Delete {}? (y/n)'.format(name_or_path))
+
+    envs = get_environments(name_or_path)
+
+    if len(envs) > 1:
+        echo('More then one environment matches {}...'.format(envs[0].name))
+        ctx.invoke(_list)
+        return
+
+    env = envs[0]
+    echo('Delete {}? (y/n)'.format(env.root))
     do_delete = True if raw_input() == 'y' else False
     if not do_delete:
         return
 
-    echo('Removing environment ' + name_or_path)
-    shell_script = scripts.remove(name_or_path)
-    returns(shell_script.as_string())
+    echo('Removing environment ' + env.root)
+    env.remove()
 
 
 @cli.command()
@@ -57,9 +80,16 @@ def activate(ctx, name_or_path):
         ctx.invoke(_list)
         return
 
-    echo('Activating ' + name_or_path)
-    shell_script = scripts.activate(name_or_path)
-    returns(shell_script.as_string())
+    envs = get_environments(name_or_path)
+
+    if len(envs) > 1:
+        echo('More then one environment matches {}...'.format(envs[0].name))
+        ctx.invoke(_list)
+        return
+
+    env = envs[0]
+    echo('Activating ' + env.name)
+    returns(env.activate_script().as_string())
 
 
 @cli.command()
@@ -71,9 +101,7 @@ def deactivate():
         echo('No active environment...')
         return
 
-    echo('Deactivating ' + active_env)
-    shell_script = scripts.deactivate()
-    returns(shell_script.as_string())
+    returns(api.deactivate_script().as_string())
 
 
 @cli.command()
@@ -81,16 +109,7 @@ def deactivate():
 def upgrade(name_or_path):
     '''Upgrade current environment.'''
 
-    if not name_or_path:
-        #do upgrade
-        echo('Upgrading packages....')
-    elif name_or_path == 'cpenv':
-
-        echo('Upgrading cpenv...')
-        shell_script = scripts.upgrade(name_or_path)
-        returns(shell_script.as_string())
-    else:
-        return
+    return
 
 @cli.command('list')
 def _list():
@@ -99,14 +118,14 @@ def _list():
     envs = api.get_environments()
     if not envs:
         echo('No available environments...use create to make one:')
-        echo('    cpenv create -n <envname>')
+        echo('    cpenv create <name_or_path>')
     else:
         echo('Available Environments:')
         echo('')
-        for e in api.get_environments():
-            echo('    ' + e)
+        for env in envs:
+            echo('    {}> {}'.format(env.name, env.root))
         echo('')
-        echo('cpenv activate -n <envname>')
+        echo('cpenv activate <name_or_path>')
 
 
 @cli.command()

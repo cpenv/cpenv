@@ -6,6 +6,5 @@ platform = sys.platform.rstrip('1234567890').lower()
 if platform == 'darwin': # Use osx instead of darwin
     platform = 'osx'
 
-from . import log, vendor
-from .api import *
-from . import envutils, utils, shell
+from .shell import *
+from . import envutils
