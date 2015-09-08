@@ -23,7 +23,7 @@ def get_home_path(platform=platform):
 def get_active_env():
     '''Returns the active environment'''
 
-    active_env = os.environ.get('ACTIVE_ENV', None)
+    active_env = os.environ.get('CPENV_ACTIVE', None)
     if active_env:
         return VirtualEnvironment(active_env)
     return None
@@ -69,16 +69,16 @@ def get_environments(name=None, root=None):
     else:
         root = '_FALSE_'
 
-    found = []
+    found = set()
     for env in ENV_CACHE:
         if env.name == name or env.root.startswith(root):
-            found.append(env)
+            found.add(env)
 
     for env in get_home_environments():
         if env.name == name or env.root.startswith(root):
-            found.append(env)
+            found.add(env)
 
-    return list(set(found))
+    return list(found)
 
 
 def create_environment(name=None, root=None, config=None):
@@ -108,6 +108,7 @@ def create_environment(name=None, root=None, config=None):
             _post_create(env, config)
         except:
             logger.debug('Failed to configure environment...')
+            raise
 
     ENV_CACHE.add(env)
     ENV_CACHE.save()
@@ -124,30 +125,39 @@ def _post_create(env, config_path):
     dependencies = config.get('dependencies', None)
 
     if environment:
-        with open(unipath(env_path, 'environment.yml'), 'w') as f:
+        with open(unipath(env.root, 'environment.yml'), 'w') as f:
             f.write(yaml.dump(environment, default_flow_style=False))
 
     if dependencies:
-        pip_installs = dependencies.get('pip', [])
-        git_clones = dependencies.get('git', [])
-        app_modules = dependencies.get('appmodules', [])
-        includes = dependencies.get('include', [])
+        _install_dependencies(env, dependencies, os.path.dirname(config_path))
 
-        for package in pip_installs:
-            env.pip_install(env_path, package)
 
-        for repo, destination in git_clones:
-            env.git_clone(repo, destination)
+def _install_dependencies(env, dependencies, root):
+    pip_installs = dependencies.get('pip', [])
+    git_clones = dependencies.get('git', [])
+    app_modules = dependencies.get('appmodules', [])
+    includes = dependencies.get('include', [])
 
-        for repo, name in app_modules:
-            env.add_application_module(repo, name)
+    for package in pip_installs:
+        env.pip_install(package)
 
-        for source, destination in includes:
-            env.copy_tree(unipath(config_path, source), destination)
+    for repo, destination in git_clones:
+        env.git_clone(repo, destination)
+
+    for repo, name in app_modules:
+        app_module = env.add_application_module(repo, name)
+        if app_module.dependencies:
+            _install_dependencies(
+                env,
+                app_module.dependencies,
+                app_module.root)
+
+    for source, destination in includes:
+        env.copy_tree(unipath(root, source), destination)
 
 
 def deactivate():
-    if not 'ACTIVE_ENV' in os.environ:
+    if not 'CPENV_ACTIVE' in os.environ:
         return
     if not 'CPENV_CLEAN_ENV' in os.environ:
         raise EnvironmentError('Can not deactivate environment...')
@@ -161,7 +171,7 @@ def deactivate():
 
 
 def deactivate_script():
-    if not 'ACTIVE_ENV' in os.environ:
+    if not 'CPENV_ACTIVE' in os.environ:
         return
     if not 'CPENV_CLEAN_ENV' in os.environ:
         raise EnvironmentError('Can not deactivate environment...')
@@ -176,7 +186,7 @@ class VirtualEnvironment(object):
         self.root = unipath(root)
         self.env_file = unipath(root, 'environment.yml')
         self.name = os.path.basename(root)
-        self.modules_root = unipath(root, 'modules')
+        self.modules_root = unipath(root, 'appmodules')
 
     def __eq__(self, other):
         if isinstance(other, VirtualEnvironment):
@@ -243,7 +253,7 @@ class VirtualEnvironment(object):
         os.environ['WHEELHOUSE'] = self.wheelhouse
         os.environ['PIP_FIND_LINKS'] = self.wheelhouse
         os.environ['PIP_WHEEL_DIR'] = self.wheelhouse
-        os.environ['ACTIVE_ENV'] = self.root
+        os.environ['CPENV_ACTIVE'] = self.root
 
     def _post_activate(self):
         '''Setup environment based on environment.yml file'''
@@ -360,11 +370,16 @@ class VirtualEnvironment(object):
             logger.debug('Failed to include ' + source)
 
     def add_application_module(self, repo, name):
+        if not os.path.exists(self.modules_root):
+            os.makedirs(self.modules_root)
+
         if name in self.get_application_modules():
             logger.debug('Application Module {} already exists'.format(name))
             return
 
-        self.git_clone(repo, unipath('appmodules', name))
+        app_root = unipath(self.modules_root, name)
+        self.git_clone(repo, app_root)
+        return ApplicationModule(app_root)
 
     def get_application_modules(self):
         modules = []
@@ -379,6 +394,8 @@ class ApplicationModule(object):
         self.root = root
         self.name = os.path.basename(self.root)
         self.mod_file = unipath(self.root, 'appmodule.yml')
+        self._data = None
+        self._launch_cmd = None
 
     def __eq__(self, other):
         if isinstance(other, VirtualEnvironment):
@@ -395,14 +412,39 @@ class ApplicationModule(object):
     def is_module(self):
         return os.path.exists(self.mod_file)
 
-    def load(self):
-        if os.path.exists(self.mod_file):
-            # Apply environment
-            pass
+    @property
+    def data(self):
+        if not self._data:
+            with open(self.mod_file, 'r') as f:
+                self._data = yaml.load(f.read())
+        return self._data
+
+    @property
+    def command(self):
+        cmd = self.data.get('command', None)
+        if cmd:
+            cmd = cmd[platform]
+            return [cmd['path']] + cmd['args']
+
+    @property
+    def environment(self):
+        return self.data.get('environment', None)
+
+    @property
+    def dependencies(self):
+        return self.data.get('dependencies', None)
+
+    def activate(self):
+        if not self.is_module:
+            return
+
+        envutils.set_env(**self.environment)
 
     def launch(self):
-        # Apply module environment and launch application
-        pass
+        logger.debug('Launching ' + self.name)
+        os.environ['CPENV_APP'] = self.root
+        self.activate()
+        subprocess.Popen(self.command)
 
 
 class EnvironmentCache(set):

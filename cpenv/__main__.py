@@ -40,9 +40,9 @@ def create(ctx, name_or_path, config):
         echo('Using configuration ' + config)
 
     if is_path(name_or_path):
-        env = api.create_environment(root=name_or_path)
+        env = api.create_environment(root=name_or_path, config=config)
     else:
-        env = api.create_environment(name=name_or_path)
+        env = api.create_environment(name=name_or_path, config=config)
 
     returns(env.activate_script().as_string())
 
@@ -51,7 +51,6 @@ def create(ctx, name_or_path, config):
 @click.argument('name_or_path')
 def remove(name_or_path):
     '''Remove a virtual environment.'''
-
 
     envs = get_environments(name_or_path)
 
@@ -111,6 +110,7 @@ def upgrade(name_or_path):
 
     return
 
+
 @cli.command('list')
 def _list():
     '''List available environments'''
@@ -126,6 +126,48 @@ def _list():
             echo('    {}> {}'.format(env.name, env.root))
         echo('')
         echo('cpenv activate <name_or_path>')
+
+
+@cli.command('list_apps')
+def list_apps():
+    '''List available application modules.'''
+
+    active_env = api.get_active_env()
+    if not active_env:
+        echo('You must activate an environment first...')
+        return
+
+    echo('Available Application Modules:')
+    echo('')
+    for app in active_env.get_application_modules():
+        echo('    {}> {}'.format(app.name, app.root))
+    echo('')
+    echo('cpenv launch <module_name>')
+
+
+@cli.command()
+@click.argument('module_name', required=False)
+@click.pass_context
+def launch(ctx, module_name):
+    '''Launch an application module'''
+
+    if not module_name:
+        ctx.invoke(list_apps)
+        return
+
+    active_env = api.get_active_env()
+    if not active_env:
+        echo('You must activate an environment first...')
+        return
+
+    modules = active_env.get_application_modules()
+    for mod in modules:
+        if mod.name == module_name:
+            mod.launch()
+            return
+
+    echo('Application module named {} does not exist...'.format(module_name))
+    ctx.invoke(list_apps)
 
 
 @cli.command()
