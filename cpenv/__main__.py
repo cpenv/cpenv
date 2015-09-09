@@ -123,7 +123,7 @@ def _list():
         echo('Available Environments:')
         echo('')
         for env in envs:
-            echo('    {}> {}'.format(env.name, env.root))
+            echo('    [{}] {}'.format(env.name, env.root))
         echo('')
         echo('cpenv activate <name_or_path>')
 
@@ -140,7 +140,7 @@ def list_apps():
     echo('Available Application Modules:')
     echo('')
     for app in active_env.get_application_modules():
-        echo('    {}> {}'.format(app.name, app.root))
+        echo('    [{}] {}'.format(app.name, app.command))
     echo('')
     echo('cpenv launch <module_name>')
 

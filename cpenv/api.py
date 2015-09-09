@@ -444,7 +444,7 @@ class ApplicationModule(object):
         logger.debug('Launching ' + self.name)
         os.environ['CPENV_APP'] = self.root
         self.activate()
-        subprocess.Popen(self.command)
+        subprocess.call(self.command)
 
 
 class EnvironmentCache(set):
