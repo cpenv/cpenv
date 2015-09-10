@@ -369,6 +369,17 @@ class VirtualEnvironment(object):
         except:
             logger.debug('Failed to include ' + source)
 
+    def get_application_modules(self):
+        modules = []
+        for d in os.listdir(self.modules_root):
+            modules.append(ApplicationModule(unipath(self.modules_root, d)))
+        return modules
+
+    def get_application_module(self, name):
+        for mod in self.get_application_modules():
+            if mod.name == name:
+                return mod
+
     def add_application_module(self, repo, name):
         if not os.path.exists(self.modules_root):
             os.makedirs(self.modules_root)
@@ -381,11 +392,10 @@ class VirtualEnvironment(object):
         self.git_clone(repo, app_root)
         return ApplicationModule(app_root)
 
-    def get_application_modules(self):
-        modules = []
-        for d in os.listdir(self.modules_root):
-            modules.append(ApplicationModule(unipath(self.modules_root, d)))
-        return modules
+    def rem_application_module(self, name):
+        mod = self.get_application_module(name)
+        if mod:
+            shutil.rmtree(mod.root)
 
 
 class ApplicationModule(object):
@@ -437,12 +447,18 @@ class ApplicationModule(object):
     def activate(self):
         if not self.is_module:
             return
-
+        os.environ['CPENV_APP'] = self.root
         envutils.set_env(**self.environment)
+
+    def activate_script(self):
+        '''Generate Activate Shell Script'''
+
+        self.activate()
+        script = shell.envutils.set_env(**os.environ.data)
+        return script
 
     def launch(self):
         logger.debug('Launching ' + self.name)
-        os.environ['CPENV_APP'] = self.root
         self.activate()
         subprocess.call(self.command)
 
