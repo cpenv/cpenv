@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-from .vendor import yaml, click
-from . import api
-from .shell import ShellScript
-from .utils import unipath
+from .packages import yaml, click
+from . import api, shell
+from .util import unipath
 import shutil
+import sys
 import logging
 
 logger = logging.getLogger('cpenv')
-# Couple aliases to clarify what's going on
-echo = logger.debug
-write = click.echo
+echo = click.echo
 
 
 def is_path(input_str):
@@ -17,6 +15,9 @@ def is_path(input_str):
 
 
 def get_environments(name_or_path):
+    '''Wraps api.get_environments to take one argument that can be either the
+    name or root of an environment.'''
+
     if is_path(name_or_path):
         return api.get_environments(root=name_or_path)
     else:
@@ -93,7 +94,9 @@ def create(ctx, name_or_path, module_repo, module, config):
     else:
         env = api.create_environment(name=name_or_path, config=config)
 
-    write(env.activate_script().as_string())
+    echo('Activating ' + env.name)
+    env.activate()
+    sys.exit(shell.launch())
 
 
 @cli.command()
@@ -133,25 +136,9 @@ def remove(name_or_path, module):
 
 @cli.command()
 @click.argument('name_or_path', required=False)
-@click.option('--module', required=False, is_flag=True, default=False)
 @click.pass_context
-def activate(ctx, name_or_path, module):
+def activate(ctx, name_or_path):
     '''Activate a virtual environment.'''
-
-    if module:
-
-        if not name_or_path:
-            list_apps()
-            return
-
-        active_env = api.get_active_env()
-        if not active_env:
-            echo('No active environment...')
-            return
-
-        mod = active_env.get_application_module(name_or_path)
-        write(mod.activate_script().as_string())
-        return
 
     if not name_or_path:
         list_envs()
@@ -166,19 +153,8 @@ def activate(ctx, name_or_path, module):
 
     env = envs[0]
     echo('Activating ' + env.name)
-    write(env.activate_script().as_string())
-
-
-@cli.command()
-def deactivate():
-    '''Deactivate the current environment.'''
-
-    active_env = api.get_active_env()
-    if not active_env:
-        echo('No active environment...')
-        return
-
-    write(api.deactivate_script().as_string())
+    env.activate()
+    sys.exit(shell.launch())
 
 
 @cli.command()

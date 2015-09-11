@@ -5,9 +5,9 @@ import shutil
 import subprocess
 import sys
 import virtualenv
-from . import platform, envutils, shell
-from .utils import unipath
-from .vendor import yaml
+from . import platform, envutil
+from .util import unipath
+from .packages import yaml
 
 logger = logging.getLogger('cpenv')
 
@@ -162,21 +162,7 @@ def deactivate():
     if not 'CPENV_CLEAN_ENV' in os.environ:
         raise EnvironmentError('Can not deactivate environment...')
 
-    clean_env_path = os.environ.get('CPENV_CLEAN_ENV')
-
-    with open(clean_env_path, 'r') as f:
-        env_data = yaml.load(f.read())
-
-    envutils.restore_env_from_file(clean_env_path)
-
-
-def deactivate_script():
-    if not 'CPENV_ACTIVE' in os.environ:
-        return
-    if not 'CPENV_CLEAN_ENV' in os.environ:
-        raise EnvironmentError('Can not deactivate environment...')
-
-    return shell.envutils.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
+    envutil.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
 
 
 class VirtualEnvironment(object):
@@ -209,10 +195,9 @@ class VirtualEnvironment(object):
                 os.environ['PROMPT'] = '$P$G'
             else:
                 os.environ['PS1'] = '\u@\h:\w\$'
-            os.environ['_PYPREFIX'] = sys.prefix
-            clean_env_path = envutils.get_store_env_tmp()
+            clean_env_path = envutil.get_store_env_tmp()
             os.environ['CPENV_CLEAN_ENV'] = clean_env_path
-            envutils.store_env(path=clean_env_path)
+            envutil.store_env(path=clean_env_path)
 
     def _activate(self):
         '''Active this environment.'''
@@ -259,7 +244,7 @@ class VirtualEnvironment(object):
         '''Setup environment based on environment.yml file'''
 
         if os.path.exists(self.env_file):
-            envutils.set_env_from_file(self.env_file)
+            envutil.set_env_from_file(self.env_file)
 
     def activate(self):
         '''Activate this environment'''
@@ -274,19 +259,6 @@ class VirtualEnvironment(object):
         self._pre_activate()
         self._activate()
         self._post_activate()
-
-    def activate_script(self):
-        '''Generate Activate Shell Script'''
-
-        self.activate()
-
-        script = shell.ShellScript()
-        if platform != 'win':
-            script.run_cmd('export PS1')
-
-        script.extend(shell.envutils.set_env(**os.environ.data))
-
-        return script
 
     def remove(self):
         try:
@@ -448,19 +420,21 @@ class ApplicationModule(object):
         if not self.is_module:
             return
         os.environ['CPENV_APP'] = self.root
-        envutils.set_env(**self.environment)
-
-    def activate_script(self):
-        '''Generate Activate Shell Script'''
-
-        self.activate()
-        script = shell.envutils.set_env(**os.environ.data)
-        return script
+        envutil.set_env(self.environment)
 
     def launch(self):
         logger.debug('Launching ' + self.name)
         self.activate()
-        subprocess.call(self.command)
+
+        detached = 0x00000008 # For windows
+        subprocess.Popen(
+            self.command,
+            shell=False,
+            stdout=None,
+            stdin=None,
+            stderr=None,
+            creationflags=detached,
+            env=os.environ.data)
 
 
 class EnvironmentCache(set):

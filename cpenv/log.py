@@ -4,7 +4,7 @@ Logging Configuration
 '''
 import os
 import logging
-from .utils import unipath
+from .util import unipath
 
 logger = logging.getLogger('cpenv')
 logger.setLevel(logging.DEBUG)

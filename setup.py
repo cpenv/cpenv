@@ -1,4 +1,19 @@
+import re
 from setuptools import find_packages, setup
+
+
+def get_info(pyfile):
+    info = {}
+    info_re = re.compile(r"__(\w+)__ = '(.*)'")
+    with open(pyfile, 'r') as f:
+        for line in f.readlines():
+            match = info_re.search(line)
+            if match:
+                info[match.group(1)] = match.group(2)
+
+    return info
+
+info = get_info('cpenv/__init__.py')
 
 
 with open("README.rst") as f:
@@ -6,15 +21,18 @@ with open("README.rst") as f:
 
 
 setup(
-    name='cpenv',
-    version='0.1.0',
-    description='Cross-platform CLI for environment management.',
+    name=info['title'],
+    version=info['version'],
+    description=info['description'],
     long_description=readme,
-    author='Dan Bradham',
-    author_email='danielbradham@gmail.com',
-    url='N/A',
-    license='MIT',
+    author=info['author'],
+    author_email=info['email'],
+    url=info['url'],
+    license=info['license'],
     packages=find_packages(),
+    package_data={
+        'cpenv': ['bind/*.*']
+    },
     include_package_data=True,
     classifiers=(
         "Development Status :: 3 - Alpha",
@@ -23,13 +41,8 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
     ),
-    entry_points='''
-        [console_scripts]
-        pycpenv=cpenv.__main__:cli
-    ''',
-    scripts=(
-        'bin/cpenv.bat',
-        'bin/cpenv.sh',
-        'bin/run_py.bat',
-    ),
+    entry_points={
+        'console_scripts': ['cpenv = cpenv.__main__:cli']
+    },
+    install_requires=['virtualenv']
 )
