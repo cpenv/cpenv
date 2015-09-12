@@ -3,6 +3,8 @@ from setuptools import find_packages, setup
 
 
 def get_info(pyfile):
+    '''Retrieve dunder values from a pyfile'''
+
     info = {}
     info_re = re.compile(r"__(\w+)__ = '(.*)'")
     with open(pyfile, 'r') as f:
