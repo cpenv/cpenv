@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from . import platform
 from .util import binpath
 import os

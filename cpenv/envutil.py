@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import collections
 import os
 import random
@@ -32,6 +34,7 @@ def store_env(path=None):
 
     with open(path, 'w') as f:
         f.write(env_dict)
+
     return path
 
 

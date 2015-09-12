@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from .packages import yaml, click
 from . import api, shell
 from .util import unipath
@@ -100,11 +101,18 @@ def create(ctx, name_or_path, module_repo, module, config):
 
 
 @cli.command()
-@click.argument('name_or_path')
+@click.argument('name_or_path', required=False)
 @click.option('--module', required=False, is_flag=True, default=False)
 def remove(name_or_path, module):
     '''Remove a virtual environment.'''
 
+    if not name_or_path and not module:
+        list_environments()
+        return
+
+    if not name_or_path and module:
+        list_modules()
+        return
 
     if module:
 
@@ -115,7 +123,6 @@ def remove(name_or_path, module):
 
         active_env.rem_application_module(name_or_path)
         return
-
 
     envs = get_environments(name_or_path)
 
