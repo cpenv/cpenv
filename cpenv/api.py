@@ -154,7 +154,7 @@ def _install_dependencies(env, dependencies, root):
         env.git_clone(repo, destination)
 
     for repo, name in app_modules:
-        app_module = env.add_application_module(repo, name)
+        app_module = env.add_application_module(name, repo)
         if app_module.dependencies:
             _install_dependencies(
                 env,
@@ -326,7 +326,7 @@ class VirtualEnvironment(object):
     def pip_install(self, package):
         '''Quietly install a python package using pip to'''
 
-        cmd_args = [self.pip_path, '-q', 'install', package]
+        cmd_args = [self.pip_path, 'install', package]
 
         try:
             subprocess.check_call(cmd_args, env=os.environ, shell=True)
@@ -340,10 +340,11 @@ class VirtualEnvironment(object):
         if not destination.startswith(self.root):
             destination = unipath(self.root, destination)
 
-        cmd_args = ['git', 'clone', '-q', repo, destination]
+        cmd_args = ['git', 'clone', repo, destination]
+        cmd = ' '.join(cmd_args)
 
         try:
-            subprocess.check_call(cmd_args, env=os.environ, shell=True)
+            subprocess.check_call(cmd, env=os.environ, shell=True)
             logger.debug('cloned {0} to {1}'.format(repo, destination))
         except subprocess.CalledProcessError:
             logger.debug('git failed to clone ' + repo)
@@ -479,15 +480,19 @@ class ApplicationModule(object):
         logger.debug('Launching ' + self.name)
         self.activate()
 
-        detached = 0x00000008 # For windows
-        subprocess.Popen(
-            self.command,
-            shell=False,
-            stdout=None,
-            stdin=None,
-            stderr=None,
-            creationflags=detached,
-            env=os.environ.data)
+        launch_kwargs = {
+            'shell': False,
+            'stdout': None,
+            'stdin': None,
+            'stderr': None,
+            'env': os.environ,
+        }
+
+        if platform == 'win':
+            detached = 0x00000008 # For windows
+            launch_kwargs['creationflags'] = detached
+
+        subprocess.Popen(self.command, **launch_kwargs)
 
 
 class EnvironmentCache(set):
