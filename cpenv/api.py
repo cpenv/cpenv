@@ -33,7 +33,7 @@ def get_home_environment(name=None):
 
     home_env = unipath(get_home_path(), name)
     if not os.path.exists(home_env):
-        raise NameError('No environment named {} in CPENV_HOME'.format(name))
+        raise NameError('No environment named {0} in CPENV_HOME'.format(name))
 
     return VirtualEnvironment(home_env)
 
@@ -96,13 +96,13 @@ def create_environment(name=None, root=None, config=None):
         root = unipath(get_home_path(), name)
 
     if os.path.exists(root):
-        raise EnvironmentError('{} already exists.'.format(name))
+        raise EnvironmentError('{0} already exists.'.format(name))
 
     virtualenv.create_environment(root)
     env = VirtualEnvironment(root)
 
     if config and not os.path.exists(config):
-        logger.debug('Config does not exist: {}'.format(config))
+        logger.debug('Config does not exist: {0}'.format(config))
     if config:
         try:
             _post_create(env, config)
@@ -183,7 +183,7 @@ class VirtualEnvironment(object):
         return hash(self.root)
 
     def __repr__(self):
-        return '<VirtualEnvironment>({})'.format(self.name)
+        return '<VirtualEnvironment>({0})'.format(self.name)
 
     def _pre_activate(self):
         '''Prior to activating, store everything necessary to deactivate this
@@ -202,19 +202,11 @@ class VirtualEnvironment(object):
     def _activate(self):
         '''Active this environment.'''
 
-        # Setup Terminal Prompts
-        if platform == 'win':
-            os.environ['PROMPT'] = '[{}] $P$G'.format(self.name)
-        else:
-            os.environ['PS1'] = '[{}] \u@\h:\w\$'.format(self.name)
-
-        # Activate Environment
-
         if platform == 'win':
             site_path = unipath(self.root, 'Lib', 'site-packages')
             bin_path = unipath(self.root, 'Scripts')
         else:
-            py_ver = 'python{}'.format(sys.version[:3])
+            py_ver = 'python{0}'.format(sys.version[:3])
             site_path = unipath(self.root, 'lib', py_ver, 'site-packages')
             bin_path = unipath(self.root, 'bin')
 
@@ -274,7 +266,7 @@ class VirtualEnvironment(object):
         if platform == 'win':
             return unipath(self.root, 'Lib', 'site-packages')
 
-        py_ver = 'python{}'.format(sys.version[:3])
+        py_ver = 'python{0}'.format(sys.version[:3])
         return unipath(self.root, 'lib', py_ver, 'site-packages')
 
     @property
@@ -326,7 +318,7 @@ class VirtualEnvironment(object):
 
         try:
             subprocess.check_call(cmd_args, env=os.environ, shell=True)
-            logger.debug('cloned {} to {}'.format(repo, destination))
+            logger.debug('cloned {0} to {1}'.format(repo, destination))
         except subprocess.CalledProcessError:
             logger.debug('git failed to clone ' + repo)
 
@@ -357,7 +349,7 @@ class VirtualEnvironment(object):
             os.makedirs(self.modules_root)
 
         if name in self.get_application_modules():
-            logger.debug('Application Module {} already exists'.format(name))
+            logger.debug('Application Module {0} already exists'.format(name))
             return
 
         app_root = unipath(self.modules_root, name)
@@ -388,7 +380,7 @@ class ApplicationModule(object):
         return hash(self.root)
 
     def __repr__(self):
-        return '<ApplicationModule>({})'.format(self.name)
+        return '<ApplicationModule>({0})'.format(self.name)
 
     @property
     def is_module(self):

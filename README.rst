@@ -1,3 +1,3 @@
 cpenv
 ======
-Cross-platform CLI for environment management.
+Cross-platform Python environment management.

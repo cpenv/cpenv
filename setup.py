@@ -31,7 +31,7 @@ setup(
     license=info['license'],
     packages=find_packages(),
     package_data={
-        'cpenv': ['bind/*.*']
+        'cpenv': ['bin/*.*']
     },
     include_package_data=True,
     classifiers=(
