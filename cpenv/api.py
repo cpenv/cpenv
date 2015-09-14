@@ -18,6 +18,12 @@ def get_home_path(platform=platform):
     '''Returns the path to CPENV_HOME for the current platform.'''
 
     home_path = os.environ.get('CPENV_HOME', '~/.cpenv')
+    home_platform_path = unipath(home_path, platform)
+    if not os.path.exists(home_platform_path):
+        try:
+            os.makedirs(home_platform_path)
+        except:
+            pass
     return unipath(home_path, platform)
 
 
@@ -507,9 +513,9 @@ class EnvironmentCache(set):
         if not os.path.exists(self.path):
             with open(self.path, 'a'):
                 os.utime(self.path, None)
-
-        self.load()
-        self.validate()
+        else:
+            self.load()
+            self.validate()
 
     def validate(self):
         '''Validate all the entries in the environment cache.'''
@@ -527,8 +533,9 @@ class EnvironmentCache(set):
         with open(self.path, 'r') as f:
             env_data = yaml.load(f.read())
 
-        for env in env_data:
-            self.add(VirtualEnvironment(env['root']))
+        if env_data:
+            for env in env_data:
+                self.add(VirtualEnvironment(env['root']))
 
     def save(self):
         '''Save the environment cache to disk.'''

@@ -6,7 +6,7 @@ def get_info(pyfile):
     '''Retrieve dunder values from a pyfile'''
 
     info = {}
-    info_re = re.compile(r"__(\w+)__ = '(.*)'")
+    info_re = re.compile(r"^__(\w+)__ = ['\"](.*)['\"]")
     with open(pyfile, 'r') as f:
         for line in f.readlines():
             match = info_re.search(line)
