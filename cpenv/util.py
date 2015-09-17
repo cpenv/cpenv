@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+
 import os
+
+package_root = os.path.dirname(__file__)
 
 
 def expandpath(path):
@@ -17,4 +20,4 @@ def unipath(*paths):
 def binpath(*paths):
     '''Like os.path.join but acts relative to this packages bin path.'''
 
-    return os.path.normpath(os.path.join(os.path.dirname(__file__), *paths))
+    return os.path.normpath(os.path.join(package_root, 'bin', *paths))

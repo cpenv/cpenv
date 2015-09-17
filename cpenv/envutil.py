@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import collections
 import os
 import random
@@ -32,6 +34,7 @@ def store_env(path=None):
 
     with open(path, 'w') as f:
         f.write(env_dict)
+
     return path
 
 
@@ -86,6 +89,8 @@ def set_env_from_file(env_file):
 
 
 def dict_join(*dicts):
+    '''Join a bunch of dicts'''
+
     out_dict = {}
 
     for d in dicts:
@@ -115,6 +120,14 @@ def dict_join(*dicts):
 
 
 def env_to_dict(env, pathsep=os.pathsep):
+    '''Convert a dict representing environment variables into a standard dict.
+    Variables containing multiple values will be split into a pylist based on
+    the argument passed to pathsep.
+
+    :param env: Environment dict like os.environ.data
+    :param pathsep: Path separator used to split variables
+    '''
+
     out_dict = {}
 
     for k, v in env.iteritems():
@@ -126,10 +139,17 @@ def env_to_dict(env, pathsep=os.pathsep):
     return out_dict
 
 
-def dict_to_env(env, pathsep=os.pathsep):
+def dict_to_env(dict, pathsep=os.pathsep):
+    '''Convert a python dict to a dict containing valid environment variable
+    values.
+
+    :param dict: Dict to convert to an env dict
+    :param pathsep: Path separator used to join lists(default os.pathsep)
+    '''
+
     out_env = {}
 
-    for k, v in env.iteritems():
+    for k, v in dict.iteritems():
         if isinstance(v, list):
             out_env[k] = pathsep.join(v)
         elif isinstance(v, basestring):
@@ -141,6 +161,11 @@ def dict_to_env(env, pathsep=os.pathsep):
 
 
 def expand_env(env):
+    '''Expand all environment variables in an environment dict, like
+    os.environ.data.
+
+    :param env: Environment dict
+    '''
 
     out_env = {}
 

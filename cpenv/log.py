@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -*-
+
 '''
 Logging Configuration
 =====================
 '''
+
 import os
 import logging
 from .util import unipath

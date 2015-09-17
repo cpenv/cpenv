@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from .packages import yaml, click
 from . import api, shell
 from .util import unipath
@@ -24,7 +25,7 @@ def get_environments(name_or_path):
         return api.get_environments(name=name_or_path)
 
 
-def list_envs():
+def list_environments():
     '''List available environments'''
 
     envs = api.get_environments()
@@ -40,7 +41,7 @@ def list_envs():
         echo('cpenv activate <name_or_path>')
 
 
-def list_apps():
+def list_modules():
     '''List available application modules.'''
 
     active_env = api.get_active_env()
@@ -96,15 +97,22 @@ def create(ctx, name_or_path, module_repo, module, config):
 
     echo('Activating ' + env.name)
     env.activate()
-    sys.exit(shell.launch())
+    sys.exit(shell.launch(prompt_prefix=env.name))
 
 
 @cli.command()
-@click.argument('name_or_path')
+@click.argument('name_or_path', required=False)
 @click.option('--module', required=False, is_flag=True, default=False)
 def remove(name_or_path, module):
     '''Remove a virtual environment.'''
 
+    if not name_or_path and not module:
+        list_environments()
+        return
+
+    if not name_or_path and module:
+        list_modules()
+        return
 
     if module:
 
@@ -116,12 +124,11 @@ def remove(name_or_path, module):
         active_env.rem_application_module(name_or_path)
         return
 
-
     envs = get_environments(name_or_path)
 
     if len(envs) > 1:
         echo('More then one environment matches {}...'.format(envs[0].name))
-        list_envs()
+        list_environments()
         return
 
     env = envs[0]
@@ -141,20 +148,20 @@ def activate(ctx, name_or_path):
     '''Activate a virtual environment.'''
 
     if not name_or_path:
-        list_envs()
+        list_environments()
         return
 
     envs = get_environments(name_or_path)
 
     if len(envs) > 1:
         echo('More then one environment matches {}...'.format(envs[0].name))
-        list_envs()
+        list_environments()
         return
 
     env = envs[0]
     echo('Activating ' + env.name)
     env.activate()
-    sys.exit(shell.launch())
+    sys.exit(shell.launch(prompt_prefix=env.name))
 
 
 @cli.command()
@@ -163,7 +170,7 @@ def launch(module_name):
     '''Launch an application module'''
 
     if not module_name:
-        list_apps()
+        list_modules()
         return
 
     active_env = api.get_active_env()
@@ -178,7 +185,7 @@ def launch(module_name):
             return
 
     echo('Application module named {} does not exist...'.format(module_name))
-    list_apps()
+    list_modules()
 
 
 if __name__ == "__main__":

@@ -3,8 +3,10 @@ from setuptools import find_packages, setup
 
 
 def get_info(pyfile):
+    '''Retrieve dunder values from a pyfile'''
+
     info = {}
-    info_re = re.compile(r"__(\w+)__ = '(.*)'")
+    info_re = re.compile(r"^__(\w+)__ = ['\"](.*)['\"]")
     with open(pyfile, 'r') as f:
         for line in f.readlines():
             match = info_re.search(line)
@@ -31,7 +33,7 @@ setup(
     license=info['license'],
     packages=find_packages(),
     package_data={
-        'cpenv': ['bind/*.*']
+        'cpenv': ['bin/*.*']
     },
     include_package_data=True,
     classifiers=(
