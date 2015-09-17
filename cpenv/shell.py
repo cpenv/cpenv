@@ -1,6 +1,7 @@
 from . import platform
 from .util import binpath
 import subprocess
+import os
 
 
 def cmd():
@@ -14,4 +15,4 @@ def cmd():
 def launch():
     '''Launch a subshell'''
 
-    subprocess.call(cmd())
+    subprocess.call(cmd(), env=os.environ.data)
