@@ -88,32 +88,58 @@ def set_env_from_file(env_file):
     set_env(env_dict)
 
 
+def handle_dict(d, k, v):
+    '''Add a dict value to an env dict'''
+
+    d[k] = v[platform]
+
+def handle_nonstr(d, k, v):
+    '''Add a nonstring value to env dict'''
+
+    d[k] = str(v)
+
+def handle_str(d, k, v):
+    '''Add a string value to env dict'''
+
+    d[k] = v
+
+def handle_seq(d, k, v):
+    '''Add a sequence value to env dict'''
+
+    if not k in d:
+        d[k] = list(v)
+    elif isinstance(d[k], list):
+        for item in v:
+            if not item in d[k]:
+                d[k].insert(0, item)
+    elif isinstance(d[k], basestring):
+        v.append(d[k])
+        d[k] = v
+
+
 def dict_join(*dicts):
     '''Join a bunch of dicts'''
+
+    handlers = {
+        dict: handle_dict,
+        int: handle_nonstr,
+        float: handle_nonstr,
+        long: handle_nonstr,
+        unicode: handle_nonstr,
+        basestring: handle_str,
+        str: handle_str,
+        list: handle_seq,
+        tuple: handle_seq,
+        set: handle_seq,
+    }
 
     out_dict = {}
 
     for d in dicts:
         for k, v in d.iteritems():
-            if isinstance(v, dict):
-                out_dict[k] = v[platform]
-            elif isinstance(v, (int, float, long)):
-                out_dict[k] = str(v)
-            elif isinstance(v, basestring):
-                out_dict[k] = v
-            elif isinstance(v, unicode):
-                out_dict[k] = str(v)
-            elif isinstance(v, (list, tuple, set)):
-                if not k in out_dict:
-                    out_dict[k] = list(v)
-                elif isinstance(out_dict[k], list):
-                    for item in v:
-                        if not item in out_dict[k]:
-                            out_dict[k].insert(0, item)
-                elif isinstance(out_dict[k], basestring):
-                    v.append(out_dict[k])
-                    out_dict[k] = v
-            else:
+            try:
+                handlers[type(v)](out_dict, k, v)
+            except KeyError:
                 raise TypeError('{} not a valid value type'.format(type(v)))
 
     return out_dict

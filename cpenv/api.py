@@ -320,7 +320,8 @@ class VirtualEnvironment(object):
     def wheelhouse(self):
         '''CPENV wheelhouse directory'''
 
-        wheelhouse = unipath(get_home_path(), '.wheelhouse')
+        home_path = os.environ.get('CPENV_HOME', '~/.cpenv')
+        wheelhouse = unipath(home_path, '.wheelhouse')
         if not os.path.exists(wheelhouse):
             os.makedirs(wheelhouse)
         return wheelhouse
@@ -547,4 +548,4 @@ class EnvironmentCache(set):
             f.write(encode)
 
 # Instantiate EnvironmentCache
-CACHE = EnvironmentCache(unipath(get_home_path(), '.envcache.yml'))
+CACHE = EnvironmentCache(unipath('~/.cpenv', 'envcache.yml'))
