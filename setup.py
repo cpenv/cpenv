@@ -1,6 +1,7 @@
 import re
 from setuptools import find_packages, setup
 import sys
+import os
 
 if sys.argv[-1] == 'cheeseit!':
     os.system('python setup.py sdist upload')
