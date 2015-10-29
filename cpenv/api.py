@@ -163,7 +163,7 @@ def _install_dependencies(env, dependencies, root):
         env.git_clone(repo, destination)
 
     for repo, name in app_modules:
-        app_module = env.add_application_module(name, repo)
+        app_module = env.add_application_module(repo, name)
         if app_module.dependencies:
             _install_dependencies(
                 env,
