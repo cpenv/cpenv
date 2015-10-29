@@ -1,5 +1,13 @@
 import re
 from setuptools import find_packages, setup
+import sys
+
+if sys.argv[-1] == 'cheeseit!':
+    os.system('python setup.py sdist upload')
+    sys.exit()
+elif sys.argv[-1] == 'testit!':
+    os.system('python setup.py sdist upload -r pypitest')
+    sys.exit()
 
 
 def get_info(pyfile):
