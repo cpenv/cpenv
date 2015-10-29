@@ -512,6 +512,9 @@ class EnvironmentCache(set):
         self.path = path
 
         if not os.path.exists(self.path):
+            root = os.path.dirname(self.path)
+            if not os.path.exists(root):
+                os.makedirs(root)
             with open(self.path, 'a'):
                 os.utime(self.path, None)
         else:
