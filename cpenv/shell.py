@@ -4,7 +4,6 @@ from . import platform
 from .util import binpath
 import os
 import subprocess
-import os
 
 
 def cmd():

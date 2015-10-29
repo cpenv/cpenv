@@ -8,6 +8,7 @@ import subprocess
 import sys
 import virtualenv
 from . import platform, envutil
+from envutil import environ
 from .util import unipath
 from .packages import yaml
 
@@ -17,7 +18,7 @@ logger = logging.getLogger('cpenv')
 def get_home_path(platform=platform):
     '''Returns the path to CPENV_HOME for the current platform.'''
 
-    home_path = os.environ.get('CPENV_HOME', '~/.cpenv')
+    home_path = environ.get('CPENV_HOME', '~/.cpenv')
     home_platform_path = unipath(home_path, platform)
     if not os.path.exists(home_platform_path):
         try:
@@ -30,7 +31,7 @@ def get_home_path(platform=platform):
 def get_active_env():
     '''Returns the active environment'''
 
-    active_env = os.environ.get('CPENV_ACTIVE', None)
+    active_env = environ.get('CPENV_ACTIVE', None)
     if active_env:
         return VirtualEnvironment(active_env)
     return None
@@ -178,12 +179,12 @@ def deactivate():
     stored prior to activating environments
     '''
 
-    if not 'CPENV_ACTIVE' in os.environ:
+    if not 'CPENV_ACTIVE' in environ:
         return
-    if not 'CPENV_CLEAN_ENV' in os.environ:
+    if not 'CPENV_CLEAN_ENV' in environ:
         raise EnvironmentError('Can not deactivate environment...')
 
-    envutil.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
+    envutil.restore_env_from_file(environ['CPENV_CLEAN_ENV'])
 
 
 class VirtualEnvironment(object):
@@ -212,13 +213,13 @@ class VirtualEnvironment(object):
         environment.
         '''
 
-        if not 'CPENV_CLEAN_ENV' in os.environ:
+        if not 'CPENV_CLEAN_ENV' in environ:
             if platform == 'win':
-                os.environ['PROMPT'] = '$P$G'
+                environ['PROMPT'] = '$P$G'
             else:
-                os.environ['PS1'] = '\u@\h:\w\$'
+                environ['PS1'] = '\u@\h:\w\$'
             clean_env_path = envutil.get_store_env_tmp()
-            os.environ['CPENV_CLEAN_ENV'] = clean_env_path
+            environ['CPENV_CLEAN_ENV'] = clean_env_path
             envutil.store_env(path=clean_env_path)
 
     def _activate(self):
@@ -232,11 +233,11 @@ class VirtualEnvironment(object):
             site_path = unipath(self.root, 'lib', py_ver, 'site-packages')
             bin_path = unipath(self.root, 'bin')
 
-        old_path = os.environ.get('PATH', '')
-        os.environ['PATH'] = self.bin_path + os.pathsep + old_path
+        old_path = environ.get('PATH', '')
+        environ['PATH'] = self.bin_path + os.pathsep + old_path
 
-        old_pypath = os.environ.get('PYTHONPATH', '')
-        os.environ['PYTHONPATH'] = self.site_path + os.pathsep + ''
+        old_pypath = environ.get('PYTHONPATH', '')
+        environ['PYTHONPATH'] = self.site_path + os.pathsep + ''
 
         old_syspath = set(sys.path)
         site.addsitedir(self.site_path)
@@ -249,10 +250,10 @@ class VirtualEnvironment(object):
         sys.real_prefix = sys.prefix
         sys.prefix = self.root
 
-        os.environ['WHEELHOUSE'] = self.wheelhouse
-        os.environ['PIP_FIND_LINKS'] = self.wheelhouse
-        os.environ['PIP_WHEEL_DIR'] = self.wheelhouse
-        os.environ['CPENV_ACTIVE'] = self.root
+        environ['WHEELHOUSE'] = self.wheelhouse
+        environ['PIP_FIND_LINKS'] = self.wheelhouse
+        environ['PIP_WHEEL_DIR'] = self.wheelhouse
+        environ['CPENV_ACTIVE'] = self.root
 
     def _post_activate(self):
         '''Setup environment based on environment.yml file'''
@@ -320,7 +321,7 @@ class VirtualEnvironment(object):
     def wheelhouse(self):
         '''CPENV wheelhouse directory'''
 
-        home_path = os.environ.get('CPENV_HOME', '~/.cpenv')
+        home_path = environ.get('CPENV_HOME', '~/.cpenv')
         wheelhouse = unipath(home_path, '.wheelhouse')
         if not os.path.exists(wheelhouse):
             os.makedirs(wheelhouse)
@@ -478,7 +479,7 @@ class ApplicationModule(object):
 
         if not self.is_module:
             return
-        os.environ['CPENV_APP'] = self.root
+        environ['CPENV_APP'] = self.root
         envutil.set_env(self.environment)
 
     def launch(self):

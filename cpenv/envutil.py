@@ -204,3 +204,36 @@ def expand_env(env):
         out_env[k] = Template(v).safe_substitute(out_env)
 
     return out_env
+
+
+class Environ(object):
+    '''Makes sure all values being set in os.environ are string type and not
+    unicode.'''
+
+
+    def __init__(self, environ):
+        self.environ = environ
+
+    def __getattr__(self, attr):
+        return getattr(self.environ, attr)
+
+    def __contains__(self, item):
+        return item in self.environ
+
+    if int(sys.version[0]) < 3:
+
+        def __getitem__(self, key):
+            return self.environ[key].decode('utf8')
+
+        def __setitem__(self, key, value):
+            self.environ[key] = value.encode('utf8')
+
+    else:
+
+        def __getitem__(self, key):
+            return self.environ[key]
+
+        def __setitem__(self, key, value):
+            self.environ[key] = value
+
+environ = Environ(os.environ)
