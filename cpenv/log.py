@@ -14,7 +14,7 @@ logger.setLevel(logging.DEBUG)
 
 sh = logging.StreamHandler()
 sh.setLevel(logging.DEBUG)
-sh_formatter = logging.Formatter('%(message)s')
+sh_formatter = logging.Formatter('\n%(message)s')
 sh.setFormatter(sh_formatter)
 
 fh = logging.FileHandler(unipath('~/cpenv.log'))

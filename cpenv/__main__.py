@@ -67,8 +67,7 @@ def cli():
 @click.argument('module_repo', required=False)
 @click.option('--module', required=False, is_flag=True, default=False)
 @click.option('--config', required=False, type=click.Path(exists=True))
-@click.pass_context
-def create(ctx, name_or_path, module_repo, module, config):
+def create(name_or_path, module_repo, module, config):
     '''Create a new virtual environment.'''
 
     if module:
@@ -98,6 +97,21 @@ def create(ctx, name_or_path, module_repo, module, config):
     echo('Activating ' + env.name)
     env.activate()
     sys.exit(shell.launch(prompt_prefix=env.name))
+
+
+@cli.command()
+@click.option('--config', required=False, type=click.Path(exists=True))
+def update(config):
+    '''Update a virtual environment.'''
+
+    active_env = api.get_active_env()
+    if not active_env:
+        echo('You must activate an environment first...')
+        return
+
+    echo('Updating ' + active_env.name)
+    active_env.update(config)
+
 
 
 @cli.command()
@@ -143,8 +157,7 @@ def remove(name_or_path, module):
 
 @cli.command()
 @click.argument('name_or_path', required=False)
-@click.pass_context
-def activate(ctx, name_or_path):
+def activate(name_or_path):
     '''Activate a virtual environment.'''
 
     if not name_or_path:

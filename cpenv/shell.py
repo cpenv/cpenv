@@ -3,7 +3,22 @@
 from . import platform
 from .util import binpath
 import os
+import sys
 import subprocess
+
+
+def run(*args, **kwargs):
+    '''Returns True if successful, False if failure'''
+
+    kwargs.setdefault('env', os.environ)
+    kwargs.setdefault('shell', True)
+
+    try:
+        subprocess.check_call(args, **kwargs)
+        return True
+    except subprocess.CalledProcessError, e:
+        print str(e)
+        return False
 
 
 def cmd():
