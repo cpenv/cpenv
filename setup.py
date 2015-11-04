@@ -4,10 +4,10 @@ import sys
 import os
 
 if sys.argv[-1] == 'cheeseit!':
-    os.system('python setup.py sdist upload')
+    os.system('python setup.py sdist bdist_wheel upload')
     sys.exit()
 elif sys.argv[-1] == 'testit!':
-    os.system('python setup.py sdist upload -r pypitest')
+    os.system('python setup.py sdist bdist_wheel upload -r pypitest')
     sys.exit()
 
 
