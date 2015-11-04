@@ -370,7 +370,7 @@ class VirtualEnvironment(object):
 
         logger.debug('Updating ' + package)
         self.pip_wheel(package)
-        return shell.run(self.pip_path, 'install', '-U' package)
+        return shell.run(self.pip_path, 'install', '-U', package)
 
     def pip_update_all(self):
         '''Update all installed python packages'''
