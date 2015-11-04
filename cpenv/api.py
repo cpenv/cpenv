@@ -362,14 +362,13 @@ class VirtualEnvironment(object):
     def pip_install(self, package):
         '''Quietly install a python package using pip to'''
 
-        self.pip_wheel(package)
+        logger.debug('Installing ' + package)
         return shell.run(self.pip_path, 'install', package)
 
     def pip_update(self, package):
         '''Update a python package using pip to'''
 
         logger.debug('Updating ' + package)
-        self.pip_wheel(package)
         return shell.run(self.pip_path, 'install', '-U', package)
 
     def pip_update_all(self):
@@ -383,6 +382,7 @@ class VirtualEnvironment(object):
     def git_clone(self, repo, destination):
         '''Clone a repository to a destination relative to envrionment root'''
 
+        logger.debug('Installing ' + repo)
         if not destination.startswith(self.root):
             destination = unipath(self.root, destination)
 
@@ -391,6 +391,7 @@ class VirtualEnvironment(object):
     def git_pull(self, repo_path, *args):
         '''Clone a repository to a destination relative to envrionment root'''
 
+        logger.debug('Updating ' + repo_path)
         if not repo_path.startswith(self.root):
             repo_path = unipath(self.root, repo_path)
 
