@@ -57,27 +57,9 @@ def list_modules():
     echo('cpenv launch <module_name>')
 
 
-@click.group(invoke_without_command=True)
-@click.option(
-    '--clear_cache',
-    help='Clear path cache.',
-    required=False,
-    is_flag=True,
-    default=False)
-@click.pass_context
-def cli(ctx, clear_cache):
+@click.group()
+def cli():
     '''Python Environment Management'''
-
-    if clear_cache:
-        echo('Clear environment path cache? (y/n)')
-        echo('Any paths not in CPENV_HOME will no longer be callable by name.')
-        do_clear = True if raw_input() == 'y' else False
-        if do_clear:
-            api.CACHE.clear()
-            api.CACHE.save()
-        return
-
-    echo(ctx.get_help())
 
 
 @cli.command()
@@ -174,8 +156,19 @@ def remove(name_or_path, module):
 
 @cli.command()
 @click.argument('name_or_path', required=False)
-def activate(name_or_path):
+@click.option('--clear_cache', help='Clear path cache.', required=False,
+              is_flag=True, default=False)
+def activate(name_or_path, clear_cache):
     '''Activate a virtual environment.'''
+
+    if clear_cache:
+        echo('Clear environment path cache? (y/n)')
+        echo('Any paths not in CPENV_HOME will no longer be callable by name.')
+        do_clear = True if raw_input() == 'y' else False
+        if do_clear:
+            api.CACHE.clear()
+            api.CACHE.save()
+        return
 
     if not name_or_path:
         list_environments()
