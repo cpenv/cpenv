@@ -57,9 +57,27 @@ def list_modules():
     echo('cpenv launch <module_name>')
 
 
-@click.group()
-def cli():
+@click.group(invoke_without_command=True)
+@click.option(
+    '--clear_cache',
+    help='Clear path cache.',
+    required=False,
+    is_flag=True,
+    default=False)
+@click.pass_context
+def cli(ctx, clear_cache):
     '''Python Environment Management'''
+
+    if clear_cache:
+        echo('Clear environment path cache? (y/n)')
+        echo('Any paths not in CPENV_HOME will no longer be callable by name.')
+        do_clear = True if raw_input() == 'y' else False
+        if do_clear:
+            api.CACHE.clear()
+            api.CACHE.save()
+        return
+
+    echo(ctx.get_help())
 
 
 @cli.command()
@@ -74,7 +92,7 @@ def create(name_or_path, module_repo, module, config):
 
         if not module_repo:
             echo('Pass the path to a repo when creating an app module')
-            echo('cpenv create --module maya2016 /local_repo/maya_module')
+            echo('cpenv create --module maya2016 https://git@github.com/cpenv/maya_module.git')
 
         active_env = api.get_active_env()
         if not active_env:
@@ -111,7 +129,6 @@ def update(config):
 
     echo('Updating ' + active_env.name)
     active_env.update(config)
-
 
 
 @cli.command()

@@ -154,7 +154,7 @@ def _post_create(env, config_path=None):
             f.write(yaml.dump(environment, default_flow_style=False))
 
     if dependencies:
-        env.install_dependencies(dependencies)
+        env.install_dependencies(**dependencies)
 
 
 def deactivate():
@@ -267,7 +267,7 @@ class VirtualEnvironment(object):
         except:
             raise
 
-    def install_dependencies(self, dependencies):
+    def install_dependencies(self, **dependencies):
         '''Install dependencies in an environment'''
 
         pip_installs = dependencies.get('pip', [])
@@ -292,7 +292,7 @@ class VirtualEnvironment(object):
 
             app_module = self.add_application_module(repo, name)
             if app_module and app_module.dependencies:
-                self.install_dependencies(app_module.dependencies)
+                self.install_dependencies(**app_module.dependencies)
 
     def update(self, config_path=None):
         '''Install dependencies in an environment'''
@@ -310,7 +310,7 @@ class VirtualEnvironment(object):
             logger.debug('Updating ' + app_module.root)
             self.git_pull(app_module.root)
             if app_module.dependencies:
-                self.install_dependencies(app_module.dependencies)
+                self.install_dependencies(**app_module.dependencies)
 
     @property
     def site_path(self):
@@ -628,6 +628,11 @@ class EnvironmentCache(set):
         if env_data:
             for env in env_data:
                 self.add(VirtualEnvironment(env['root']))
+
+    def clear(self):
+        '''Clear the environment cache'''
+        for env in list(self):
+            self.remove(env)
 
     def save(self):
         '''Save the environment cache to disk.'''
