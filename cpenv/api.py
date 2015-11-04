@@ -56,7 +56,7 @@ def get_home_environments():
 
     envs = []
     for d in os.listdir(home_path):
-        if d == '.wheelhouse' or not os.path.isdir(unipath(home_path, d)):
+        if not os.path.isdir(unipath(home_path, d)):
             continue
         envs.append(VirtualEnvironment(unipath(home_path, d)))
 
@@ -233,9 +233,6 @@ class VirtualEnvironment(object):
         sys.real_prefix = sys.prefix
         sys.prefix = self.root
 
-        environ['WHEELHOUSE'] = self.wheelhouse
-        environ['PIP_FIND_LINKS'] = self.wheelhouse
-        environ['PIP_WHEEL_DIR'] = self.wheelhouse
         environ['CPENV_ACTIVE'] = self.root
 
     def _post_activate(self):
@@ -353,16 +350,6 @@ class VirtualEnvironment(object):
         return os.path.exists(self.site_path) and os.path.exists(self.bin_path)
 
     @property
-    def wheelhouse(self):
-        '''CPENV wheelhouse directory'''
-
-        home_path = environ.get('CPENV_HOME', '~/.cpenv')
-        wheelhouse = unipath(home_path, '.wheelhouse')
-        if not os.path.exists(wheelhouse):
-            os.makedirs(wheelhouse)
-        return wheelhouse
-
-    @property
     def pip_path(self):
         '''Returns path to pip for current environment'''
 
@@ -370,35 +357,20 @@ class VirtualEnvironment(object):
 
     def pip_wheel(self, package):
 
-        return shell.run(
-            self.pip_path,
-            'wheel',
-            '-w',
-            self.wheelhouse,
-            package)
+        return shell.run(self.pip_path, 'wheel', package)
 
     def pip_install(self, package):
         '''Quietly install a python package using pip to'''
 
         self.pip_wheel(package)
-        return shell.run(
-            self.pip_path,
-            'install',
-            '--no-index',
-            '--find-links=' + self.wheelhouse,
-            package)
+        return shell.run(self.pip_path, 'install', package)
 
     def pip_update(self, package):
         '''Update a python package using pip to'''
 
         logger.debug('Updating ' + package)
         self.pip_wheel(package)
-        return shell.run(
-            self.pip_path,
-            'install',
-            '--no-index',
-            '--find-links=' + self.wheelhouse,
-            package)
+        return shell.run(self.pip_path, 'install', '-U' package)
 
     def pip_update_all(self):
         '''Update all installed python packages'''
