@@ -125,7 +125,6 @@ def handle_seq(d, k, v):
         v.append(d[k])
         d[k] = v
 
-
 def dict_join(*dicts):
     '''Join a bunch of dicts'''
 

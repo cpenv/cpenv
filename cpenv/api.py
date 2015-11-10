@@ -220,7 +220,7 @@ class VirtualEnvironment(object):
         environ['PATH'] = self.bin_path + os.pathsep + old_path
 
         old_pypath = environ.get('PYTHONPATH', '')
-        environ['PYTHONPATH'] = self.site_path + os.pathsep + ''
+        environ['PYTHONPATH'] = self.site_path + os.pathsep + old_pypath
 
         old_syspath = set(sys.path)
         site.addsitedir(self.site_path)
