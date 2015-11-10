@@ -46,7 +46,7 @@ def restore_env(env_dict):
         sys.prefix = sys.real_prefix
         del(sys.real_prefix)
 
-    os.environ.data = expand_env(dict_to_env(env_dict))
+    replace_osenviron(expand_env(dict_to_env(env_dict)))
 
 
 def restore_env_from_file(env_file):
@@ -69,7 +69,7 @@ def set_env(*env_dicts):
     old_env_dict = env_to_dict(os.environ.data)
     new_env_dict = dict_join(old_env_dict, *env_dicts)
     new_env = dict_to_env(new_env_dict)
-    os.environ.data = expand_env(new_env)
+    replace_osenviron(expand_env(new_env))
 
 
 def set_env_from_file(env_file):
@@ -86,6 +86,15 @@ def set_env_from_file(env_file):
         env_dict = env_dict['environment']
 
     set_env(env_dict)
+
+
+def replace_osenviron(env_dict):
+    for k in os.environ.keys():
+        if not k in env_dict:
+            del os.environ[k]
+
+    for k, v in env_dict.iteritems():
+        os.environ[k] = v
 
 
 def handle_dict(d, k, v):
