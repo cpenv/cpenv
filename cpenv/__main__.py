@@ -2,27 +2,13 @@
 
 from .packages import yaml, click
 from . import api, shell
-from .util import unipath
+from .util import unipath, is_system_path
 import shutil
 import sys
 import logging
 
 logger = logging.getLogger('cpenv')
 echo = click.echo
-
-
-def is_path(input_str):
-    return '\\' in input_str or '/' in input_str
-
-
-def get_environments(name_or_path):
-    '''Wraps api.get_environments to take one argument that can be either the
-    name or root of an environment.'''
-
-    if is_path(name_or_path):
-        return api.get_environments(root=name_or_path)
-    else:
-        return api.get_environments(name=name_or_path)
 
 
 def list_environments():
@@ -51,8 +37,8 @@ def list_modules():
 
     echo('Available Application Modules:')
     echo('')
-    for app in active_env.get_application_modules():
-        echo('    [{}] {}'.format(app.name, app.command))
+    for mod in active_env.get_modules():
+        echo('    [{}] {}'.format(mod.name, mod.command))
     echo('')
     echo('cpenv launch <module_name>')
 
@@ -81,7 +67,7 @@ def create(name_or_path, module_repo, module, config):
             echo('No active environment...')
             return
 
-        active_env.add_application_module(module_repo, name_or_path)
+        active_env.add_module(name_or_path, module_repo)
         return
 
     echo('Creating new environment ' + name_or_path)
@@ -89,10 +75,7 @@ def create(name_or_path, module_repo, module, config):
         config = unipath(config)
         echo('Using configuration ' + config)
 
-    if is_path(name_or_path):
-        env = api.create_environment(root=name_or_path, config=config)
-    else:
-        env = api.create_environment(name=name_or_path, config=config)
+    env = api.create(name_or_path, config=config)
 
     echo('Activating ' + env.name)
     env.activate()
@@ -134,17 +117,16 @@ def remove(name_or_path, module):
             echo('No active environment...')
             return
 
-        active_env.rem_application_module(name_or_path)
+        active_env.rem_module(name_or_path)
         return
 
-    envs = get_environments(name_or_path)
-
-    if len(envs) > 1:
-        echo('More then one environment matches {}...'.format(envs[0].name))
+    try:
+        env = api.get_environment(name_or_path)
+    except NameError:
+        echo('No environment matches {}...'.format(name_or_path))
         list_environments()
         return
 
-    env = envs[0]
     echo('Delete {}? (y/n)'.format(env.root))
     do_delete = True if raw_input() == 'y' else False
     if not do_delete:
@@ -174,14 +156,13 @@ def activate(name_or_path, clear_cache):
         list_environments()
         return
 
-    envs = get_environments(name_or_path)
-
-    if len(envs) > 1:
-        echo('More then one environment matches {}...'.format(envs[0].name))
+    try:
+        env = api.get_environment(name_or_path)
+    except NameError:
+        echo('No environment matches {}...'.format(name_or_path))
         list_environments()
         return
 
-    env = envs[0]
     echo('Activating ' + env.name)
     env.activate()
     sys.exit(shell.launch(prompt_prefix=env.name))
@@ -201,7 +182,7 @@ def launch(module_name):
         echo('You must activate an environment first...')
         return
 
-    modules = active_env.get_application_modules()
+    modules = active_env.get_modules()
     for mod in modules:
         if mod.name == module_name:
             mod.launch()

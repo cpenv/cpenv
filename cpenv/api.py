@@ -1,160 +1,110 @@
-# -*- coding: utf-8 -*-
-
-import logging
 import os
-import site
-import shutil
-import subprocess
 import sys
 import virtualenv
-from . import platform, envutil, shell
-from envutil import environ
-from .util import unipath, walk_dn
-from .packages import yaml
-
-logger = logging.getLogger('cpenv')
-
-
-def get_home_path(platform=platform):
-    '''Returns the path to CPENV_HOME for the current platform.'''
-
-    home_path = environ.get('CPENV_HOME', '~/.cpenv')
-    home_platform_path = unipath(home_path, platform)
-    if not os.path.exists(home_platform_path):
-        try:
-            os.makedirs(home_platform_path)
-        except:
-            pass
-    return unipath(home_path, platform)
+from .cache import EnvironmentCache
+from .resolver import Resolver
+from .util import (
+    is_system_path, is_environment, is_home_environment, unipath, touch
+)
+from .envutil import environ
+from . import envutil, plaform
 
 
-def get_active_env():
-    '''Returns the active environment'''
+def _pre_create(path, config=None):
+    pass
 
-    active_env = environ.get('CPENV_ACTIVE', None)
-    if active_env:
-        return VirtualEnvironment(active_env)
-    return None
+def _create(path, config=None):
 
+    virtualenv.create_environment(path)
+    env = VirtualEnvironment(path)
 
-def get_home_environment(name):
-    '''Get an environment by name residing in CPENV_HOME'''
-
-    home_env = unipath(get_home_path(), name)
-    if not os.path.exists(home_env):
-        raise NameError('No environment named {0} in CPENV_HOME'.format(name))
-
-    return VirtualEnvironment(home_env)
+    if not is_home_environment(path):
+        EnvironmentCache.add(env)
 
 
-def get_home_environments():
-    '''Returns a list of VirtualEnvironment objects in CPENV_HOME'''
+def _post_create(path, config=None):
 
-    home_path = get_home_path()
-    if not os.path.exists(home_path):
-        return None
+    config_path = unipath(path, 'environment.yml')
+    if not config:
+        touch(config_path)
+        return
 
-    envs = []
-    for d in os.listdir(home_path):
-        if not os.path.isdir(unipath(home_path, d)):
-            continue
-        envs.append(VirtualEnvironment(unipath(home_path, d)))
-
-    return envs
+    shutil.copy2(config, config_path)
 
 
-def get_environments(name=None, root=None):
-    '''Lookup virtualenvs in cache and in CPENV_HOME. Return all environments
-    in the cache and cpenv_home if neither name or root arguments are passed.
+def create(name_or_path=None, config=None):
+    '''Create a virtual environment. You can pass either the name of a new
+    environment to create in your CPENV_HOME directory OR specify a full path
+    to create an environment outisde your CPENV_HOME.
 
-    :param name: Lookup environment by name
-    :param root: Lookup environment by root
+    Create an environment in CPENV_HOME::
+
+        >>> cpenv.create('myenv')
+
+    Create an environment elsewhere::
+
+        >>> cpenv.create('~/custom_location/myenv')
+
+    :param name_or_path: Name or full path of environment
+    :param config: Environment configuration including dependencies etc...
     '''
 
-    if not name and not root:
-        return list(CACHE.union(set(get_home_environments())))
-
-    if root:
-        root = unipath(root)
-        if os.path.exists(root):
-            env = VirtualEnvironment(root)
-            CACHE.add(env)
-            CACHE.save()
-            return [env]
+    if is_system_path(name_or_path):
+        path = unipath(name_or_path)
     else:
-        root = '_FALSE_'
+        path = unipath(get_home_path(), name_or_path)
 
-    found = set()
-    for env in CACHE:
-        if env.name == name or env.root.startswith(root):
-            found.add(env)
+    _pre_create(path, config=config)
+    _create(path, config=config)
+    _post_create(path, config=config)
 
-    for env in get_home_environments():
-        if env.name == name or env.root.startswith(root):
-            found.add(env)
-
-    return list(found)
+    env = VirtualEnvironment(path)
+    return env
 
 
-def create_environment(name=None, root=None, config=None):
-    '''Create a virtual envrionment in the specified root.
+def activate(name_or_path, *modules):
+    '''Activate a virtual environment by name or path. Additional args refer
+    to modules residing in the specified environment that you would
+    also like to activate.
 
-    :param name: Name of the environment to create in cpenv_home
-    :param root: Root path for new environment
-    :param config: Optional environment configuration to use for post creation
+    Activate an environment::
+
+        >>> cpenv.activate('myenv')
+
+    Activate an environment with some modules::
+
+        >>> cpenv.activate('myenv', 'maya', 'mtoa', 'vray_for_maya')
+
+    :param name_or_path: Name or full path of environment
+    :param modules: Additional modules to activate
     '''
 
-    if not name and not root:
-        raise ValueError('Must pass either name or root keyword argument')
+    env = get_environment(name_or_path)
+    env.activate()
 
-    if name:
-        root = unipath(get_home_path(), name)
-
-    if os.path.exists(root):
-        raise EnvironmentError('{0} already exists.'.format(name))
-
-    virtualenv.create_environment(root)
-    env = VirtualEnvironment(root)
-
-    os.makedirs(os.path.join(env.root, 'appmodules'))
-
-    if config and not os.path.exists(config):
-        logger.debug('Config does not exist: {0}'.format(config))
-        _post_create(env)
-
-    try:
-        _post_create(env, config)
-    except:
-        logger.debug('Failed to configure environment...')
-        raise
-
-    CACHE.add(env)
-    CACHE.save()
+    if modules:
+        activate_modules(*modules)
 
     return env
 
 
-def _post_create(env, config_path=None):
-    '''Configures a virtualenv using the passed configuration file'''
+def activate_modules(*modules):
+    '''After you have activated a virtual environment, use this to activate
+    a bunch of the environments modules.
 
-    env.pip_update('pip')
-    env.pip_update('wheel')
+    :param modules: Modules to be activated
+    '''
 
-    if not config_path:
-        return
+    active = get_active_env()
+    if not active:
+        raise EnvironmentError('No environment currently active...')
 
-    with open(config_path, 'r') as f:
-        config = yaml.load(f.read())
-
-    environment = config.get('environment', None)
-    dependencies = config.get('dependencies', None)
-
-    if environment:
-        with open(unipath(env.root, 'environment.yml'), 'w') as f:
-            f.write(yaml.dump(environment, default_flow_style=False))
-
-    if dependencies:
-        env.install_dependencies(**dependencies)
+    for module in modules:
+        mod = env.get_module(module, None)
+        if mod:
+            mod.activate()
+        else:
+            raise EnvironmentError('Could not find module: ' + module)
 
 
 def deactivate():
@@ -170,6 +120,62 @@ def deactivate():
     envutil.restore_env_from_file(environ['CPENV_CLEAN_ENV'])
 
 
+def get_home_path():
+    home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
+    if not os.path.exists(home):
+        os.makedirs(home)
+    return home
+
+
+def get_active_env():
+    '''Returns the active environment as a VirtualEnvironment instance or
+    None if one is not active.
+    '''
+
+    active = os.environ.get('CPENV_ACTIVE', None)
+    if active:
+        return VirtualEnvironment(active)
+
+
+def get_environments():
+    '''Returns a list of all known virtual environments as VirtualEnvironment
+    instances. This includes those in CPENV_HOME and any others that are
+    cached(created by the current user or activated once by full path.)
+    '''
+
+    environments = []
+
+    cwd = os.getcwd()
+    for d in os.listdir(cwd):
+
+        if d == 'environment.yml':
+            environments.append(VirtualEnvironment(cwd))
+            continue
+
+        path = unipath(cwd, d)
+        if is_environment(path):
+            environments.append(VirtualEnvironment(path))
+
+    home = get_home_path()
+    for d in os.listdir(home):
+
+        path = unipath(home, d)
+        if is_environment(path):
+            environments.append(VirtualEnvironment(path))
+
+    for env in EnvironmentCache:
+        environments.append(env)
+
+    return environments
+
+
+def get_environment(name_or_path):
+
+    resolver = Resolver(name_or_path)
+    path = resolver.resolve()
+    return VirtualEnvironment(path)
+
+
 class VirtualEnvironment(object):
     '''Manage a virtual environment'''
 
@@ -178,7 +184,7 @@ class VirtualEnvironment(object):
         self.root = unipath(root)
         self.env_file = unipath(root, 'environment.yml')
         self.name = os.path.basename(root)
-        self.modules_root = unipath(root, 'appmodules')
+        self.modules_root = unipath(root, 'modules')
 
     def __eq__(self, other):
         if isinstance(other, VirtualEnvironment):
@@ -421,26 +427,27 @@ class VirtualEnvironment(object):
 
         return repos
 
-    def get_application_modules(self):
-        '''Get all ApplicationModules this environment contains'''
+    def get_modules(self):
+        '''Get all Modules this environment contains'''
 
         modules = []
         for d in os.listdir(self.modules_root):
-            modules.append(ApplicationModule(unipath(self.modules_root, d)))
+            modules.append(Module(unipath(self.modules_root, d)))
         return modules
 
-    def get_application_module(self, name):
-        '''Get an ApplicationModule by name'''
+    def get_module(self, name):
+        '''Get an Module by name'''
 
-        for mod in self.get_application_modules():
-            if mod.name == name:
-                return mod
+        path = unipath(self.modules_root, name)
 
-    def add_application_module(self, repo, name):
-        '''Add a new application module to this environment.
+        if os.path.exists(path):
+            return Module(path)
 
-        :param repo: Repository path to application module
-        :param name: Name to use for application module
+    def add_module(self, name, repo):
+        '''Add a new module to this environment.
+
+        :param repo: Repository path to module
+        :param name: Name to use for module
         '''
 
         if not os.path.exists(self.modules_root):
@@ -452,27 +459,27 @@ class VirtualEnvironment(object):
 
         app_root = unipath(self.modules_root, name)
         self.git_clone(repo, app_root)
-        return ApplicationModule(app_root)
+        return Module(app_root)
 
-    def rem_application_module(self, name):
-        '''Remove an application module by name'''
+    def remove_module(self, name):
+        '''Remove an module by name'''
 
-        mod = self.get_application_module(name)
+        mod = self.get_module(name)
         if mod:
             mod.remove()
 
 
-class ApplicationModule(object):
+class Module(object):
 
     def __init__(self, root):
         self.root = root
         self.name = os.path.basename(self.root)
-        self.mod_file = unipath(self.root, 'appmodule.yml')
+        self.mod_file = unipath(self.root, 'module.yml')
         self._data = None
         self._launch_cmd = None
 
     def __eq__(self, other):
-        if isinstance(other, ApplicationModule):
+        if isinstance(other, Module):
             return self.root == other.root
         return self.root == other
 
@@ -480,7 +487,7 @@ class ApplicationModule(object):
         return hash(self.root)
 
     def __repr__(self):
-        return '<ApplicationModule>({0})'.format(self.name)
+        return '<Module>({0})'.format(self.name)
 
     @property
     def is_active(self):
@@ -493,7 +500,7 @@ class ApplicationModule(object):
 
     @property
     def is_module(self):
-        '''Is this really an application module?'''
+        '''Is this really an module?'''
 
         return os.path.exists(self.mod_file)
 
@@ -508,7 +515,7 @@ class ApplicationModule(object):
 
     @property
     def command(self):
-        '''Command used to launch this application module'''
+        '''Command used to launch this module'''
 
         cmd = self.data.get('command', None)
         if cmd:
@@ -533,7 +540,7 @@ class ApplicationModule(object):
         shutil.rmtree(self.root)
 
     def activate(self):
-        '''Active this application modules environment configured in
+        '''Active this modules environment configured in
         appmodule.yml
         '''
 
@@ -543,7 +550,7 @@ class ApplicationModule(object):
         envutil.set_env(self.environment)
 
     def launch(self):
-        '''Launch this application module. Launch command configured in
+        '''Launch this module. Launch command configured in
         appmodule.yml
         '''
 
@@ -563,58 +570,3 @@ class ApplicationModule(object):
             launch_kwargs['creationflags'] = detached
 
         subprocess.Popen(self.command, **launch_kwargs)
-
-
-class EnvironmentCache(set):
-    '''Cache VirtualEnvironment objects to disk.'''
-
-    def __init__(self, path):
-        super(EnvironmentCache, self).__init__()
-        self.path = path
-
-        if not os.path.exists(self.path):
-            root = os.path.dirname(self.path)
-            if not os.path.exists(root):
-                os.makedirs(root)
-            with open(self.path, 'a'):
-                os.utime(self.path, None)
-        else:
-            self.load()
-            self.validate()
-
-    def validate(self):
-        '''Validate all the entries in the environment cache.'''
-
-        for env in list(self):
-            if not env.exists or not env.is_valid:
-                self.remove(env)
-
-    def load(self):
-        '''Load the environment cache from disk.'''
-
-        if not os.path.exists(self.path):
-            return
-
-        with open(self.path, 'r') as f:
-            env_data = yaml.load(f.read())
-
-        if env_data:
-            for env in env_data:
-                self.add(VirtualEnvironment(env['root']))
-
-    def clear(self):
-        '''Clear the environment cache'''
-        for env in list(self):
-            self.remove(env)
-
-    def save(self):
-        '''Save the environment cache to disk.'''
-
-        env_data = [dict(name=env.name, root=env.root) for env in self]
-        encode = yaml.safe_dump(env_data, default_flow_style=False)
-
-        with open(self.path, 'w') as f:
-            f.write(encode)
-
-# Instantiate EnvironmentCache
-CACHE = EnvironmentCache(unipath('~/.cpenv', 'envcache.yml'))

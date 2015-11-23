@@ -5,10 +5,25 @@ import os
 package_root = os.path.dirname(__file__)
 
 
+def is_home_environment(path):
+    home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
+    path = unipath(path)
+
+    return path.startswith(home)
+
+
+def is_environment(env_candidate):
+    return os.path.exists(unipath(env_candidate, 'environment.yml'))
+
+
+def is_system_path(path):
+    return '\\' in path or '/' in path
+
+
 def expandpath(path):
     '''Expand user and envvars in path.'''
 
-    return os.path.expandvars(os.path.expanduser(path))
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
 
 def unipath(*paths):
@@ -35,3 +50,9 @@ def walk_dn(start_dir, depth=10):
 
         if len(os.path.split(root)) >= end_depth:
             break
+
+
+def touch(filepath):
+
+    with open(filepath, 'a') as f:
+        os.utime(filepath, None)
