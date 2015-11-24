@@ -77,7 +77,7 @@ class VirtualEnvironment(object):
         pass
 
     def add_module(self, name, git_repo):
-        pass
+        return self.git.clone(git_repo, unipath(self.module_path, name))
 
     def rem_module(self, name):
         module_path = unipath(self.modules_path, name)
