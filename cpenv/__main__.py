@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .packages import yaml, click
+from .packages import click
 from . import api, shell
-from .util import unipath, is_system_path
-import shutil
+from .cache import EnvironmentCache
+from .utils import unipath
 import sys
 import logging
 
@@ -22,7 +22,7 @@ def list_environments():
         echo('Available Environments:')
         echo('')
         for env in envs:
-            echo('    [{}] {}'.format(env.name, env.root))
+            echo('    [{}] {}'.format(env.name, env.path))
         echo('')
         echo('cpenv activate <name_or_path>')
 
@@ -60,7 +60,8 @@ def create(name_or_path, module_repo, module, config):
 
         if not module_repo:
             echo('Pass the path to a repo when creating an app module')
-            echo('cpenv create --module maya2016 https://git@github.com/cpenv/maya_module.git')
+            echo('cpenv create --module maya2016 '
+                 'https://git@github.com/cpenv/maya_module.git')
 
         active_env = api.get_active_env()
         if not active_env:
@@ -127,12 +128,10 @@ def remove(name_or_path, module):
         list_environments()
         return
 
-    echo('Delete {}? (y/n)'.format(env.root))
-    do_delete = True if raw_input() == 'y' else False
-    if not do_delete:
+    if not click.confirm('Delete {}? (y/n)'.format(env.path)):
         return
 
-    echo('Removing environment ' + env.root)
+    echo('Removing environment ' + env.path)
     env.remove()
 
 
@@ -144,12 +143,10 @@ def activate(name_or_path, clear_cache):
     '''Activate a virtual environment.'''
 
     if clear_cache:
-        echo('Clear environment path cache? (y/n)')
         echo('Any paths not in CPENV_HOME will no longer be callable by name.')
-        do_clear = True if raw_input() == 'y' else False
-        if do_clear:
-            api.CACHE.clear()
-            api.CACHE.save()
+        if click.confirm('Clear environment path cache? (y/n)'):
+            EnvironmentCache.clear()
+            EnvironmentCache.save()
         return
 
     if not name_or_path:

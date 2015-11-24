@@ -21,11 +21,12 @@ def cwd(new_cwd):
 
 def touch(filepath):
 
-    with open(filepath, 'a') as f:
+    with open(filepath, 'a'):
         os.utime(filepath, None)
 
 
-def make_files(*filepaths):
+def make_files(*filepaths, **kwargs):
+    data = kwargs.get('data', None)
 
     for filepath in filepaths:
         d = os.path.dirname(filepath)
@@ -35,4 +36,8 @@ def make_files(*filepaths):
         except:
             pass
 
-        touch(filepath)
+        if not data:
+            touch(filepath)
+        else:
+            with open(filepath, 'w') as f:
+                f.write(data)

@@ -3,7 +3,6 @@
 from . import platform
 from .util import binpath
 import os
-import sys
 import subprocess
 
 
@@ -16,8 +15,8 @@ def run(*args, **kwargs):
     try:
         subprocess.check_call(args, **kwargs)
         return True
-    except subprocess.CalledProcessError, e:
-        print str(e)
+    except subprocess.CalledProcessError as e:
+        print(str(e))
         return False
 
 
@@ -58,9 +57,9 @@ def prompt(prefix=None, colored=True):
     else:
         if colored:
             return (
-                '[{0}] ' # White prefix
-                '\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\] ' # Green user@host
-                '\\[\\033[01;34m\\]\\w $ \\[\\033[00m\\]' # Blue cwd $
+                '[{0}] '  # White prefix
+                '\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\] '  # Green user@host
+                '\\[\\033[01;34m\\]\\w $ \\[\\033[00m\\]'  # Blue cwd $
             ).format(prefix)
         return '[{0}] \\u@\\h \\w $ '.format(prefix)
 

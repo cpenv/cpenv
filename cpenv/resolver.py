@@ -1,7 +1,9 @@
-import os
+# -*- coding: utf-8 -*-
+
+from .models import VirtualEnvironment
 from .util import unipath, is_environment
 from .cache import EnvironmentCache
-from .envutil import dict_join, expand_env
+from .utils import join_dicts, set_env
 
 
 class Resolver(object):
@@ -32,20 +34,18 @@ class Resolver(object):
 
         self.paths = args
         self.cache = kwargs.get('cache', EnvironmentCache)
-        self._resolved = []
-        self._combined = {}
+        self.resolved = None
+        self.combined = None
 
     def resolve(self):
 
-        if self._resolved:
-            return self._resolved
-
+        self.resolved = []
         paths = list(self.paths)
 
         for resolver in resolvers:
             try:
-                self._resolved.append(resolver(self, paths[0]))
-                path = paths.pop(0)
+                self.resolved.append(resolver(self, paths[0]))
+                paths.pop(0)
                 break
             except NameError:
                 continue
@@ -53,27 +53,28 @@ class Resolver(object):
         for path in paths:
             for resolver in module_resolvers:
                 try:
-                    self._resolved.append(resolver(self, path))
+                    self.resolved.append(resolver(self, path))
                     break
                 except NameError:
                     continue
             else:
-                raise NameError('Could not find an environment: '+ self.path)
+                raise NameError('Could not find an environment: ' + path)
 
-        return self._resolved
+        return self.resolved
 
     def combine(self):
 
-        if self._combined:
-            return self._combined
+        if not self.resolved:
+            raise ValueError('You must call Resolver.resolve first.')
 
-        self._combined = dict_join(*[e.environment for e in self.resolved()])
-        return self._combined
+        return join_dicts(*[obj.environment for obj in self.resolved])
 
     def activate(self):
+
         set_env(self.combine())
-        for e in self.resolved():
-            e.activate()
+
+        for obj in self.resolved:
+            obj.activate()
 
 
 def path_resolver(resolver, path):
@@ -141,7 +142,6 @@ def active_env_module_resolver(resolver, path):
         raise NameError
 
     return mod
-
 
 
 resolvers = [

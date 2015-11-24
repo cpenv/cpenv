@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import os
 from .packages import yaml
-from .util import unipath
+from .utils import unipath
+from .models import VirtualEnvironment
 
 
 class EnvironmentCache(set):
@@ -63,5 +66,6 @@ class EnvironmentCache(set):
 
         with open(self.path, 'w') as f:
             f.write(encode)
+
 
 EnvironmentCache = EnvironmentCache(unipath('~/.cpenv', 'envcache.yml'))

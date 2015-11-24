@@ -13,7 +13,7 @@ import sys
 import os
 
 platform = sys.platform.rstrip('1234567890').lower()
-if platform == 'darwin': # Use osx instead of darwin
+if platform == 'darwin':  # Use osx instead of darwin
     platform = 'osx'
 os.environ['CPENV_PLATFORM'] = platform
 

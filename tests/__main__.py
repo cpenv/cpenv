@@ -3,7 +3,7 @@ import sys
 
 
 def main(*args):
-    print '\n\nRunning Test Suite...\n\n'
+    print('\n\nRunning Test Suite...\n\n')
 
     if 'cover' in args:
         cmd = 'nosetests -v --nocapture --with-coverage --cover-package=cpenv'
@@ -14,4 +14,4 @@ def main(*args):
 
 
 if __name__ == '__main__':
-    main()
+    main(*sys.argv)
