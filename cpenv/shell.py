@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from . import platform
+from .log import logger
 from .util import binpath
 import os
 import subprocess
@@ -13,10 +14,10 @@ def run(*args, **kwargs):
     kwargs.setdefault('shell', True)
 
     try:
-        subprocess.check_call(args, **kwargs)
+        subprocess.check_call(' '.join(args), **kwargs)
         return True
-    except subprocess.CalledProcessError as e:
-        print(str(e))
+    except subprocess.CalledProcessError:
+        logger.debug()
         return False
 
 

@@ -21,9 +21,9 @@ Activate an environment by name or path
     >>> myenv = cpenv.activate('~/.cpenv/myenv')
 
 
-Application Modules
-===================
-Application modules are composable sub-environments used to configure specific applications within an environment. Let's add the default module for Autodesk Maya to the previously created environment.
+Modules
+=======
+Modules are composable sub-environments used to configure specific applications within an environment. Let's add the default module for Autodesk Maya to the previously created environment.
 
 ::
 

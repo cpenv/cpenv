@@ -128,7 +128,7 @@ def remove(name_or_path, module):
         list_environments()
         return
 
-    if not click.confirm('Delete {}? (y/n)'.format(env.path)):
+    if not click.confirm('Delete {}?'.format(env.path)):
         return
 
     echo('Removing environment ' + env.path)
@@ -136,38 +136,32 @@ def remove(name_or_path, module):
 
 
 @cli.command()
-@click.argument('name_or_path', required=False)
+@click.argument('paths', nargs=-1, required=False)
 @click.option('--clear_cache', help='Clear path cache.', required=False,
               is_flag=True, default=False)
-def activate(name_or_path, clear_cache):
+def activate(paths, clear_cache):
     '''Activate a virtual environment.'''
 
     if clear_cache:
         echo('Any paths not in CPENV_HOME will no longer be callable by name.')
-        if click.confirm('Clear environment path cache? (y/n)'):
+        if click.confirm('Clear environment path cache?'):
             EnvironmentCache.clear()
             EnvironmentCache.save()
         return
 
-    if not name_or_path:
+    if not paths:
         list_environments()
         return
 
-    try:
-        env = api.get_environment(name_or_path)
-    except NameError:
-        echo('No environment matches {}...'.format(name_or_path))
-        list_environments()
-        return
-
-    echo('Activating ' + env.name)
-    env.activate()
-    sys.exit(shell.launch(prompt_prefix=env.name))
+    echo('Activating ' + ' '.join(paths))
+    api.activate(*paths)
+    sys.exit(shell.launch(prompt_prefix=paths[0]))
 
 
 @cli.command()
 @click.argument('module_name', required=False)
-def launch(module_name):
+@click.argument('args', nargs=-1, required=False)
+def launch(module_name, args):
     '''Launch an application module'''
 
     if not module_name:
@@ -182,7 +176,7 @@ def launch(module_name):
     modules = active_env.get_modules()
     for mod in modules:
         if mod.name == module_name:
-            mod.launch()
+            mod.launch(*args)
             return
 
     echo('Application module named {} does not exist...'.format(module_name))

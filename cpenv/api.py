@@ -7,36 +7,8 @@ from .cache import EnvironmentCache
 from .resolver import Resolver
 from .utils import unipath, touch
 from .models import VirtualEnvironment
+from .hooks import run_global_hook
 from . import utils
-
-
-def _pre_create(path, config=None):
-    pass
-
-
-def _create(path, config=None):
-
-    virtualenv.create_environment(path)
-    env = VirtualEnvironment(path)
-
-    if not utils.is_home_environment(path):
-        EnvironmentCache.add(env)
-
-
-def _post_create(path, config=None):
-
-    # Copy config file into environment
-    config_path = unipath(path, 'environment.yml')
-    if not config:
-        touch(config_path)
-        return
-
-    shutil.copy2(config, config_path)
-
-    # Create hooks and modules folders
-    for d in ['hooks', 'modules']:
-        os.mkdir(unipath(path, 'hooks'))
-        os.mkdir(unipath(path, 'modules'))
 
 
 def create(name_or_path=None, config=None):
@@ -56,16 +28,40 @@ def create(name_or_path=None, config=None):
     :param config: Environment configuration including dependencies etc...
     '''
 
+    # Get the real path of the environment
     if utils.is_system_path(name_or_path):
         path = unipath(name_or_path)
     else:
         path = unipath(get_home_path(), name_or_path)
 
-    _pre_create(path, config=config)
-    _create(path, config=config)
-    _post_create(path, config=config)
+    if os.path.exists(path):
+        raise OSError('{} already exists'.format(path))
+
+    os.makedirs(path)
+
+    # Create hooks and modules folders
+    for d in ['hooks', 'modules']:
+        os.mkdir(unipath(path, d))
+
+    # Copy config file into environment
+    config_path = unipath(path, 'environment.yml')
+    if not config:
+        touch(config_path)
+    else:
+        shutil.copy2(config, config_path)
 
     env = VirtualEnvironment(path)
+
+    run_global_hook('precreate', env)
+
+    virtualenv.create_environment(env.path)
+    if not utils.is_home_environment(env.path):
+        EnvironmentCache.add(env)
+
+    env.update()
+
+    run_global_hook('postcreate', env)
+
     return env
 
 
@@ -114,6 +110,8 @@ def deactivate():
 
 
 def get_home_path():
+    '''Returns your home path...CPENV_HOME env var OR ~/.cpenv'''
+
     home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
     if not os.path.exists(home):
         os.makedirs(home)

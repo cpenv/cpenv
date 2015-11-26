@@ -7,7 +7,7 @@ is_py2 = version == 2
 is_py3 = version == 3
 
 if is_py2:
-    string_types = (str, basestring)
+    string_types = (str, basestring, unicode)
     numeric_types = (int, long, float)
 
 if is_py3:

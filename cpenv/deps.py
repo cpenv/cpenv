@@ -47,7 +47,7 @@ class Pip(object):
     '''Wrapped Pip Commands'''
 
     def __init__(self, pip_path):
-        self.pip_path = pip_path
+        self.pip_path = str(pip_path)
 
     def wheel(self, package):
         '''pip wheel it'''
@@ -60,9 +60,9 @@ class Pip(object):
         logger.debug('Installing ' + package)
         return shell.run(self.pip_path, 'install', package)
 
-    def update(self, package):
+    def upgrade(self, package):
         '''Update a python package using pip'''
 
-        logger.debug('Updating ' + package)
-        shell.run(self.pip_path, 'install', '-U', '--nodeps', package)
+        logger.debug('Upgrading ' + package)
+        shell.run(self.pip_path, 'install', '--upgrade', '--no-deps', package)
         return self.install(package)
