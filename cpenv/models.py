@@ -129,6 +129,8 @@ class BaseEnvironment(object):
                     repo['name'],
                     repo['repo'],
                     repo['branch'])
+            else:
+                module = self.get_module(repo['name'])
 
             more_updated = module.update()
             updated.append(repo['name'])
