@@ -17,7 +17,7 @@ def run(*args, **kwargs):
         subprocess.check_call(' '.join(args), **kwargs)
         return True
     except subprocess.CalledProcessError:
-        logger.debug()
+        logger.debug('Error running: {}'.format(args))
         return False
 
 

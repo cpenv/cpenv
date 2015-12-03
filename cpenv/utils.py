@@ -73,17 +73,17 @@ def touch(filepath):
         os.utime(filepath, None)
 
 
-def _pre_dict(d, variables):
+def _pre_dict(d):
 
     value = d.get(platform)
-    value = PREPROCESSORS[type(value)](value, variables)
+    value = PREPROCESSORS[type(value)](value)
     return value
 
 
-def _pre_seq(seq, variables):
+def _pre_seq(seq):
     value = []
     for item in seq:
-        item_value = PREPROCESSORS[type(item)](item, variables)
+        item_value = PREPROCESSORS[type(item)](item)
         if isinstance(item_value, (list, tuple, set)):
             value.extend(item_value)
         else:
@@ -91,8 +91,8 @@ def _pre_seq(seq, variables):
     return value
 
 
-def _pre_str(s, variables):
-    return Template(str(s)).safe_substitute(variables)
+def _pre_str(s):
+    return str(s)
 
 
 PREPROCESSORS = {
@@ -107,12 +107,11 @@ PREPROCESSORS.update(
 )
 
 
-def preprocess_dict(d, variables):
+def preprocess_dict(d):
     '''
     Preprocess a dict to be used as environment variables.
 
     :param d: dict to be processed
-    :param variables: variables expanded during processing
     '''
 
     out_env = {}
@@ -121,7 +120,7 @@ def preprocess_dict(d, variables):
         if not type(v) in PREPROCESSORS:
             raise KeyError('Invalid type in dict: {}'.format(type(v)))
 
-        out_env[k] = PREPROCESSORS[type(v)](v, variables)
+        out_env[k] = PREPROCESSORS[type(v)](v)
 
     return out_env
 

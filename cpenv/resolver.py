@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .models import VirtualEnvironment
+from .models import VirtualEnvironment, Module
 from .util import unipath, is_environment
 from .cache import EnvironmentCache
 from .utils import join_dicts, set_env
@@ -79,10 +79,17 @@ class Resolver(object):
             obj.activate()
 
 
+def path_is_venv_resolver(resolver, path):
+    '''Checks if path is already a VirtualEnvironment'''
+
+    if isinstance(path, VirtualEnvironment):
+        return path
+
+    raise NameError
+
+
 def path_resolver(resolver, path):
     '''Resolves VirtualEnvironments with a relative or absolute path'''
-
-    from .api import VirtualEnvironment
 
     path = unipath(path)
 
@@ -95,7 +102,7 @@ def path_resolver(resolver, path):
 def home_resolver(resolver, path):
     '''Resolves VirtualEnvironments in CPENV_HOME'''
 
-    from .api import VirtualEnvironment, get_home_path
+    from .api import get_home_path
 
     path = unipath(get_home_path(), path)
 
@@ -111,6 +118,15 @@ def cache_resolver(resolver, path):
     env = resolver.cache.find(path)
     if env:
         return env
+
+    raise NameError
+
+
+def path_is_module_resolver(resolver, path):
+    '''Checks if path is already a :class:`Module` object'''
+
+    if isinstance(path, Module):
+        return path
 
     raise NameError
 
@@ -147,12 +163,14 @@ def active_env_module_resolver(resolver, path):
 
 
 resolvers = [
+    path_is_venv_resolver,
     path_resolver,
     home_resolver,
     cache_resolver,
 ]
 
 module_resolvers = [
-    active_env_module_resolver,
+    path_is_module_resolver,
     module_resolver,
+    active_env_module_resolver,
 ]

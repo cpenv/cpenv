@@ -5,6 +5,7 @@ import shutil
 import site
 import sys
 import subprocess
+from string import Template
 from .hooks import HookFinder, get_global_hook_path
 from .utils import unipath
 from .deps import Git, Pip
@@ -19,8 +20,8 @@ class BaseEnvironment(object):
     def __init__(self, path):
         self.path = unipath(path)
         self.name = os.path.basename(self.path)
-        self.config_path = self.relative_path(self.path, 'environment.yml')
-        self.hook_path = self.relative_path(self.path, 'hooks')
+        self.config_path = self.relative_path('environment.yml')
+        self.hook_path = self.relative_path('hooks')
         self._config = None
         self._environ = None
 
@@ -55,10 +56,18 @@ class BaseEnvironment(object):
         return all([os.path.exists(path) for path in paths])
 
     @property
+    def bare_config(self):
+        with open(self.config_path, 'r') as f:
+            config = f.read()
+
+        return config
+
+    @property
     def config(self):
         if self._config is None:
-            with open(self.config_path, 'r') as f:
-                self._config = yaml.load(f.read()) or {}
+            bare = Template(self.bare_config)
+            formatted = bare.safe_substitute(self.variables)
+            self._config = yaml.load(formatted)
 
         return self._config
 
@@ -69,11 +78,9 @@ class BaseEnvironment(object):
     @property
     def environment(self):
         if self._environ is None:
-            self._environ = utils.preprocess_dict(
-                self.config.get('environment', {}),
-                variables=self.variables,
-            )
-
+            env = self.config.get('environment', {})
+            if env:
+                self._environ = utils.preprocess_dict(env)
         return self._environ
 
     def activate(self):
@@ -95,28 +102,36 @@ class BaseEnvironment(object):
             if package in updated:
                 continue
 
-            self.pip.update(package)
-            updated.append('package')
+            self.pip.upgrade(package)
+            updated.append(package)
 
-        for repo, destination in git_clones:
-            destination = unipath(self.path, destination)
+        for repo in git_clones:
+            destination = unipath(self.path, repo['path'])
             if destination in updated:
                 continue
 
             if not os.path.exists(destination):
-                self.git.clone(repo, destination)
+                self.git.clone(
+                    repo['repo'],
+                    repo['path'],
+                    repo.get('branch', None)
+                )
             else:
                 self.git.pull(destination)
-            updated.append('destination')
+            updated.append(destination)
 
-        for repo, name in modules:
-            if name in updated:
+        for repo in modules:
+            if repo['name'] in updated:
                 continue
 
-            if name not in os.listdir(self.modules_path):
-                module = self.add_module(repo, name)
+            if repo['name'] not in os.listdir(self.modules_path):
+                module = self.add_module(
+                    repo['name'],
+                    repo['repo'],
+                    repo['branch'])
+
             more_updated = module.update()
-            updated.append(name)
+            updated.append(repo['name'])
             updated.extend(more_updated)
 
         return updated
@@ -127,7 +142,8 @@ class VirtualEnvironment(BaseEnvironment):
     def __init__(self, path):
         super(VirtualEnvironment, self).__init__(path)
 
-        self.modules_path = unipath(self.path, 'modules')
+        self.config_path = self.relative_path('environment.yml')
+        self.modules_path = self.relative_path('modules')
         self.hook_finder = HookFinder(self.hook_path, get_global_hook_path())
         self.pip = Pip(unipath(self.bin_path, 'pip'))
         self.git = Git(self.path)
@@ -142,26 +158,23 @@ class VirtualEnvironment(BaseEnvironment):
     @property
     def variables(self):
         return {
-            'CPENV_ENVIRON': self.path,
-            'CPENV_PLATFORM': platform,
-            'CPENV_PYVER': sys.version[:3],
+            'ENVIRON': self.path,
+            'PLATFORM': platform,
+            'PYVER': sys.version[:3],
         }
 
     @property
     def environment(self):
         if self._environ is None:
-            environ = self.config.get('environment', {})
+            env = self.config.get('environment', {})
             additional = {
                 'PATH': [self.bin_path],
                 'PYTHONPATH': [self.site_path],
                 'CPENV_ACTIVE': [self.path],
                 'CPENV_ACTIVE_MODULES': self.active_modules(),
             }
-            environ = utils.join_dicts(additional, environ)
-            self._environ = utils.preprocess_dict(
-                environ,
-                variables=self.variables,
-            )
+            env = utils.join_dicts(additional, env)
+            self._environ = utils.preprocess_dict(env)
 
         return self._environ
 
@@ -262,11 +275,16 @@ class VirtualEnvironment(BaseEnvironment):
             modules.remove(module.name)
         os.environ['CPENV_ACTIVE_MODULES'] = ' '.join(modules)
 
-    def add_module(self, name, git_repo):
+    def add_module(self, name, git_repo, git_branch=None):
         module = Module(unipath(self.modules_path, name))
         module.run_hook('premodulecreate')
-        self.git.clone(git_repo, unipath(self.module_path, name))
+        self.git.clone(
+            git_repo,
+            unipath(self.modules_path, name),
+            git_branch
+        )
         module.run_hook('postmodulecreate')
+        return module
 
     def rem_module(self, name):
         module = self.get_module(name)
@@ -291,10 +309,11 @@ class Module(BaseEnvironment):
 
     def __init__(self, path, parent=None):
         super(Module, self).__init__(path)
+        self.config_path = self.relative_path('module.yml')
         if parent:
             self.parent
         else:
-            self.parent = VirtualEnvironment(unipath(self.path, '..', '..'))
+            self.parent = VirtualEnvironment(self.relative_path('..', '..'))
         self.hook_finder = HookFinder(
             self.hook_path,
             self.parent.hook_path,
@@ -324,10 +343,10 @@ class Module(BaseEnvironment):
     @property
     def variables(self):
         return {
-            'CPENV_ENVIRON': self.parent.path,
-            'CPENV_MODULE': self.path,
-            'CPENV_PLATFORM': platform,
-            'CPENV_PYVER': sys.version[:3],
+            'ENVIRON': self.parent.path,
+            'MODULE': self.path,
+            'PLATFORM': platform,
+            'PYVER': sys.version[:3],
         }
 
     @property

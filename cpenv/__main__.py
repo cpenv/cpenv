@@ -79,7 +79,7 @@ def create(name_or_path, module_repo, module, config):
     env = api.create(name_or_path, config=config)
 
     echo('Activating ' + env.name)
-    env.activate()
+    api.activate(env)
     sys.exit(shell.launch(prompt_prefix=env.name))
 
 
@@ -155,7 +155,8 @@ def activate(paths, clear_cache):
 
     echo('Activating ' + ' '.join(paths))
     api.activate(*paths)
-    sys.exit(shell.launch(prompt_prefix=paths[0]))
+    env = api.get_active_env()
+    sys.exit(shell.launch(prompt_prefix=env.name))
 
 
 @cli.command()

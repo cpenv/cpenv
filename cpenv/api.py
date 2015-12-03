@@ -58,7 +58,11 @@ def create(name_or_path=None, config=None):
     if not utils.is_home_environment(env.path):
         EnvironmentCache.add(env)
 
-    env.update()
+    try:
+        env.update()
+    except:
+        shutil.rmtree(path)
+        raise
 
     run_global_hook('postcreate', env)
 
