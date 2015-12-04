@@ -8,6 +8,7 @@ from .resolver import Resolver
 from .utils import unipath, touch
 from .models import VirtualEnvironment
 from .hooks import run_global_hook
+from .deps import Git
 from . import utils
 
 
@@ -43,12 +44,15 @@ def create(name_or_path=None, config=None):
     for d in ['hooks', 'modules']:
         os.mkdir(unipath(path, d))
 
-    # Copy config file into environment
-    config_path = unipath(path, 'environment.yml')
-    if not config:
-        touch(config_path)
+    if utils.is_git_repo(config):
+        Git('~/.cpenv/gitmp').clone(config, path)
     else:
-        shutil.copy2(config, config_path)
+        # Copy config file into environment
+        config_path = unipath(path, 'environment.yml')
+        if not config:
+            touch(config_path)
+        else:
+            shutil.copy2(config, config_path)
 
     env = VirtualEnvironment(path)
 

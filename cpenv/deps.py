@@ -41,7 +41,7 @@ class Git(object):
     def pull(self, repo_path, *args):
         '''Clone a repository to a destination relative to envrionment root'''
 
-        logger.debug('Updating ' + repo_path)
+        logger.debug('Pulling ' + repo_path)
         if not repo_path.startswith(self.env_path):
             repo_path = unipath(self.env_path, repo_path)
 
@@ -57,17 +57,17 @@ class Pip(object):
     def wheel(self, package):
         '''pip wheel it'''
 
-        return shell.run(self.pip_path, 'wheel', package)
+        shell.run(self.pip_path, 'wheel', package)
 
     def install(self, package):
         '''Install a python package using pip'''
 
         logger.debug('Installing ' + package)
-        return shell.run(self.pip_path, 'install', package)
+        shell.run(self.pip_path, 'install', package)
 
     def upgrade(self, package):
         '''Update a python package using pip'''
 
         logger.debug('Upgrading ' + package)
         shell.run(self.pip_path, 'install', '--upgrade', '--no-deps', package)
-        return self.install(package)
+        shell.run(self.pip_path, 'install', package)

@@ -91,7 +91,7 @@ class BaseEnvironment(object):
 
     def update(self, updated=None):
 
-        updated = updated or []
+        updated = updated or set()
 
         dependencies = self.config.get('dependencies', {})
         pip_installs = dependencies.get('pip', [])
@@ -103,7 +103,7 @@ class BaseEnvironment(object):
                 continue
 
             self.pip.upgrade(package)
-            updated.append(package)
+            updated.add(package)
 
         for repo in git_clones:
             destination = unipath(self.path, repo['path'])
@@ -118,7 +118,7 @@ class BaseEnvironment(object):
                 )
             else:
                 self.git.pull(destination)
-            updated.append(destination)
+            updated.add(destination)
 
         for repo in modules:
             if repo['name'] in updated:
@@ -132,9 +132,9 @@ class BaseEnvironment(object):
             else:
                 module = self.get_module(repo['name'])
 
-            more_updated = module.update()
-            updated.append(repo['name'])
-            updated.extend(more_updated)
+            module_updates = module.update(updated)
+            updated.add(repo['name'])
+            updated.update(module_updates)
 
         return updated
 
@@ -155,7 +155,7 @@ class VirtualEnvironment(BaseEnvironment):
 
     @property
     def hook_args(self):
-        return self
+        return self,
 
     @property
     def variables(self):
@@ -279,13 +279,13 @@ class VirtualEnvironment(BaseEnvironment):
 
     def add_module(self, name, git_repo, git_branch=None):
         module = Module(unipath(self.modules_path, name))
-        module.run_hook('premodulecreate')
+        module.run_hook('precreatemodule')
         self.git.clone(
             git_repo,
             unipath(self.modules_path, name),
             git_branch
         )
-        module.run_hook('postmodulecreate')
+        module.run_hook('postcreatemodule')
         return module
 
     def rem_module(self, name):
@@ -359,20 +359,21 @@ class Module(BaseEnvironment):
         self.parent.add_module(name, git_repo)
 
     def activate(self):
-        self.run_hook('premoduleactivate')
+        self.run_hook('preactivatemodule')
         self.parent.add_active_module(self)
-        self.run_hook('postmoduleactivate')
+        self.run_hook('postactivatemodule')
 
     def remove(self):
-        self.run_hook('premoduleremove')
+        self.run_hook('preremovemodule')
         shutil.rmtree(self.path)
         self.parent.rem_active_module(self)
-        self.run_hook('postmoduleremove')
+        self.run_hook('postremovemodule')
 
     def update(self, updated=None):
-        self.run_hook('premoduleupdate')
+        self.run_hook('preupdatemodule')
+        self.git.pull(self.path)
         updated = super(Module, self).update(updated)
-        self.run_hook('postmoduleupdate')
+        self.run_hook('postupdatemodule')
         return updated
 
     def launch(self, *args, **kwargs):
@@ -400,4 +401,8 @@ class Module(BaseEnvironment):
         else:
             command = [cmd] + cmd_args
 
-        subprocess.Popen(command, **launch_kwargs)
+        try:
+            subprocess.Popen(command, **launch_kwargs)
+        except OSError:
+            logger.debug('Could not find module command: \n\t{}'.format(
+                         ' '.join(command)))

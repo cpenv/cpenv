@@ -4,7 +4,6 @@ from .models import VirtualEnvironment, Module
 from .util import unipath, is_environment
 from .cache import EnvironmentCache
 from .utils import join_dicts, set_env
-from .log import logger
 
 
 class Resolver(object):
@@ -72,7 +71,6 @@ class Resolver(object):
 
     def activate(self):
 
-        logger.debug('ENV is \n{}'.format(self.combine()))
         set_env(self.combine())
 
         for obj in self.resolved:

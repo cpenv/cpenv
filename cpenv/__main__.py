@@ -156,7 +156,8 @@ def activate(paths, clear_cache):
     echo('Activating ' + ' '.join(paths))
     api.activate(*paths)
     env = api.get_active_env()
-    sys.exit(shell.launch(prompt_prefix=env.name))
+    prompt_prefix = ':'.join([env.name] + env.active_modules())
+    sys.exit(shell.launch(prompt_prefix=prompt_prefix))
 
 
 @cli.command()

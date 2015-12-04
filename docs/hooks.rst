@@ -28,25 +28,25 @@ Available Hooks
         * signature: run(env)
     + postupdate.py
         * signature: run(env)
-- Module Activate
-    + premoduleactivate.py
+- Activate Module
+    + preactivatemodule.py
         * signature: run(env, module)
-    + postmoduleactivate.py
+    + postactivatemodule.py
         * signature: run(env, module)
-- Module Create
-    + premodulecreate.py
+- Create Module
+    + precreatemodule.py
         * signature: run(env, module)
-    + postmodulecreate.py
+    + postcreatemodule.py
         * signature: run(env, module)
-- Module Remove
-    + premoduleremove.py
+- Remove Module
+    + preremovemodule.py
         * signature: run(env, module)
-    + postmoduleremove.py
+    + postremovemodule.py
         * signature: run(env, module)
-- Module Update
-    + premoduleupdate.py
+- Update Module
+    + preupdatemodule.py
         * signature: run(env, module)
-    + postmoduleupdate.py
+    + postupdatemodule.py
         * signature: run(env, module)
 
 
