@@ -3,7 +3,6 @@
 from .packages import click
 from . import api, shell
 from .cache import EnvironmentCache
-from .utils import unipath
 import sys
 import logging
 
@@ -52,7 +51,7 @@ def cli():
 @click.argument('name_or_path', required=True)
 @click.argument('module_repo', required=False)
 @click.option('--module', required=False, is_flag=True, default=False)
-@click.option('--config', required=False, type=click.Path(exists=True))
+@click.option('--config', required=False)
 def create(name_or_path, module_repo, module, config):
     '''Create a new virtual environment.'''
 
@@ -73,7 +72,6 @@ def create(name_or_path, module_repo, module, config):
 
     echo('Creating new environment ' + name_or_path)
     if config:
-        config = unipath(config)
         echo('Using configuration ' + config)
 
     env = api.create(name_or_path, config=config)

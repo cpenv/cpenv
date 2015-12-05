@@ -40,10 +40,6 @@ def create(name_or_path=None, config=None):
 
     os.makedirs(path)
 
-    # Create hooks and modules folders
-    for d in ['hooks', 'modules']:
-        os.mkdir(unipath(path, d))
-
     if utils.is_git_repo(config):
         Git('~/.cpenv/gitmp').clone(config, path)
     else:
@@ -53,7 +49,9 @@ def create(name_or_path=None, config=None):
             touch(config_path)
         else:
             shutil.copy2(config, config_path)
+        os.mkdir(unipath(path, 'hooks'))
 
+    os.mkdir(unipath(path, 'modules'))
     env = VirtualEnvironment(path)
 
     run_global_hook('precreate', env)

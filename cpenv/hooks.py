@@ -13,7 +13,7 @@ class HookFinder(object):
 
         >>> hook_finder = HookFinder('~/.cpenv/hooks')
         >>> hook = hook_finder('precreate')
-        >>> hook.run(env_path='~/.cpenv/test_env')
+        >>> hook.run(env=VirtualEnvironment('path/to/env'))
     '''
 
     def __init__(self, *hook_paths):

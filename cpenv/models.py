@@ -353,7 +353,7 @@ class Module(BaseEnvironment):
 
     @property
     def is_active(self):
-        return self.name in os.environ.get('CPENV_ACTIVE_MODULES', '').split()
+        return self.name in self.parent.active_modules()
 
     def add_module(self, name, git_repo):
         self.parent.add_module(name, git_repo)
