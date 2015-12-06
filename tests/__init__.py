@@ -26,7 +26,7 @@ def touch(filepath):
 
 
 def make_files(*filepaths, **kwargs):
-    data = kwargs.get('data', None)
+    data = kwargs.get('text', None)
 
     for filepath in filepaths:
         d = os.path.dirname(filepath)

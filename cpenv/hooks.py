@@ -35,8 +35,9 @@ class HookFinder(object):
         try:
             with open(hook_path, 'r') as f:
                 code = compile(f.read(), '', 'exec')
-        except SyntaxError:
-            logger.error('Error compiling hook: {}'.format(hook_path))
+        except SyntaxError as e:
+            logger.error('SyntaxError compiling hook: {}'.format(e))
+            raise
 
         hook = ModuleType(hook_name)
         hook.__file__ = hook_path
@@ -46,6 +47,7 @@ class HookFinder(object):
             return hook
         except:
             logger.error('Error executing hook: {}'.format(hook_path))
+            raise
 
     __call__ = find
 

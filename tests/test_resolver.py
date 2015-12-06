@@ -1,5 +1,4 @@
 import os
-import unittest
 import shutil
 import mock
 import sys
@@ -9,18 +8,10 @@ from cpenv import platform
 from nose.tools import raises
 from . import data_path, make_files, cwd
 
-ENVIRON = '''
-# Environment variables in the environment section are expanded.
-# Additionally the following variables are expanded:
-#     $CPENV_ENVIRON - root of the virtual environment
-#     $CPENV_MODULE - this modules root path
-#     $CPENV_PLATFORM - system platform (win, osx, linux)
-#     $CPENV_PYVER - the python version this environment uses
-
-
+ENV_TEXT = '''
 environment:
     UNRESOLVED_PATH: $NOVAR
-    RESOLVED_PATH: $CPENV_ENVIRON/resolved
+    RESOLVED_PATH: $ENVIRON/resolved
     PLATFORM_PATH:
         win: environ_win
         osx: environ_osx
@@ -28,129 +19,132 @@ environment:
     MULTI_PLATFORM_PATH:
         - nonplat
         - win:
-            - $CPENV_PYVER/wina
-            - $CPENV_PYVER/winb
+            - $PYVER/wina
+            - $PYVER/winb
           osx:
-            - $CPENV_PYVER/osxa
-            - $CPENV_PYVER/osxb
+            - $PYVER/osxa
+            - $PYVER/osxb
           linux:
-            - $CPENV_PYVER/linuxa
-            - $CPENV_PYVER/linuxb
-
+            - $PYVER/linuxa
+            - $PYVER/linuxb
 '''
-
-FILES = [
-    data_path('home', 'test_environment', 'environment.yml'),
-    data_path('home', 'test_environment', 'modules',
-              'test_module', 'environment.yml'),
-    data_path('not_home', 'test_environment', 'environment.yml'),
-    data_path('cached', 'cached_environment', 'environment.yml')
-]
 
 
 def setup_module():
-
-    make_files(data=ENVIRON, *FILES)
+    files = (
+        data_path('home', 'testenv', 'environment.yml'),
+        data_path('home', 'testenv', 'modules', 'testmod', 'module.yml'),
+        data_path('not_home', 'testenv', 'environment.yml'),
+        data_path('cached', 'cachedenv', 'environment.yml')
+    )
+    make_files(text=ENV_TEXT, *files)
     os.environ['CPENV_HOME'] = data_path('home')
 
 
 def teardown_module():
-
     shutil.rmtree(data_path('home'))
     shutil.rmtree(data_path('not_home'))
     shutil.rmtree(data_path('cached'))
 
 
-class TestResolver(unittest.TestCase):
-    '''Resolver Test Suite'''
+def test_resolve_home():
+    '''Resolve environment in CPENV_HOME'''
 
-    def test_resolve_home(self):
-        '''Resolve environment in CPENV_HOME'''
+    r = Resolver('testenv')
+    r.resolve()
 
-        r = Resolver('test_environment')
+    assert r.resolved[0].path == data_path('home', 'testenv')
+
+
+def test_resolve_relative():
+    '''Resolve environment from relative path'''
+
+    with cwd(data_path('not_home')):
+        r = Resolver('testenv')
         r.resolve()
 
-        assert r.resolved[0].path == data_path('home', 'test_environment')
+    assert r.resolved[0].path == data_path('not_home', 'testenv')
 
-    def test_resolve_relative(self):
-        '''Resolve environment from relative path'''
 
-        with cwd(data_path('not_home')):
-            r = Resolver('test_environment')
-            r.resolve()
+def test_resolve_absolute():
+    '''Resolve environment from absolute path'''
 
-        assert r.resolved[0].path == data_path('not_home', 'test_environment')
-
-    def test_resolve_absolute(self):
-        '''Resolve environment from absolute path'''
-
-        with cwd(data_path('not_home')):
-            r = Resolver(data_path('home', 'test_environment'))
-            r.resolve()
-
-        assert r.resolved[0].path == data_path('home', 'test_environment')
-
-    def test_resolve_cache(self):
-        '''Resolve environment from cache'''
-
-        cached_env_path = data_path('cached', 'cached_environment')
-        mock_cache = mock.Mock()
-        mock_cache.find = mock.Mock(
-            return_value=VirtualEnvironment(cached_env_path)
-        )
-
-        r = Resolver('cached_environment', cache=mock_cache)
+    with cwd(data_path('not_home')):
+        r = Resolver(data_path('home', 'testenv'))
         r.resolve()
 
-        assert r.resolved[0].path == cached_env_path
+    assert r.resolved[0].path == data_path('home', 'testenv')
 
-    def test_resolve_multi_args(self):
-        '''Resolve multiple paths'''
 
-        r = Resolver('test_environment', 'test_module')
-        r.resolve()
+def test_resolve_cache():
+    '''Resolve environment from cache'''
 
-        assert isinstance(r.resolved[0], VirtualEnvironment)
-        assert isinstance(r.resolved[1], Module)
+    cached_env_path = data_path('cached', 'cachedenv')
+    mock_cache = mock.Mock()
+    mock_cache.find = mock.Mock(
+        return_value=VirtualEnvironment(cached_env_path)
+    )
 
-    def test_combine_multi_args(self):
-        '''Resolve combine multiple paths'''
+    r = Resolver('cachedenv', cache=mock_cache)
+    r.resolve()
 
-        pyver = str(sys.version[:3])
-        expected = {
-            'UNRESOLVED_PATH': '$NOVAR',
-            'RESOLVED_PATH': data_path('home', 'test_environment', 'resolved'),
-            'PLATFORM_PATH': 'environ_' + platform,
-            'MULTI_PLATFORM_PATH': [
-                'nonplat',
-                pyver + '/' + platform + 'a',
-                pyver + '/' + platform + 'b',
-            ]
-        }
+    assert r.resolved[0].path == cached_env_path
 
-        r = Resolver('test_environment', 'test_module')
-        r.resolve()
-        combined = r.combine()
 
-        assert combined == expected
+def test_resolve_multi_args():
+    '''Resolve multiple paths'''
 
-    @raises(NameError)
-    def test_nonexistant_virtualenv(self):
-        '''Raise NameError when environment does not exist'''
+    r = Resolver('testenv', 'testmod')
+    r.resolve()
 
-        r = Resolver('does_not_exist')
-        r.resolve()
+    assert isinstance(r.resolved[0], VirtualEnvironment)
+    assert isinstance(r.resolved[1], Module)
 
-    @raises(NameError)
-    def test_nonexistant_module(self):
-        '''Raise NameError when module does not exist'''
 
-        r = Resolver('test_environment', 'does_not_exist')
-        r.resolve()
+def test_combine_multi_args():
+    '''Resolve combine multiple paths'''
 
-    @raises(NameError)
-    def test_multi_module_does_not_exist(self):
-        '''Raise NameError when a module does not exist'''
+    pyver = str(sys.version[:3])
+    expected = {
+        'PATH': [data_path('home', 'testenv', 'bin')],
+        'CPENV_ACTIVE_MODULES': [],
+        'UNRESOLVED_PATH': '$NOVAR',
+        'RESOLVED_PATH': data_path('home', 'testenv', 'resolved'),
+        'PLATFORM_PATH': 'environ_' + platform,
+        'MULTI_PLATFORM_PATH': [
+            'nonplat',
+            pyver + '/' + platform + 'a',
+            pyver + '/' + platform + 'b',
+        ]
+    }
 
-        r = Resolver('test_environment', 'test_module', 'does_not_exist')
-        r.resolve()
+    r = Resolver('testenv', 'testmod')
+    r.resolve()
+    combined = r.combine()
+
+    for k in expected.keys():
+        assert expected[k] == combined[k]
+
+
+@raises(NameError)
+def test_nonexistant_virtualenv():
+    '''Raise NameError when environment does not exist'''
+
+    r = Resolver('does_not_exist')
+    r.resolve()
+
+
+@raises(NameError)
+def test_nonexistant_module():
+    '''Raise NameError when module does not exist'''
+
+    r = Resolver('testenv', 'does_not_exist')
+    r.resolve()
+
+
+@raises(NameError)
+def test_multi_module_does_not_exist():
+    '''Raise NameError when a module does not exist'''
+
+    r = Resolver('testenv', 'testmod', 'does_not_exist')
+    r.resolve()

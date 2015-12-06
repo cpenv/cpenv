@@ -16,7 +16,7 @@ sh.setLevel(logging.DEBUG)
 sh_formatter = logging.Formatter('\n%(message)s')
 sh.setFormatter(sh_formatter)
 
-fh = logging.FileHandler(unipath('~/cpenv.log'))
+fh = logging.FileHandler(unipath('~/.cpenv/cpenv.log'))
 fh.setLevel(logging.ERROR)
 fh_formatter = logging.Formatter(
     '[%(asctime)s in %(module)s.%(funcName)s @%(lineno)s]\n'
