@@ -2,7 +2,7 @@
 
 from . import platform
 from .log import logger
-from .util import binpath
+from .utils import binpath
 import os
 import subprocess
 

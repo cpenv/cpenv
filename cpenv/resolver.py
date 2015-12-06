@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .models import VirtualEnvironment, Module
-from .util import unipath, is_environment
+from .utils import unipath, is_environment
 from .cache import EnvironmentCache
 from .utils import join_dicts, set_env
 

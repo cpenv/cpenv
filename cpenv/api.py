@@ -41,7 +41,7 @@ def create(name_or_path=None, config=None):
     os.makedirs(path)
 
     if utils.is_git_repo(config):
-        Git('~/.cpenv/gitmp').clone(config, path)
+        Git('').clone(config, path)
     else:
         # Copy config file into environment
         config_path = unipath(path, 'environment.yml')
