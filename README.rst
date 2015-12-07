@@ -43,41 +43,43 @@ Deactivate
 Each environment runs in a subshell so deactivation is handled through the shell command **exit**.
 
 
-Application Modules
-===================
+Modules
+=======
 
-Application modules are sub environments used to configure DCC applications like Autodesk Maya and The Foundry's Nuke. You can find two examples of app modules at http://github.com/cpenv/maya_module.git and http://github.com/cpenv/nuke_module.git. Each app module includes an appmodules.yml file with a command to launch the application, environment variables, and any python dependencies the module requires.
+Modules are sub environments used to configure DCC applications like Autodesk Maya and The Foundry's Nuke. You can find two examples of Modules at http://github.com/cpenv/maya_module.git and http://github.com/cpenv/nuke_module.git. Each Module includes a module.yml file with a command to launch the application, environment variables, and any python dependencies the Module requires.
 
-Create an app module
---------------------
+Create a Module
+---------------
 
 ::
 
     cpenv create --module maya2016 https://github.com/cpenv/maya_module.git
 
-Adds the default maya module to the active environment test. All app modules are installed to $CPENV_ACTIVE/appmodules.
+Adds the default maya Module to the active environment test. All Modules are installed to $CPENV_ACTIVE/modules.
 
-Launch an app module
---------------------
+Launch a Module
+---------------
 
 ::
 
     cpenv launch maya2016
 
-Launches maya2016 app module using the command and arguments provided in the appmodule.yml file.
+Launches maya2016 Module using the command and arguments provided in the module.yml file. You can also pass additional args here::
 
-Remove an app module
---------------------
+::
+
+    cpenv launch maya2016 "/path/to/maya_file.mb"
+
+Remove a Module
+---------------
 
 ::
 
     cpenv remove --module maya2016
 
-Deletes the app module.
 
-
-Removing Environments
-=====================
+Removing Virtual Environments
+=============================
 
 ::
 
