@@ -40,7 +40,7 @@ setup(
     author_email=info['email'],
     url=info['url'],
     license=info['license'],
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests']),
     package_data={
         'cpenv': ['bin/*.*']
     },

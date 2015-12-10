@@ -1,0 +1,9 @@
+include LICENSE README.rst
+recursive-include cpenv *.py *.sh
+
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+recursive-exclude * *.pyo
+recursive-exclude * *.orig
+
+recursive-exclude tests *
