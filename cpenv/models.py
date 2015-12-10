@@ -65,6 +65,11 @@ class BaseEnvironment(object):
     @property
     def config(self):
         if self._config is None:
+
+            if not self.bare_config:
+                self._config = {}
+                return self._config
+
             bare = Template(self.bare_config)
             formatted = bare.safe_substitute(self.variables)
             self._config = yaml.load(formatted)

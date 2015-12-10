@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __title__ = 'cpenv'
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 __author__ = 'Dan Bradham'
 __email__ = 'danielbradham@gmail.com'
 __url__ = 'http://github.com/cpenv/cpenv'

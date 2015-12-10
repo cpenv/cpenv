@@ -40,16 +40,15 @@ def create(name_or_path=None, config=None):
 
     os.makedirs(path)
 
-    if utils.is_git_repo(config):
-        Git('').clone(config, path)
-    else:
-        # Copy config file into environment
-        config_path = unipath(path, 'environment.yml')
-        if not config:
-            touch(config_path)
+    config_path = unipath(path, 'environment.yml')
+    if config:
+        if utils.is_git_repo(config):
+            Git('').clone(config, path)
         else:
             shutil.copy2(config, config_path)
-        os.mkdir(unipath(path, 'hooks'))
+            os.mkdir(unipath(path, 'hooks'))
+    else:
+        touch(config_path)
 
     os.mkdir(unipath(path, 'modules'))
     env = VirtualEnvironment(path)
