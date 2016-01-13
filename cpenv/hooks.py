@@ -54,9 +54,7 @@ class HookFinder(object):
 
 def get_global_hook_path():
     '''Returns the global hook path'''
-    from .api import get_home_path
-
-    return unipath(get_home_path(), 'hooks')
+    return unipath(os.environ.get('CPENV_HOME', '~/.cpenv'), 'hooks')
 
 
 def run_global_hook(hook_name, *args):

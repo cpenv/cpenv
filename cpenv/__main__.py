@@ -27,7 +27,7 @@ def list_environments():
 
 
 def list_modules():
-    '''List available application modules.'''
+    '''List available application modules'''
 
     active_env = api.get_active_env()
     if not active_env:
@@ -84,7 +84,7 @@ def create(name_or_path, module_repo, module, config):
 @cli.command()
 @click.option('--config', required=False, type=click.Path(exists=True))
 def update(config):
-    '''Update a virtual environment.'''
+    '''Update a virtual environment'''
 
     active_env = api.get_active_env()
     if not active_env:
@@ -99,7 +99,7 @@ def update(config):
 @click.argument('name_or_path', required=False)
 @click.option('--module', required=False, is_flag=True, default=False)
 def remove(name_or_path, module):
-    '''Remove a virtual environment.'''
+    '''Remove a virtual environment'''
 
     if not name_or_path and not module:
         list_environments()
@@ -138,7 +138,7 @@ def remove(name_or_path, module):
 @click.option('--clear_cache', help='Clear path cache.', required=False,
               is_flag=True, default=False)
 def activate(paths, clear_cache):
-    '''Activate a virtual environment.'''
+    '''Activate a virtual environment'''
 
     if clear_cache:
         echo('Any paths not in CPENV_HOME will no longer be callable by name.')

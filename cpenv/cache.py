@@ -37,7 +37,7 @@ class EnvironmentCache(set):
         '''Validate all the entries in the environment cache.'''
 
         for env in list(self):
-            if not env.exists or not env.is_valid:
+            if not env.exists:
                 self.remove(env)
 
     def load(self):
