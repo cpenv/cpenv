@@ -101,6 +101,18 @@ def activate(*args):
     return get_active_env()
 
 
+def launch(module_name, *args, **kwargs):
+    '''Activates and launches a module
+
+    :param module_name: name of module to launch
+    '''
+
+    r = resolve(module_name)
+    r.activate()
+    mod = r.resolved[0]
+    mod.launch(*args, **kwargs)
+
+
 def deactivate():
     '''Deactivates an environment by restoring all env vars to a clean state
     stored prior to activating environments
@@ -170,3 +182,4 @@ def get_environment(name_or_path):
 
     r = resolve(name_or_path)
     return r.resolved[0]
+

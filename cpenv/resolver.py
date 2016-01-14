@@ -47,7 +47,7 @@ class Resolver(object):
                 self.resolved.append(resolver(self, paths[0]))
                 paths.pop(0)
                 break
-            except NameError:
+            except:
                 continue
 
         for path in paths:
@@ -55,7 +55,7 @@ class Resolver(object):
                 try:
                     self.resolved.append(resolver(self, path))
                     break
-                except NameError:
+                except:
                     continue
             else:
                 raise NameError('Could not find an environment: ' + path)

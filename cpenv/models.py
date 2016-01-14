@@ -272,7 +272,7 @@ class VirtualEnvironment(BaseEnvironment):
         modules = self.active_modules()
         if module.name not in modules:
             modules.append(module.name)
-        os.environ['CPENV_ACTIVE_MODULES'] = ' '.join(modules)
+        os.environ['CPENV_ACTIVE_MODULES'] = str(' '.join(modules))
 
     def rem_active_module(self, module):
         '''Remove a module from CPENV_ACTIVE_MODULES environment variable'''
@@ -280,7 +280,7 @@ class VirtualEnvironment(BaseEnvironment):
         modules = self.active_modules()
         if module.name in modules:
             modules.remove(module.name)
-        os.environ['CPENV_ACTIVE_MODULES'] = ' '.join(modules)
+        os.environ['CPENV_ACTIVE_MODULES'] = str(' '.join(modules))
 
     def add_module(self, name, git_repo, git_branch=None):
         module = Module(unipath(self.modules_path, name))
@@ -384,7 +384,6 @@ class Module(BaseEnvironment):
     def launch(self, *args, **kwargs):
 
         logger.debug('Launching ' + self.name)
-        self.activate()
 
         launch_kwargs = {
             'shell': False,
@@ -411,3 +410,9 @@ class Module(BaseEnvironment):
         except OSError:
             logger.debug('Could not find module command: \n\t{}'.format(
                          ' '.join(command)))
+        except:
+            for k, v in launch_kwargs['env'].items():
+                if type(v) != str or type(k) != str:
+                    print k, v
+                    print type(k), type(v)
+            raise

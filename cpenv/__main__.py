@@ -173,11 +173,10 @@ def launch(module_name, args):
         echo('You must activate an environment first...')
         return
 
-    modules = active_env.get_modules()
-    for mod in modules:
-        if mod.name == module_name:
-            mod.launch(*args)
-            return
+    try:
+        api.launch(module_name)
+    except NameError:
+        pass
 
     echo('Application module named {} does not exist...'.format(module_name))
     list_modules()
