@@ -175,6 +175,7 @@ def launch(module_name, args):
 
     try:
         api.launch(module_name)
+        return
     except NameError:
         pass
 
