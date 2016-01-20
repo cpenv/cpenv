@@ -256,8 +256,8 @@ class VirtualEnvironment(BaseEnvironment):
 
     def update(self, updated=None):
         self.run_hook('preupdate')
-        self.pip.upgrade('pip')
-        self.pip.upgrade('wheel')
+        # self.pip.upgrade('pip') # 8.0 is broken on windows
+        # self.pip.upgrade('wheel')
         self.pip.upgrade('cpenv')
         updated = super(VirtualEnvironment, self).update(updated)
         self.run_hook('postupdate')
