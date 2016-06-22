@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
 from .models import VirtualEnvironment, Module
-from .utils import unipath, is_environment
+from .utils import (unipath, is_environment, join_dicts,
+                    set_env, walk_up, is_redirecting, redirect_to_env_paths)
 from .cache import EnvironmentCache
-from .utils import join_dicts, set_env
+
+
+class ResolveError(Exception):
+    pass
 
 
 class Resolver(object):
@@ -44,21 +48,40 @@ class Resolver(object):
 
         for resolver in resolvers:
             try:
-                self.resolved.append(resolver(self, paths[0]))
-                paths.pop(0)
+
+                resolved = resolver(self, paths[0])
+
+                if isinstance(resolved, VirtualEnvironment):
+                    self.resolved.append(resolved)
+                    paths.pop(0)
+
+                elif isinstance(resolved, list):
+                    self.resolved.extend(resolved)
+                    paths.pop(0)
+
                 break
-            except:
+
+            except ResolveError:
                 continue
 
         for path in paths:
             for resolver in module_resolvers:
                 try:
-                    self.resolved.append(resolver(self, path))
+
+                    resolved = resolver(self, path)
+
+                    if isinstance(resolved, Module):
+                        self.resolved.append(resolved)
+
+                    elif isinstance(resolved, list):
+                        self.resolved.extend(resolved)
+
                     break
-                except:
+
+                except ResolveError:
                     continue
             else:
-                raise NameError('Could not find an environment: ' + path)
+                raise ResolveError('Could not find an environment: ' + path)
 
         return self.resolved
 
@@ -83,7 +106,7 @@ def path_is_venv_resolver(resolver, path):
     if isinstance(path, VirtualEnvironment):
         return path
 
-    raise NameError
+    raise ResolveError
 
 
 def path_resolver(resolver, path):
@@ -94,7 +117,7 @@ def path_resolver(resolver, path):
     if is_environment(path):
         return VirtualEnvironment(path)
 
-    raise NameError
+    raise ResolveError
 
 
 def home_resolver(resolver, path):
@@ -107,7 +130,7 @@ def home_resolver(resolver, path):
     if is_environment(path):
         return VirtualEnvironment(path)
 
-    raise NameError
+    raise ResolveError
 
 
 def cache_resolver(resolver, path):
@@ -117,7 +140,7 @@ def cache_resolver(resolver, path):
     if env:
         return env
 
-    raise NameError
+    raise ResolveError
 
 
 def path_is_module_resolver(resolver, path):
@@ -126,7 +149,7 @@ def path_is_module_resolver(resolver, path):
     if isinstance(path, Module):
         return path
 
-    raise NameError
+    raise ResolveError
 
 
 def module_resolver(resolver, path):
@@ -141,7 +164,7 @@ def module_resolver(resolver, path):
             if mod:
                 return mod
 
-    raise NameError
+    raise ResolveError
 
 
 def active_env_module_resolver(resolver, path):
@@ -151,13 +174,24 @@ def active_env_module_resolver(resolver, path):
 
     env = get_active_env()
     if not env:
-        raise NameError
+        raise ResolveError
 
     mod = env.get_module(path)
     if not mod:
-        raise NameError
+        raise ResolveError
 
     return mod
+
+
+def redirect_resolver(resolver, path):
+    '''Resolves environment from .cpenv file...recursively walks up the tree
+    in attempt to find a .cpenv file'''
+
+    for root, _, _ in walk_up(path):
+        if is_redirecting(root):
+            env_paths = redirect_to_env_paths(unipath(root, '.cpenv'))
+            r = Resolver(*env_paths)
+            return r.resolve()
 
 
 resolvers = [
@@ -165,6 +199,7 @@ resolvers = [
     path_resolver,
     home_resolver,
     cache_resolver,
+    redirect_resolver,
 ]
 
 module_resolvers = [

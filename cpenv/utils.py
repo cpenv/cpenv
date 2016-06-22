@@ -3,6 +3,7 @@
 import os
 import tempfile
 import random
+import shlex
 import sys
 from string import Template
 from .packages import yaml
@@ -43,6 +44,21 @@ def is_system_path(path):
     return '\\' in path or '/' in path
 
 
+def is_redirecting(path):
+    '''Returns True if path contains a .cpenv file'''
+
+    return os.path.exists(unipath(path, '.cpenv'))
+
+
+def redirect_to_env_paths(path):
+    '''Get environment path from redirect file'''
+
+    with open(path, 'r') as f:
+        redirected = f.read()
+
+    return shlex.split(redirected)
+
+
 def expandpath(path):
     '''Returns an absolute expanded path'''
 
@@ -75,6 +91,30 @@ def walk_dn(start_dir, depth=10):
         yield root, subdirs, files
 
         if len(os.path.split(root)) >= end_depth:
+            break
+
+
+def walk_up(start_dir, depth=20):
+    '''
+    Walk up a directory tree
+    '''
+    root = start_dir
+
+    for i in xrange(depth):
+        contents = os.listdir(root)
+        subdirs, files = [], []
+        for f in contents:
+            if os.path.isdir(os.path.join(root, f)):
+                subdirs.append(f)
+            else:
+                files.append(f)
+
+        yield root, subdirs, files
+
+        parent = os.path.dirname(root)
+        if parent and not parent == root:
+            root = parent
+        else:
             break
 
 
