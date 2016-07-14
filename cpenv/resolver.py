@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 from .models import VirtualEnvironment, Module
 from .utils import (unipath, is_environment, join_dicts,
                     set_env, walk_up, is_redirecting, redirect_to_env_paths)
@@ -187,12 +188,19 @@ def redirect_resolver(resolver, path):
     '''Resolves environment from .cpenv file...recursively walks up the tree
     in attempt to find a .cpenv file'''
 
+    if not os.path.exists(path):
+        raise ResolveError
+
+    if os.path.isfile(path):
+        path = os.path.dirname(path)
+
     for root, _, _ in walk_up(path):
         if is_redirecting(root):
             env_paths = redirect_to_env_paths(unipath(root, '.cpenv'))
             r = Resolver(*env_paths)
             return r.resolve()
 
+    raise ResolveError
 
 resolvers = [
     path_is_venv_resolver,

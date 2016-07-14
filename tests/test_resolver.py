@@ -2,7 +2,8 @@ import os
 import shutil
 import mock
 import sys
-from cpenv.resolver import Resolver
+import os
+from cpenv.resolver import Resolver, ResolveError
 from cpenv.models import VirtualEnvironment, Module
 from cpenv import platform
 from nose.tools import raises
@@ -29,16 +30,24 @@ environment:
             - $PYVER/linuxb
 '''
 
+REDIRECT_TEXT = '''testenv testmod'''
+
 
 def setup_module():
+    os.environ['CPENV_HOME'] = data_path('home')
+
     files = (
         data_path('home', 'testenv', 'environment.yml'),
         data_path('home', 'testenv', 'modules', 'testmod', 'module.yml'),
         data_path('not_home', 'testenv', 'environment.yml'),
         data_path('cached', 'cachedenv', 'environment.yml')
     )
-    make_files(text=ENV_TEXT, *files)
-    os.environ['CPENV_HOME'] = data_path('home')
+    make_files(*files, text=ENV_TEXT)
+
+    project_path = data_path('not_home', 'project', 'sequence', 'shot')
+    os.makedirs(project_path)
+    make_files(data_path('not_home', 'project', '.cpenv'), text=REDIRECT_TEXT)
+    make_files(os.path.join(project_path, 'shot_file.txt'), text='')
 
 
 def teardown_module():
@@ -106,7 +115,11 @@ def test_combine_multi_args():
 
     pyver = str(sys.version[:3])
     expected = {
-        'PATH': [data_path('home', 'testenv', 'bin')],
+        'PATH': [{
+            'win': data_path('home', 'testenv', 'Scripts'),
+            'linux': data_path('home', 'testenv', 'bin'),
+            'osx': data_path('home', 'testenv', 'bin')
+        }[platform]],
         'CPENV_ACTIVE_MODULES': [],
         'UNRESOLVED_PATH': '$NOVAR',
         'RESOLVED_PATH': data_path('home', 'testenv', 'resolved'),
@@ -123,28 +136,63 @@ def test_combine_multi_args():
     combined = r.combine()
 
     for k in expected.keys():
-        assert expected[k] == combined[k]
+        if isinstance(expected[k], list):
+            assert expected[k] == combined[k]
+            continue
+        assert os.path.normpath(expected[k]) == os.path.normpath(combined[k])
 
 
-@raises(NameError)
+def test_redirect_resolver_from_folder():
+    '''Resolve environment from folder, parent folder has .cpenv file'''
+
+    expected_paths = [
+        data_path('home', 'testenv'),
+        data_path('home', 'testenv', 'modules', 'testmod'),
+    ]
+
+    r = Resolver(data_path('not_home', 'project', 'sequence', 'shot'))
+    r.resolve()
+
+    assert r.resolved[0].path == expected_paths[0]
+    assert r.resolved[1].path == expected_paths[1]
+
+
+def test_redirect_resolver_from_file():
+    '''Resolve environment from file, parent folder has .cpenv file'''
+
+    expected_paths = [
+        data_path('home', 'testenv'),
+        data_path('home', 'testenv', 'modules', 'testmod'),
+    ]
+
+    r = Resolver(
+        data_path('not_home', 'project', 'sequence', 'shot', 'shot_file.txt')
+    )
+    r.resolve()
+
+    assert r.resolved[0].path == expected_paths[0]
+    assert r.resolved[1].path == expected_paths[1]
+
+
+@raises(ResolveError)
 def test_nonexistant_virtualenv():
-    '''Raise NameError when environment does not exist'''
+    '''Raise ResolveError when environment does not exist'''
 
     r = Resolver('does_not_exist')
     r.resolve()
 
 
-@raises(NameError)
+@raises(ResolveError)
 def test_nonexistant_module():
-    '''Raise NameError when module does not exist'''
+    '''Raise ResolveError when module does not exist'''
 
     r = Resolver('testenv', 'does_not_exist')
     r.resolve()
 
 
-@raises(NameError)
+@raises(ResolveError)
 def test_multi_module_does_not_exist():
-    '''Raise NameError when a module does not exist'''
+    '''Raise ResolveError when a module does not exist'''
 
     r = Resolver('testenv', 'testmod', 'does_not_exist')
     r.resolve()
