@@ -295,12 +295,14 @@ class VirtualEnvironment(BaseEnvironment):
 
     def rem_module(self, name):
         module = self.get_module(name)
+        if not module:
+            raise Exception('Module {} does not exist'.format(name))
         module.remove()
 
     def get_module(self, name):
-        module_path = unipath(self.modules_path, name)
-        if os.path.exists(module_path):
-            return Module(module_path)
+        for module in self.get_modules():
+            if module.name == name:
+                return module
 
     def get_modules(self):
         modules = []

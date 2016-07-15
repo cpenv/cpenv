@@ -32,11 +32,10 @@ class Git(object):
             destination = unipath(self.env_path, destination)
 
         if branch:
-            return shell.run('git', 'clone', repo_path,
-                             '--branch', branch, '--single-branch',
-                             destination)
+            return shell.run('git', 'clone', repo_path, '--branch', branch,
+                             '--single-branch', '--recursive', destination)
 
-        return shell.run('git', 'clone', repo_path, destination)
+        return shell.run('git', 'clone', '--recursive', repo_path, destination)
 
     def pull(self, repo_path, *args):
         '''Clone a repository to a destination relative to envrionment root'''
