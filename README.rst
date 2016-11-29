@@ -64,7 +64,7 @@ Launch a Module
 
     cpenv launch maya2016
 
-Launches maya2016 Module using the command and arguments provided in the module.yml file. You can also pass additional args here::
+Launches maya2016 Module using the command and arguments provided in the module.yml file. You can also pass additional args.
 
 ::
 
