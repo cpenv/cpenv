@@ -2,13 +2,15 @@ cpenv
 ======
 Cross-platform Python environment management.
 
+
 Installation
 ============
-
+ 
 ::
 
     pip install cpenv
 
+Also make sure you've got `Git <https://git-scm.com>`_ installed and accessible from your command prompt/terminal and you're ready to start using cpenv.
 
 Environment Variables
 =====================
