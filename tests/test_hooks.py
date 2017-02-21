@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
 import unittest
 from cpenv.hooks import HookFinder
 from cpenv.models import VirtualEnvironment
+from cpenv.utils import rmtree
 from nose.tools import raises
-from . import data_path, make_files
+from . import data_path
+from .utils import make_files
 
 
 HOOK_TEXT = '''
@@ -40,11 +44,10 @@ def setup_module():
     make_files(text=HOOK_TEXT, *global_hook_files)
     make_files(text=HOOK_TEXT, *env_hook_files)
     make_files(text=MODULE_HOOK_TEXT, *mod_hook_files)
-    os.environ['CPENV_HOME'] = data_path('home')
 
 
 def teardown_module():
-    shutil.rmtree(data_path('home'))
+    rmtree(data_path('home'))
 
 
 class TestHookFinder(unittest.TestCase):

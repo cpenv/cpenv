@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
 import mock
@@ -6,8 +8,10 @@ import os
 from cpenv.resolver import Resolver, ResolveError
 from cpenv.models import VirtualEnvironment, Module
 from cpenv import platform
+from cpenv.utils import rmtree
 from nose.tools import raises
-from . import data_path, make_files, cwd
+from . import data_path
+from .utils import make_files, cwd
 
 ENV_TEXT = '''
 environment:
@@ -51,9 +55,9 @@ def setup_module():
 
 
 def teardown_module():
-    shutil.rmtree(data_path('home'))
-    shutil.rmtree(data_path('not_home'))
-    shutil.rmtree(data_path('cached'))
+    rmtree(data_path('home'))
+    rmtree(data_path('not_home'))
+    rmtree(data_path('cached'))
 
 
 def test_resolve_home():

@@ -251,13 +251,13 @@ class VirtualEnvironment(BaseEnvironment):
         Remove this environment
         '''
         self.run_hook('preremove')
-        shutil.rmtree(self.path)
+        utils.rmtree(self.path)
         self.run_hook('postremove')
 
     def update(self, updated=None):
         self.run_hook('preupdate')
-        # self.pip.upgrade('pip') # 8.0 is broken on windows
-        # self.pip.upgrade('wheel')
+        self.pip.upgrade('pip') # 8.0 is broken on windows
+        self.pip.upgrade('wheel')
         self.pip.upgrade('cpenv')
         updated = super(VirtualEnvironment, self).update(updated)
         self.run_hook('postupdate')
@@ -284,6 +284,8 @@ class VirtualEnvironment(BaseEnvironment):
 
     def add_module(self, name, git_repo, git_branch=None):
         module = Module(unipath(self.modules_path, name))
+        if os.path.exists(module.path):
+            raise OSError('{} already exists...'.format(module.path))
         module.run_hook('precreatemodule')
         self.git.clone(
             git_repo,
@@ -372,7 +374,7 @@ class Module(BaseEnvironment):
 
     def remove(self):
         self.run_hook('preremovemodule')
-        shutil.rmtree(self.path)
+        utils.rmtree(self.path)
         self.parent.rem_active_module(self)
         self.run_hook('postremovemodule')
 

@@ -62,7 +62,7 @@ def create(name_or_path=None, config=None):
     try:
         env.update()
     except:
-        shutil.rmtree(path)
+        utils.rmtree(path)
         raise
 
     run_global_hook('postcreate', env)

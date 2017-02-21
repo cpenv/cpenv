@@ -28,7 +28,7 @@ class EnvironmentCache(set):
         for env in self:
             if env.name == path:
                 return env
-            if os.path.abspath(env.root) == os.path.abspath(path):
+            if os.path.abspath(env.path) == os.path.abspath(path):
                 return env
 
         return None
@@ -61,7 +61,7 @@ class EnvironmentCache(set):
     def save(self):
         '''Save the environment cache to disk.'''
 
-        env_data = [dict(name=env.name, root=env.root) for env in self]
+        env_data = [dict(name=env.name, root=env.path) for env in self]
         encode = yaml.safe_dump(env_data, default_flow_style=False)
 
         with open(self.path, 'w') as f:

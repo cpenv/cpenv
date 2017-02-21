@@ -62,7 +62,7 @@ class Pip(object):
         '''Install a python package using pip'''
 
         logger.debug('Installing ' + package)
-        shell.run(self.pip_path, 'install', package)
+        shell.run(self.pip_path, 'install',  package)
 
     def upgrade(self, package):
         '''Update a python package using pip'''

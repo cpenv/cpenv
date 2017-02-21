@@ -1,43 +1,15 @@
+# -*- coding: utf-8 -*-
+
 import os
-from contextlib import contextmanager
+import shutil
 from functools import partial
+from cpenv.utils import rmtree
 
 data_path = partial(os.path.join, os.path.dirname(__file__), 'data')
 
 
-@contextmanager
-def cwd(new_cwd):
+def setup_package():
+    os.environ['CPENV_HOME'] = data_path('home')
 
-    old_cwd = os.getcwd()
-
-    try:
-        os.chdir(new_cwd)
-        yield
-    except:
-        raise
-    finally:
-        os.chdir(old_cwd)
-
-
-def touch(filepath):
-
-    with open(filepath, 'a'):
-        os.utime(filepath, None)
-
-
-def make_files(*filepaths, **kwargs):
-    data = kwargs.get('text', None)
-
-    for filepath in filepaths:
-        d = os.path.dirname(filepath)
-
-        try:
-            os.makedirs(d)
-        except:
-            pass
-
-        if not data:
-            touch(filepath)
-        else:
-            with open(filepath, 'w') as f:
-                f.write(data)
+def teardown_package():
+    rmtree(data_path())

@@ -4,6 +4,8 @@ import os
 import tempfile
 import random
 import shlex
+import shutil
+import stat
 import sys
 from string import Template
 from .packages import yaml
@@ -92,6 +94,14 @@ def walk_dn(start_dir, depth=10):
 
         if len(os.path.split(root)) >= end_depth:
             break
+
+
+def rmtree(path):
+    def onerror(func, path, _):
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+
+    shutil.rmtree(path, onerror=onerror)
 
 
 def walk_up(start_dir, depth=20):
