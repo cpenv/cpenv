@@ -4,7 +4,7 @@ import sys
 import os
 
 if sys.argv[-1] == 'cheeseit!':
-    os.system('python setup.py sdist bdist_wheel upload')
+    os.system('python setup.py sdist bdist_wheel upload -r pypi')
     sys.exit()
 elif sys.argv[-1] == 'testit!':
     os.system('python setup.py sdist bdist_wheel upload -r pypitest')
