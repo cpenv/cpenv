@@ -9,7 +9,7 @@ environment_config = '''
 
 # DO 'this${variable}isnested/' NOT 'this$variableisnested'
 
-environment:
+environment: {}
     # RELATIVE_VAR: '$ENVIRON/relative/path'
     # PLATFORM_VAR: '$ENVIRON/$PLATFORM/path'
     # PLATFORM_VARB:
@@ -17,15 +17,15 @@ environment:
     #    linux: '/linux/path'
     #    osx: '/mac/path'
 dependencies:
-    modules:
+    modules: []
         # - name: maya2017
         #   repo: https://github.com/cpenv/maya_module.git
         #   branch: 2017
-    git:
+    git: []
         # - path: '$ENVIRON/path/to/clone'
         #   repo: https://github.com/random/repo.git
         #   branch: master
-    pip:
+    pip: []
         # - requests
 '''
 
@@ -41,7 +41,7 @@ module_config = '''
 
 # DO 'this${variable}isnested/' NOT 'this$variableisnested'
 
-environment:
+environment: {}
     # RELATIVE_VAR: '$ENVIRON/relative/path'
     # PLATFORM_VAR: '$ENVIRON/$PLATFORM/path'
     # PLATFORM_VARB:
@@ -49,14 +49,14 @@ environment:
     #    linux: '/linux/path'
     #    osx: '/mac/path'
 dependencies:
-    modules:
+    modules: []
         # - name: maya2017
         #   repo: https://github.com/cpenv/maya_module.git
         #   branch: 2017
-    git:
+    git: []
         # - path: '$ENVIRON/path/to/clone'
         #   repo: https://github.com/random/repo.git
         #   branch: master
-    pip:
+    pip: []
         # - requests
 '''

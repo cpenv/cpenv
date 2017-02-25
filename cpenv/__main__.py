@@ -40,6 +40,10 @@ def list_modules():
         echo('    [{}] {}'.format(mod.name, mod.command))
     echo('')
     echo('cpenv launch <module_name>')
+    echo('')
+    echo('You can pass arguments by separating the module_name and args with --')
+    echo('')
+    echo('cpenv launch <module_name> -- <args>')
 
 
 @click.group()
@@ -174,7 +178,7 @@ def launch(module_name, args):
         return
 
     try:
-        api.launch(module_name)
+        api.launch(module_name, *args)
         return
     except NameError:
         pass
