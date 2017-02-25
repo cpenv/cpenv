@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-
+'''
+cpenv.hooks
+===========
+Defines the :class:`HookFinder` object used to find and execute hooks.
+'''
 import os
 from types import ModuleType
 from .utils import unipath

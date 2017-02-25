@@ -37,8 +37,15 @@ def setup_module():
         data_path('home', 'testenv', 'hooks', 'preactivatemodule.py'),
     )
     mod_hook_files = (
-        data_path('home', 'testenv', 'modules',
-                  'testmod', 'hooks', 'postactivatemodule.py'),
+        data_path(
+            'home', 'testenv', 'modules', 'testmod', 'hooks', 'postactivatemodule.py'
+        ),
+        data_path(
+            'home', 'testenv', 'modules', 'testmod', 'hooks', 'postcreatemodule.py'
+        ),
+        data_path(
+            'home', 'testenv', 'modules', 'testmod', 'hooks', 'precreatemodule.py'
+        ),
     )
     make_files(text='', *env_files)
     make_files(text=HOOK_TEXT, *global_hook_files)
@@ -88,6 +95,10 @@ class TestHookFinder(unittest.TestCase):
         env = VirtualEnvironment(data_path('home', 'testenv'))
         mod = env.get_module('testmod')
         hook = self.hook_finder('postactivatemodule')
+        assert hook.run(env, mod) == True
+        hook = self.hook_finder('postcreatemodule')
+        assert hook.run(env, mod) == True
+        hook = self.hook_finder('precreatemodule')
         assert hook.run(env, mod) == True
 
     def test_hook_not_found(self):

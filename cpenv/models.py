@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+'''
+cpenv.models
+============
+Provides models for manipulating cpenv :class:`VirtualEnvironment` s and :class:`Module` s
+'''
 
 import os
-import shutil
 import site
 import sys
 import subprocess
@@ -12,6 +16,7 @@ from .deps import Git, Pip
 from .log import logger
 from . import utils, platform
 from .packages import yaml
+from .compat import string_types
 
 
 class BaseEnvironment(object):
@@ -24,6 +29,12 @@ class BaseEnvironment(object):
         self.hook_path = self.relative_path('hooks')
         self._config = None
         self._environ = None
+
+        # These members must be defined in subclasses
+        self.pip = None
+        self.hook_finder = None
+        self.git = None
+        self.modules_path = None
 
     def __eq__(self, other):
         if hasattr(other, 'path'):
@@ -322,7 +333,7 @@ class Module(BaseEnvironment):
         super(Module, self).__init__(path)
         self.config_path = self.relative_path('module.yml')
         if parent:
-            self.parent
+            self.parent = parent
         else:
             self.parent = VirtualEnvironment(self.relative_path('..', '..'))
         self.hook_finder = HookFinder(
@@ -412,11 +423,10 @@ class Module(BaseEnvironment):
         try:
             subprocess.Popen(command, **launch_kwargs)
         except OSError:
-            logger.debug('Could not find module command: \n\t{}'.format(
-                         ' '.join(command)))
+            logger.debug('Could not find module command: \n\t%s', ' '.join(command))
         except:
             for k, v in launch_kwargs['env'].items():
-                if type(v) != str or type(k) != str:
+                if not isinstance(v, string_types) or not isinstance(k, string_types):
                     print k, v
                     print type(k), type(v)
             raise

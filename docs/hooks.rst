@@ -52,12 +52,12 @@ Available Hooks
 
 Global Hooks
 ============
-The global hook path is $CPENV_HOME/hooks or ~/.cpenv/hooks if the CPENV_HOME environment variable is undefined. All hooks are available as global hooks.
+The global hook path is ``$CPENV_HOME/hooks`` or ``~/.cpenv/hooks`` if the ``$CPENV_HOME`` environment variable is undefined. All hooks are available as global hooks.
 
 Environment Hooks
 =================
-Environment hooks are stored in an environments hooks directory(~/.cpenv/test_env/hooks) and overide global hooks. Create event hooks are unsupported.
+Environment hooks are stored in an environments hooks directory(``~/.cpenv/test_env/hooks``) and overide global hooks.
 
 Module Hooks
 ============
-Module hooks are stored in a modules hooks directory(~/.cpenv/test_env/modules/test_module/hooks) and overide environment and global hooks. Only module event hooks are supported.
+Module hooks are stored in a modules hooks directory(``~/.cpenv/test_env/modules/test_module/hooks``) and overide environment and global hooks. Only module event hooks are supported.

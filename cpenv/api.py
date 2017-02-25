@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-
+'''
+cpenv.api
+=========
+This module provides the main api for cpenv. Members of the api return models which can be used to manipulate virtualenvs and modules. Members are available directly from the cpenv namespace.
+'''
 import os
 import virtualenv
 import shutil
@@ -9,7 +13,7 @@ from .utils import unipath, touch
 from .models import VirtualEnvironment
 from .hooks import run_global_hook
 from .deps import Git
-from . import utils
+from . import utils, defaults
 
 
 def create(name_or_path=None, config=None):
@@ -48,7 +52,8 @@ def create(name_or_path=None, config=None):
             shutil.copy2(config, config_path)
             os.mkdir(unipath(path, 'hooks'))
     else:
-        touch(config_path)
+        with open(config_path, 'w') as f:
+            f.write(defaults.environment_config)
 
     os.mkdir(unipath(path, 'modules'))
     env = VirtualEnvironment(path)
@@ -136,7 +141,7 @@ def get_home_path():
 
 
 def get_active_env():
-    '''Returns the active environment as a VirtualEnvironment instance or
+    '''Returns the active environment as a :class:`VirtualEnvironment` instance or
     None if one is not active.
     '''
 
@@ -146,7 +151,7 @@ def get_active_env():
 
 
 def get_environments():
-    '''Returns a list of all known virtual environments as VirtualEnvironment
+    '''Returns a list of all known virtual environments as :class:`VirtualEnvironment`
     instances. This includes those in CPENV_HOME and any others that are
     cached(created by the current user or activated once by full path.)
     '''

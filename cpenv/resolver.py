@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-
+'''
+cpenv.resolver
+==============
+Defines :class:`Resolver` used to resolve cpenv :class:`VirtualEnvironment` s and :class:`Module` s
+'''
 import os
 from .models import VirtualEnvironment, Module
 from .utils import (unipath, is_environment, join_dicts,
@@ -12,7 +16,7 @@ class ResolveError(Exception):
 
 
 class Resolver(object):
-    '''Resolve, combine, activate VirtualEnvironment and Module environments.
+    '''Resolve, combine, activate :class:`VirtualEnvironment` and :class:`Module` environments.
     The args passed can follow two possible signatures.
 
     usage::
