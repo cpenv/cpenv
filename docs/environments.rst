@@ -1,20 +1,20 @@
 ============
 Environments
 ============
-# TODO describe what environments are
+# TODO
 
 Environment Variables
 =====================
 
-+---------------+-------------------------------+---------- + 
-| Variable      | Description                   | Default   | 
-+===============+===============================+===========+ 
-| CPENV_HOME    | Where to create environment   | ~/.cpenv  | 
-+---------------+-------------------------------+-----------+ 
++---------------+-------------------------------+-----------+
+| Variable      | Description                   | Default   |
++===============+===============================+===========+
+| CPENV_HOME    | Where to create environment   | ~/.cpenv  |
++---------------+-------------------------------+-----------+
 | CPENV_ACTIVE  | Path to active environment    |    Null   |
-+---------------+-------------------------------+-----------+ 
++---------------+-------------------------------+-----------+
 | CPENV_MODULES | List of Active modules        |    Null   |
-+---------------+-------------------------------+-----------+ 
++---------------+-------------------------------+-----------+
 
 Configuration
 =============
@@ -23,6 +23,7 @@ The environment variables configuration is stored in an environment.yml file wit
 Variables
 ---------
 You can reference environment variables in configuration files by using ``$ENVVAR`` or ``${ENVVAR}``. Additionally cpenv provides the following variables for you to use.
+
 +---------------+--------------------------+
 | Variable      | Value                    |
 +===============+==========================+
@@ -39,8 +40,8 @@ Configuration is broken down into the following sections.
 
 environment
 +++++++++++
-Environment section examples
+# TODO
 
 dependencies
 ++++++++++++
-dependencies section examples
+# TODO

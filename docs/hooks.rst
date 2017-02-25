@@ -1,7 +1,6 @@
 =====
 hooks
 =====
-
 Hooks are python modules that have a run function. There are many types of hooks each respond to a different event. The run functions first argument is always a VirtualEnvironment instance. Module events are also passed a Module instance.
 
 

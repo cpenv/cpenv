@@ -1,7 +1,7 @@
 ============
 Modules
 ============
-# TODO describe what modules are
+# TODO
 
 Configuration
 =============
@@ -10,6 +10,7 @@ The modules configuration is stored in module.yml file within the root directory
 Variables
 ---------
 You can reference environment variables in configuration files by using ``$ENVVAR`` or ``${ENVVAR}``. Additionally cpenv provides the following variables for you to use.
+
 +---------------+----------------------------+
 | Variable      | Value                      |
 +===============+============================+
@@ -28,8 +29,8 @@ Configuration is broken down into the following sections.
 
 environment
 +++++++++++
-# TODO Environment section examples
+# TODO
 
 dependencies
 ++++++++++++
-# TODO dependencies section examples
+# TODO
