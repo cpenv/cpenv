@@ -58,18 +58,19 @@ Documentation Contents
 ======================
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   guide
-   environments
-   modules
-   hooks
+    guide
+    environments
+    modules
+    hooks
+    whatsnext
 
 API Documentation
 =================
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-   api-guide
-   api
+    api-guide
+    api
