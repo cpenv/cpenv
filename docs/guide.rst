@@ -1,7 +1,7 @@
 =====
 Guide
 =====
-This section will guide you through the process of creating an environment suitable for a small vfx production. The environment will include modules for Autodesk's Maya, The Foundry's Nuke, and Google's Zync. If you want to fully follow along, you'll need Maya 2017, Nuke 10.0v2, and Zync installed. Launch your terminal and let's get started.
+This section will guide you through the process of creating an environment suitable for a small vfx production. The environment will include modules for Autodesk's Maya, The Foundry's Nuke, and Google's Zync. If you want to fully follow along, you'll need Maya 2017, Nuke 10.5v2, and Zync installed. Launch your terminal and let's get started.
 
 Create an environment
 =====================
