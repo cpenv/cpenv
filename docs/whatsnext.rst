@@ -1,7 +1,6 @@
 ============
 What's Next?
 ============
-Let's talk about the **FUTURE**.
 
 Changes and Features
 ====================
