@@ -2,15 +2,18 @@
 '''
 cpenv.api
 =========
-This module provides the main api for cpenv. Members of the api return models which can be used to manipulate virtualenvs and modules. Members are available directly from the cpenv namespace.
+This module provides the main api for cpenv. Members of the api return models
+which can be used to manipulate virtualenvs and modules. Members are available
+directly from the cpenv namespace.
 '''
+
 import os
 import virtualenv
 import shutil
 from .cache import EnvironmentCache
 from .resolver import Resolver
-from .utils import unipath, touch
-from .models import VirtualEnvironment
+from .utils import unipath
+from .models import VirtualEnvironment, Module
 from .hooks import run_global_hook
 from .deps import Git
 from . import utils, defaults
@@ -132,7 +135,7 @@ def deactivate():
 
 
 def get_home_path():
-    '''Returns your home path...CPENV_HOME env var OR ~/.cpenv'''
+    ''':returns: your home path...CPENV_HOME env var OR ~/.cpenv'''
 
     home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
     if not os.path.exists(home):
@@ -140,9 +143,23 @@ def get_home_path():
     return home
 
 
+def get_module_paths():
+    ''':returns: paths in CPENV_MODULES env var and CPENV_HOME/modules'''
+
+    module_paths = []
+
+    cpenv_modules_path = os.environ.get('CPENV_MODULES', None)
+    if cpenv_modules_path:
+        module_paths.extend(cpenv_modules_path.split(os.pathsep))
+
+    module_paths.append(unipath(get_home_path(), 'modules'))
+
+    return module_paths
+
+
 def get_active_env():
-    '''Returns the active environment as a :class:`VirtualEnvironment` instance or
-    None if one is not active.
+    '''Returns the active environment as a :class:`VirtualEnvironment`
+    instance or None if one is not active.
     '''
 
     active = os.environ.get('CPENV_ACTIVE', None)
@@ -150,10 +167,40 @@ def get_active_env():
         return VirtualEnvironment(active)
 
 
+def get_active_modules():
+    '''Returns a list of active :class:`Module` s or []'''
+
+    modules = os.environ.get('CPENV_ACTIVE_MODULES', None)
+    if modules:
+        modules = modules.split(os.pathsep)
+        return [Module(module) for module in modules]
+
+    return []
+
+
+def add_active_module(module):
+    '''Add a module to CPENV_ACTIVE_MODULES environment variable'''
+
+    modules = set(get_active_modules())
+    modules.add(module.path)
+    new_modules_path = os.pathsep.join([m.path for m in modules])
+    os.environ['CPENV_ACTIVE_MODULES'] = new_modules_path
+
+
+def rem_active_module(module):
+    '''Remove a module from CPENV_ACTIVE_MODULES environment variable'''
+
+    modules = set(get_active_modules())
+    modules.remove(module.name)
+    new_modules_path = os.pathsep.join([m.path for m in modules])
+    os.environ['CPENV_ACTIVE_MODULES'] = new_modules_path
+
+
 def get_environments():
-    '''Returns a list of all known virtual environments as :class:`VirtualEnvironment`
-    instances. This includes those in CPENV_HOME and any others that are
-    cached(created by the current user or activated once by full path.)
+    '''Returns a list of all known virtual environments as
+    :class:`VirtualEnvironment` instances. This includes those in CPENV_HOME
+    and any others that are cached(created by the current user or activated
+    once by full path.)
     '''
 
     environments = []
@@ -187,4 +234,3 @@ def get_environment(name_or_path):
 
     r = resolve(name_or_path)
     return r.resolved[0]
-

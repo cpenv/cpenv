@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
 import os
-import shutil
 import mock
 import sys
-import os
 from cpenv.resolver import Resolver, ResolveError
 from cpenv.models import VirtualEnvironment, Module
 from cpenv import platform
 from cpenv.utils import rmtree
-from nose.tools import raises
 from . import data_path
 from .utils import make_files, cwd
+from nose.tools import raises, assert_raises
+
 
 ENV_TEXT = '''
 environment:
@@ -39,12 +38,16 @@ REDIRECT_TEXT = '''testenv testmod'''
 
 def setup_module():
     os.environ['CPENV_HOME'] = data_path('home')
+    os.environ['CPENV_MODULES'] = data_path('modules')
 
     files = (
         data_path('home', 'testenv', 'environment.yml'),
         data_path('home', 'testenv', 'modules', 'testmod', 'module.yml'),
         data_path('not_home', 'testenv', 'environment.yml'),
-        data_path('cached', 'cachedenv', 'environment.yml')
+        data_path('cached', 'cachedenv', 'environment.yml'),
+        data_path('modules', 'testmod', 'module.yml'),
+        data_path('modules', 'testmodb', 'module.yml'),
+        data_path('home', 'modules', 'testmodc', 'module.yml'),
     )
     make_files(*files, text=ENV_TEXT)
 
@@ -67,6 +70,40 @@ def test_resolve_home():
     r.resolve()
 
     assert r.resolved[0].path == data_path('home', 'testenv')
+
+
+def test_resolve_module_on_path():
+    '''Resolve module in CPENV_MODULES path'''
+
+    # Test resolve global module
+    r = Resolver('testmod')
+    r.resolve()
+
+    assert r.resolved[0].path == data_path('modules', 'testmod')
+
+    # Test resolve module in environment, should take precedence over global
+    # module of the same name
+    r = Resolver('testenv', 'testmod')
+    r.resolve()
+
+    assert r.resolved[1].path == data_path('home', 'testenv', 'modules', 'testmod')
+
+    # Test resolve environment with global module
+    r = Resolver('testenv', 'testmodb')
+    r.resolve()
+
+    assert r.resolved[1].path == data_path('modules', 'testmodb')
+
+    # Test resoluve module in CPENV_HOME/modules
+    r = Resolver('testmodc')
+    r.resolve()
+
+    assert r.resolved[0].path == data_path('home', 'modules', 'testmodc')
+
+    # Test global module does not exist
+    r = Resolver('testenv', 'does_not_exist')
+    with assert_raises(ResolveError):
+        r.resolve()
 
 
 def test_resolve_relative():

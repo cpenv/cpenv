@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import os
-import shutil
 import unittest
 from cpenv.hooks import HookFinder
 from cpenv.models import VirtualEnvironment
@@ -87,7 +85,7 @@ class TestHookFinder(unittest.TestCase):
 
         env = VirtualEnvironment(data_path('home', 'testenv'))
         hook = self.hook_finder('precreate')
-        assert hook.run(env) == True
+        assert hook.run(env) is True
 
     def test_mod_hook(self):
         '''Test run module hook'''
@@ -95,11 +93,11 @@ class TestHookFinder(unittest.TestCase):
         env = VirtualEnvironment(data_path('home', 'testenv'))
         mod = env.get_module('testmod')
         hook = self.hook_finder('postactivatemodule')
-        assert hook.run(env, mod) == True
+        assert hook.run(env, mod) is True
         hook = self.hook_finder('postcreatemodule')
-        assert hook.run(env, mod) == True
+        assert hook.run(env, mod) is True
         hook = self.hook_finder('precreatemodule')
-        assert hook.run(env, mod) == True
+        assert hook.run(env, mod) is True
 
     def test_hook_not_found(self):
         '''Test hook not found'''

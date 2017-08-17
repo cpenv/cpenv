@@ -57,7 +57,7 @@ def cli():
 @click.option('--module', required=False, is_flag=True, default=False)
 @click.option('--config', required=False)
 def create(name_or_path, module_repo, module, config):
-    '''Create a new virtual environment.'''
+    '''Create a new virtual environment'''
 
     if module:
 
@@ -139,27 +139,33 @@ def remove(name_or_path, module):
 
 @cli.command()
 @click.argument('paths', nargs=-1, required=False)
-@click.option('--clear_cache', help='Clear path cache.', required=False,
-              is_flag=True, default=False)
-def activate(paths, clear_cache):
+def activate(paths):
     '''Activate a virtual environment'''
-
-    if clear_cache:
-        echo('Any paths not in CPENV_HOME will no longer be callable by name.')
-        if click.confirm('Clear environment path cache?'):
-            EnvironmentCache.clear()
-            EnvironmentCache.save()
-        return
 
     if not paths:
         list_environments()
         return
 
     echo('Activating ' + ' '.join(paths))
-    api.activate(*paths)
-    env = api.get_active_env()
-    prompt_prefix = ':'.join([env.name] + env.active_modules())
+    env = api.activate(*paths)
+    names = []
+    if env:
+        names.append(env.name)
+    modules = [m.name for m in api.get_active_modules()]
+    names.extend(modules)
+    prompt_prefix = ':'.join(names)
     sys.exit(shell.launch(prompt_prefix=prompt_prefix))
+
+
+@cli.command()
+def clear_cache():
+    '''Clean environment cache'''
+
+    echo('Any paths not in CPENV_HOME will no longer be callable by name.')
+    if click.confirm('Clear environment path cache?'):
+        EnvironmentCache.clear()
+        EnvironmentCache.save()
+    return
 
 
 @cli.command()

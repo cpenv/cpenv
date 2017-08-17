@@ -35,9 +35,15 @@ def is_home_environment(path):
 
 
 def is_environment(path):
-    '''Returns True if path refers to an environment or module'''
+    '''Returns True if path refers to an environment'''
 
     return os.path.exists(unipath(path, 'environment.yml'))
+
+
+def is_module(path):
+    '''Returns True if path refers to a module'''
+
+    return os.path.exists(unipath(path, 'module.yml'))
 
 
 def is_system_path(path):

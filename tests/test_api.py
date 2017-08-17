@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import shutil
-from nose.tools import *
+from nose.tools import assert_raises
 import cpenv
 from cpenv.utils import rmtree
 from . import data_path
@@ -16,11 +15,10 @@ def teardown_module():
     rmtree(data_path('home'))
 
 
-
 def test_create():
     '''Create an environment'''
 
-    env = cpenv.create('test')
+    cpenv.create('test')
     assert_raises(OSError, cpenv.create, 'test')
 
 
@@ -28,10 +26,12 @@ def test_add_module():
     '''Add a module'''
 
     env = cpenv.get_environment('test')
-    mod = env.add_module('test_mod', 'https://github.com/cpenv/template_module.git')
+    env.add_module('test_mod', 'https://github.com/cpenv/template_module.git')
     assert_raises(
-        OSError, 
-        env.add_module, 'test_mod', 'https://github.com/cpenv/template_module.git'
+        OSError,
+        env.add_module,
+        'test_mod',
+        'https://github.com/cpenv/template_module.git'
     )
 
 

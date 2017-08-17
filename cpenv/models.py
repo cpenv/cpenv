@@ -189,7 +189,6 @@ class VirtualEnvironment(BaseEnvironment):
                 'PATH': [self.bin_path],
                 'PYTHONPATH': [self.site_path],
                 'CPENV_ACTIVE': [self.path],
-                'CPENV_ACTIVE_MODULES': self.active_modules(),
             }
             env = utils.join_dicts(additional, env)
             self._environ = utils.preprocess_dict(env)
@@ -233,6 +232,8 @@ class VirtualEnvironment(BaseEnvironment):
             clean_env_path = utils.get_store_env_tmp()
             os.environ['CPENV_CLEAN_ENV'] = clean_env_path
             utils.store_env(path=clean_env_path)
+        else:
+            utils.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
 
     def _activate(self):
         '''
@@ -248,7 +249,9 @@ class VirtualEnvironment(BaseEnvironment):
             sys.path.remove(path)
             sys.path.insert(1, path)
 
-        sys.real_prefix = sys.prefix
+        if not hasattr(sys, 'real_prefix'):
+            sys.real_prefix = sys.prefix
+
         sys.prefix = self.path
 
     def activate(self):
@@ -273,25 +276,6 @@ class VirtualEnvironment(BaseEnvironment):
         updated = super(VirtualEnvironment, self).update(updated)
         self.run_hook('postupdate')
         return updated
-
-    def active_modules(self):
-        return os.environ.get('CPENV_ACTIVE_MODULES', '').split()
-
-    def add_active_module(self, module):
-        '''Add a module to CPENV_ACTIVE_MODULES environment variable'''
-
-        modules = self.active_modules()
-        if module.name not in modules:
-            modules.append(module.name)
-        os.environ['CPENV_ACTIVE_MODULES'] = str(' '.join(modules))
-
-    def rem_active_module(self, module):
-        '''Remove a module from CPENV_ACTIVE_MODULES environment variable'''
-
-        modules = self.active_modules()
-        if module.name in modules:
-            modules.remove(module.name)
-        os.environ['CPENV_ACTIVE_MODULES'] = str(' '.join(modules))
 
     def add_module(self, name, git_repo, git_branch=None):
         module = Module(unipath(self.modules_path, name))
@@ -332,16 +316,27 @@ class Module(BaseEnvironment):
     def __init__(self, path, parent=None):
         super(Module, self).__init__(path)
         self.config_path = self.relative_path('module.yml')
-        if parent:
-            self.parent = parent
+        self.parent = parent
+        if not self.parent:
+            # Check if this module is in a virtualenv
+            parent = VirtualEnvironment(self.relative_path('..', '..'))
+            if parent.exists:
+                self.parent = parent
+
+        if self.parent:
+            self.hook_finder = HookFinder(
+                self.hook_path,
+                self.parent.hook_path,
+                get_global_hook_path()
+            )
+            self.pip = Pip(unipath(self.parent.bin_path, 'pip'))
         else:
-            self.parent = VirtualEnvironment(self.relative_path('..', '..'))
-        self.hook_finder = HookFinder(
-            self.hook_path,
-            self.parent.hook_path,
-            get_global_hook_path()
-        )
-        self.pip = Pip(unipath(self.parent.bin_path, 'pip'))
+            self.hook_finder = HookFinder(
+                self.hook_path,
+                get_global_hook_path()
+            )
+            self.pip = None
+
         self.git = Git(self.path)
 
     def __repr__(self):
@@ -363,30 +358,51 @@ class Module(BaseEnvironment):
         return self.parent, self
 
     @property
+    def environment(self):
+        if self._environ is None:
+            env = self.config.get('environment', {})
+            additional = {
+                'CPENV_ACTIVE_MODULES': [self.path],
+            }
+            env = utils.join_dicts(additional, env)
+            self._environ = utils.preprocess_dict(env)
+
+        return self._environ
+
+    @property
     def variables(self):
-        return {
-            'ENVIRON': self.parent.path,
+
+        v = {
             'MODULE': self.path,
             'PLATFORM': platform,
             'PYVER': sys.version[:3],
+            'ENVIRON': '',
         }
+
+        if self.parent:
+            v['ENVIRON'] = self.parent.path
+
+        return v
 
     @property
     def is_active(self):
-        return self.name in self.parent.active_modules()
+        from .api import get_active_modules
+        return self in get_active_modules()
 
     def add_module(self, name, git_repo):
         self.parent.add_module(name, git_repo)
 
     def activate(self):
+        from .api import add_active_module
         self.run_hook('preactivatemodule')
-        self.parent.add_active_module(self)
+        add_active_module(self)
         self.run_hook('postactivatemodule')
 
     def remove(self):
+        from .api import rem_active_module
         self.run_hook('preremovemodule')
         utils.rmtree(self.path)
-        self.parent.rem_active_module(self)
+        rem_active_module(self)
         self.run_hook('postremovemodule')
 
     def update(self, updated=None):
@@ -424,9 +440,3 @@ class Module(BaseEnvironment):
             subprocess.Popen(command, **launch_kwargs)
         except OSError:
             logger.debug('Could not find module command: \n\t%s', ' '.join(command))
-        except:
-            for k, v in launch_kwargs['env'].items():
-                if not isinstance(v, string_types) or not isinstance(k, string_types):
-                    print k, v
-                    print type(k), type(v)
-            raise

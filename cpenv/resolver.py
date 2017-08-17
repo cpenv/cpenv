@@ -6,7 +6,7 @@ Defines :class:`Resolver` used to resolve cpenv :class:`VirtualEnvironment` s an
 '''
 import os
 from .models import VirtualEnvironment, Module
-from .utils import (unipath, is_environment, join_dicts,
+from .utils import (unipath, is_environment, is_module, join_dicts,
                     set_env, walk_up, is_redirecting, redirect_to_env_paths)
 from .cache import EnvironmentCache
 
@@ -172,6 +172,20 @@ def module_resolver(resolver, path):
     raise ResolveError
 
 
+def modules_path_resolver(resolver, path):
+    '''Resolves modules in CPENV_MODULES path and CPENV_HOME/modules'''
+
+    from .api import get_module_paths
+
+    for module_dir in get_module_paths():
+        mod_path = unipath(module_dir, path)
+
+        if is_module(mod_path):
+            return Module(mod_path)
+
+    raise ResolveError
+
+
 def active_env_module_resolver(resolver, path):
     '''Resolves modules in currently active environment.'''
 
@@ -206,6 +220,7 @@ def redirect_resolver(resolver, path):
 
     raise ResolveError
 
+
 resolvers = [
     path_is_venv_resolver,
     path_resolver,
@@ -218,4 +233,5 @@ module_resolvers = [
     path_is_module_resolver,
     module_resolver,
     active_env_module_resolver,
+    modules_path_resolver
 ]

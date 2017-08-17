@@ -1,13 +1,21 @@
 import re
-from setuptools import find_packages, setup
 import sys
-import os
+import shutil
+from setuptools import setup, find_packages
+from subprocess import check_call
+
 
 if sys.argv[-1] == 'cheeseit!':
-    os.system('python setup.py sdist bdist_wheel upload -r pypi')
+    check_call('python tests')
+    check_call('python setup.py sdist bdist_wheel')
+    check_call('twine upload dist/*')
+    shutil.rmtree('build')
+    shutil.rmtree('dist')
+    shutil.rmtree('cpenv.egg-info')
     sys.exit()
 elif sys.argv[-1] == 'testit!':
-    os.system('python setup.py sdist bdist_wheel upload -r pypitest')
+    check_call('python tests')
+    check_call('python setup.py sdist bdist_wheel upload -r pypitest')
     sys.exit()
 
 
@@ -23,6 +31,7 @@ def get_info(pyfile):
                 info[match.group(1)] = match.group(2)
 
     return info
+
 
 info = get_info('cpenv/__init__.py')
 
