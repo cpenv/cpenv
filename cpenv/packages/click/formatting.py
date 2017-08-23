@@ -4,6 +4,10 @@ from .parser import split_opt
 from ._compat import term_len
 
 
+# Can force a width.  This is used by the test system
+FORCED_WIDTH = None
+
+
 def measure_table(rows):
     widths = {}
     for row in rows:
@@ -94,10 +98,14 @@ class HelpFormatter(object):
                   width clamped to a maximum of 78.
     """
 
-    def __init__(self, indent_increment=2, width=None):
+    def __init__(self, indent_increment=2, width=None, max_width=None):
         self.indent_increment = indent_increment
+        if max_width is None:
+            max_width = 80
         if width is None:
-            width = max(min(get_terminal_size()[0], 80) - 2, 50)
+            width = FORCED_WIDTH
+            if width is None:
+                width = max(min(get_terminal_size()[0], max_width) - 2, 50)
         self.width = width
         self.current_indent = 0
         self.buffer = []
@@ -121,14 +129,23 @@ class HelpFormatter(object):
         :param args: whitespace separated list of arguments.
         :param prefix: the prefix for the first line.
         """
-        prefix = '%*s%s' % (self.current_indent, prefix, prog)
-        self.write(prefix)
+        usage_prefix = '%*s%s ' % (self.current_indent, prefix, prog)
+        text_width = self.width - self.current_indent
 
-        text_width = max(self.width - self.current_indent - term_len(prefix), 10)
-        indent = ' ' * (term_len(prefix) + 1)
-        self.write(wrap_text(args, text_width,
-                             initial_indent=' ',
-                             subsequent_indent=indent))
+        if text_width >= (term_len(usage_prefix) + 20):
+            # The arguments will fit to the right of the prefix.
+            indent = ' ' * term_len(usage_prefix)
+            self.write(wrap_text(args, text_width,
+                                 initial_indent=usage_prefix,
+                                 subsequent_indent=indent))
+        else:
+            # The prefix is too long, put the arguments on the next line.
+            self.write(usage_prefix)
+            self.write('\n')
+            indent = ' ' * (max(self.current_indent, term_len(prefix)) + 4)
+            self.write(wrap_text(args, text_width,
+                                 initial_indent=indent,
+                                 subsequent_indent=indent))
 
         self.write('\n')
 

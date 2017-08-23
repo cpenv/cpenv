@@ -7,6 +7,7 @@ Provides models for manipulating cpenv :class:`VirtualEnvironment` s and :class:
 
 import os
 import site
+import shutil
 import sys
 import subprocess
 from string import Template
@@ -15,7 +16,7 @@ from .utils import unipath
 from .deps import Git, Pip
 from .log import logger
 from . import utils, platform
-from .packages import yaml
+import yaml
 from .compat import string_types
 
 
@@ -270,23 +271,29 @@ class VirtualEnvironment(BaseEnvironment):
 
     def update(self, updated=None):
         self.run_hook('preupdate')
-        # self.pip.upgrade('pip')
-        # self.pip.upgrade('wheel')
-        self.pip.upgrade('cpenv')
+        self.pip.install('cpenv')
         updated = super(VirtualEnvironment, self).update(updated)
         self.run_hook('postupdate')
         return updated
 
-    def add_module(self, name, git_repo, git_branch=None):
+    def add_module(self, name, path, git_branch=None):
         module = Module(unipath(self.modules_path, name))
         if os.path.exists(module.path):
             raise OSError('{} already exists...'.format(module.path))
         module.run_hook('precreatemodule')
-        self.git.clone(
-            git_repo,
-            unipath(self.modules_path, name),
-            git_branch
-        )
+
+        if utils.is_git_repo(path):
+            self.git.clone(
+                path,
+                module.path,
+                git_branch
+            )
+        elif utils.is_module(path):
+            shutil.copytree(unipath(path), module.path)
+        elif os.path.isfile(path) and path.endswith('.yml'):
+            utils.ensure_path_exists(module.path)
+            shutil.copy2(path, module.config_path)
+
         module.run_hook('postcreatemodule')
         return module
 

@@ -1,8 +1,8 @@
 import os
-import sys
 import stat
 
-from ._compat import open_stream, text_type, filename_to_ui, get_streerror
+from ._compat import open_stream, text_type, filename_to_ui, \
+    get_filesystem_encoding, get_streerror, _get_argv_encoding, PY2
 from .exceptions import BadParameter
 from .utils import safecall, LazyFile
 
@@ -20,6 +20,7 @@ class ParamType(object):
         This can be the case when the object is used with prompt
         inputs.
     """
+    is_composite = False
 
     #: the descriptive name of this type
     name = None
@@ -67,6 +68,14 @@ class ParamType(object):
         raise BadParameter(message, ctx=ctx, param=param)
 
 
+class CompositeParamType(ParamType):
+    is_composite = True
+
+    @property
+    def arity(self):
+        raise NotImplementedError()
+
+
 class FuncParamType(ParamType):
 
     def __init__(self, func):
@@ -84,20 +93,31 @@ class FuncParamType(ParamType):
             self.fail(value, param, ctx)
 
 
+class UnprocessedParamType(ParamType):
+    name = 'text'
+
+    def convert(self, value, param, ctx):
+        return value
+
+    def __repr__(self):
+        return 'UNPROCESSED'
+
+
 class StringParamType(ParamType):
     name = 'text'
 
     def convert(self, value, param, ctx):
         if isinstance(value, bytes):
+            enc = _get_argv_encoding()
             try:
-                enc = getattr(sys.stdin, 'encoding', None)
-                if enc is not None:
-                    value = value.decode(enc)
+                value = value.decode(enc)
             except UnicodeError:
-                try:
-                    value = value.decode(sys.getfilesystemencoding())
-                except UnicodeError:
-                    value = value.decode('utf-8', 'replace')
+                fs_enc = get_filesystem_encoding()
+                if fs_enc != enc:
+                    try:
+                        value = value.decode(fs_enc)
+                    except UnicodeError:
+                        value = value.decode('utf-8', 'replace')
             return value
         return value
 
@@ -106,7 +126,7 @@ class StringParamType(ParamType):
 
 
 class Choice(ParamType):
-    """The choice type allows a value to checked against a fixed set of
+    """The choice type allows a value to be checked against a fixed set of
     supported values.  All of these values have to be strings.
 
     See :ref:`choice-opts` for an example.
@@ -148,7 +168,7 @@ class IntParamType(ParamType):
     def convert(self, value, param, ctx):
         try:
             return int(value)
-        except ValueError:
+        except (ValueError, UnicodeError):
             self.fail('%s is not a valid integer' % value, param, ctx)
 
     def __repr__(self):
@@ -217,7 +237,7 @@ class FloatParamType(ParamType):
     def convert(self, value, param, ctx):
         try:
             return float(value)
-        except ValueError:
+        except (UnicodeError, ValueError):
             self.fail('%s is not a valid floating point value' %
                       value, param, ctx)
 
@@ -231,8 +251,10 @@ class UUIDParameterType(ParamType):
     def convert(self, value, param, ctx):
         import uuid
         try:
+            if PY2 and isinstance(value, text_type):
+                value = value.encode('ascii')
             return uuid.UUID(value)
-        except ValueError:
+        except (UnicodeError, ValueError):
             self.fail('%s is not a valid UUID value' % value, param, ctx)
 
     def __repr__(self):
@@ -319,9 +341,12 @@ class File(ParamType):
 
 class Path(ParamType):
     """The path type is similar to the :class:`File` type but it performs
-    different checks.  First of all, instead of returning a open file
+    different checks.  First of all, instead of returning an open file
     handle it returns just the filename.  Secondly, it can perform various
     basic checks about what the file or directory should be.
+
+    .. versionchanged:: 6.0
+       `allow_dash` was added.
 
     :param exists: if set to true, the file or directory needs to exist for
                    this value to be valid.  If this is not required and a
@@ -334,17 +359,27 @@ class Path(ParamType):
     :param resolve_path: if this is true, then the path is fully resolved
                          before the value is passed onwards.  This means
                          that it's absolute and symlinks are resolved.
+    :param allow_dash: If this is set to `True`, a single dash to indicate
+                       standard streams is permitted.
+    :param type: optionally a string type that should be used to
+                 represent the path.  The default is `None` which
+                 means the return value will be either bytes or
+                 unicode depending on what makes most sense given the
+                 input data Click deals with.
     """
     envvar_list_splitter = os.path.pathsep
 
     def __init__(self, exists=False, file_okay=True, dir_okay=True,
-                 writable=False, readable=True, resolve_path=False):
+                 writable=False, readable=True, resolve_path=False,
+                 allow_dash=False, path_type=None):
         self.exists = exists
         self.file_okay = file_okay
         self.dir_okay = dir_okay
         self.writable = writable
         self.readable = readable
         self.resolve_path = resolve_path
+        self.allow_dash = allow_dash
+        self.type = path_type
 
         if self.file_okay and not self.dir_okay:
             self.name = 'file'
@@ -356,55 +391,105 @@ class Path(ParamType):
             self.name = 'path'
             self.path_type = 'Path'
 
+    def coerce_path_result(self, rv):
+        if self.type is not None and not isinstance(rv, self.type):
+            if self.type is text_type:
+                rv = rv.decode(get_filesystem_encoding())
+            else:
+                rv = rv.encode(get_filesystem_encoding())
+        return rv
+
     def convert(self, value, param, ctx):
         rv = value
-        if self.resolve_path:
-            rv = os.path.realpath(rv)
 
-        try:
-            st = os.stat(rv)
-        except OSError:
-            if not self.exists:
-                return rv
-            self.fail('%s "%s" does not exist.' % (
-                self.path_type,
-                filename_to_ui(value)
-            ), param, ctx)
+        is_dash = self.file_okay and self.allow_dash and rv in (b'-', '-')
 
-        if not self.file_okay and stat.S_ISREG(st.st_mode):
-            self.fail('%s "%s" is a file.' % (
-                self.path_type,
-                filename_to_ui(value)
-            ), param, ctx)
-        if not self.dir_okay and stat.S_ISDIR(st.st_mode):
-            self.fail('%s "%s" is a directory.' % (
-                self.path_type,
-                filename_to_ui(value)
-            ), param, ctx)
-        if self.writable and not os.access(value, os.W_OK):
-            self.fail('%s "%s" is not writable.' % (
-                self.path_type,
-                filename_to_ui(value)
-            ), param, ctx)
-        if self.readable and not os.access(value, os.R_OK):
-            self.fail('%s "%s" is not readable.' % (
-                self.path_type,
-                filename_to_ui(value)
-            ), param, ctx)
+        if not is_dash:
+            if self.resolve_path:
+                rv = os.path.realpath(rv)
 
-        return rv
+            try:
+                st = os.stat(rv)
+            except OSError:
+                if not self.exists:
+                    return self.coerce_path_result(rv)
+                self.fail('%s "%s" does not exist.' % (
+                    self.path_type,
+                    filename_to_ui(value)
+                ), param, ctx)
+
+            if not self.file_okay and stat.S_ISREG(st.st_mode):
+                self.fail('%s "%s" is a file.' % (
+                    self.path_type,
+                    filename_to_ui(value)
+                ), param, ctx)
+            if not self.dir_okay and stat.S_ISDIR(st.st_mode):
+                self.fail('%s "%s" is a directory.' % (
+                    self.path_type,
+                    filename_to_ui(value)
+                ), param, ctx)
+            if self.writable and not os.access(value, os.W_OK):
+                self.fail('%s "%s" is not writable.' % (
+                    self.path_type,
+                    filename_to_ui(value)
+                ), param, ctx)
+            if self.readable and not os.access(value, os.R_OK):
+                self.fail('%s "%s" is not readable.' % (
+                    self.path_type,
+                    filename_to_ui(value)
+                ), param, ctx)
+
+        return self.coerce_path_result(rv)
+
+
+class Tuple(CompositeParamType):
+    """The default behavior of Click is to apply a type on a value directly.
+    This works well in most cases, except for when `nargs` is set to a fixed
+    count and different types should be used for different items.  In this
+    case the :class:`Tuple` type can be used.  This type can only be used
+    if `nargs` is set to a fixed number.
+
+    For more information see :ref:`tuple-type`.
+
+    This can be selected by using a Python tuple literal as a type.
+
+    :param types: a list of types that should be used for the tuple items.
+    """
+
+    def __init__(self, types):
+        self.types = [convert_type(ty) for ty in types]
+
+    @property
+    def name(self):
+        return "<" + " ".join(ty.name for ty in self.types) + ">"
+
+    @property
+    def arity(self):
+        return len(self.types)
+
+    def convert(self, value, param, ctx):
+        if len(value) != len(self.types):
+            raise TypeError('It would appear that nargs is set to conflict '
+                            'with the composite type arity.')
+        return tuple(ty(x, param, ctx) for ty, x in zip(self.types, value))
 
 
 def convert_type(ty, default=None):
     """Converts a callable or python ty into the most appropriate param
     ty.
     """
-    if isinstance(ty, ParamType):
-        return ty
     guessed_type = False
     if ty is None and default is not None:
-        ty = type(default)
+        if isinstance(default, tuple):
+            ty = tuple(map(type, default))
+        else:
+            ty = type(default)
         guessed_type = True
+
+    if isinstance(ty, tuple):
+        return Tuple(ty)
+    if isinstance(ty, ParamType):
+        return ty
     if ty is text_type or ty is str or ty is None:
         return STRING
     if ty is int:
@@ -430,6 +515,20 @@ def convert_type(ty, default=None):
             pass
     return FuncParamType(ty)
 
+
+#: A dummy parameter type that just does nothing.  From a user's
+#: perspective this appears to just be the same as `STRING` but internally
+#: no string conversion takes place.  This is necessary to achieve the
+#: same bytes/unicode behavior on Python 2/3 in situations where you want
+#: to not convert argument types.  This is usually useful when working
+#: with file paths as they can appear in bytes and unicode.
+#:
+#: For path related uses the :class:`Path` type is a better choice but
+#: there are situations where an unprocessed type is useful which is why
+#: it is is provided.
+#:
+#: .. versionadded:: 4.0
+UNPROCESSED = UnprocessedParamType()
 
 #: A unicode string parameter type which is the implicit default.  This
 #: can also be selected by using ``str`` as type.

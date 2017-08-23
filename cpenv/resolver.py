@@ -86,7 +86,9 @@ class Resolver(object):
                 except ResolveError:
                     continue
             else:
-                raise ResolveError('Could not find an environment: ' + path)
+                raise ResolveError(
+                    'Could not resolve environment or module: ' + path
+                )
 
         return self.resolved
 

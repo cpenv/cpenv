@@ -4,15 +4,18 @@ import inspect
 from functools import update_wrapper
 
 from ._compat import iteritems
+from ._unicodefun import _check_for_unicode_literals
 from .utils import echo
+from .globals import get_current_context
 
 
 def pass_context(f):
     """Marks a callback as wanting to receive the current context
     object as first argument.
     """
-    f.__click_pass_context__ = True
-    return f
+    def new_func(*args, **kwargs):
+        return f(get_current_context(), *args, **kwargs)
+    return update_wrapper(new_func, f)
 
 
 def pass_obj(f):
@@ -20,10 +23,8 @@ def pass_obj(f):
     context onwards (:attr:`Context.obj`).  This is useful if that object
     represents the state of a nested system.
     """
-    @pass_context
     def new_func(*args, **kwargs):
-        ctx = args[0]
-        return ctx.invoke(f, ctx.obj, *args[1:], **kwargs)
+        return f(get_current_context().obj, *args, **kwargs)
     return update_wrapper(new_func, f)
 
 
@@ -50,9 +51,8 @@ def make_pass_decorator(object_type, ensure=False):
                    remembered on the context if it's not there yet.
     """
     def decorator(f):
-        @pass_context
         def new_func(*args, **kwargs):
-            ctx = args[0]
+            ctx = get_current_context()
             if ensure:
                 obj = ctx.ensure_object(object_type)
             else:
@@ -84,6 +84,7 @@ def _make_command(f, name, attrs, cls):
     else:
         help = inspect.cleandoc(help)
     attrs['help'] = help
+    _check_for_unicode_literals()
     return cls(name=name or f.__name__.lower(),
                callback=f, params=params, **attrs)
 
@@ -111,7 +112,9 @@ def command(name=None, cls=None, **attrs):
     if cls is None:
         cls = Command
     def decorator(f):
-        return _make_command(f, name, attrs, cls)
+        cmd = _make_command(f, name, attrs, cls)
+        cmd.__doc__ = f.__doc__
+        return cmd
     return decorator
 
 
@@ -134,14 +137,18 @@ def _param_memo(f, param):
 
 
 def argument(*param_decls, **attrs):
-    """Attaches an option to the command.  All positional arguments are
+    """Attaches an argument to the command.  All positional arguments are
     passed as parameter declarations to :class:`Argument`; all keyword
-    arguments are forwarded unchanged.  This is equivalent to creating an
-    :class:`Option` instance manually and attaching it to the
-    :attr:`Command.params` list.
+    arguments are forwarded unchanged (except ``cls``).
+    This is equivalent to creating an :class:`Argument` instance manually
+    and attaching it to the :attr:`Command.params` list.
+
+    :param cls: the argument class to instantiate.  This defaults to
+                :class:`Argument`.
     """
     def decorator(f):
-        _param_memo(f, Argument(param_decls, **attrs))
+        ArgumentClass = attrs.pop('cls', Argument)
+        _param_memo(f, ArgumentClass(param_decls, **attrs))
         return f
     return decorator
 
@@ -149,14 +156,18 @@ def argument(*param_decls, **attrs):
 def option(*param_decls, **attrs):
     """Attaches an option to the command.  All positional arguments are
     passed as parameter declarations to :class:`Option`; all keyword
-    arguments are forwarded unchanged.  This is equivalent to creating an
-    :class:`Option` instance manually and attaching it to the
-    :attr:`Command.params` list.
+    arguments are forwarded unchanged (except ``cls``).
+    This is equivalent to creating an :class:`Option` instance manually
+    and attaching it to the :attr:`Command.params` list.
+
+    :param cls: the option class to instantiate.  This defaults to
+                :class:`Option`.
     """
     def decorator(f):
         if 'help' in attrs:
             attrs['help'] = inspect.cleandoc(attrs['help'])
-        _param_memo(f, Option(param_decls, **attrs))
+        OptionClass = attrs.pop('cls', Option)
+        _param_memo(f, OptionClass(param_decls, **attrs))
         return f
     return decorator
 
@@ -253,7 +264,7 @@ def version_option(version=None, *param_decls, **attrs):
             echo(message % {
                 'prog': prog,
                 'version': ver,
-            })
+            }, color=ctx.color)
             ctx.exit()
 
         attrs.setdefault('is_flag', True)
@@ -278,7 +289,7 @@ def help_option(*param_decls, **attrs):
     def decorator(f):
         def callback(ctx, param, value):
             if value and not ctx.resilient_parsing:
-                echo(ctx.get_help())
+                echo(ctx.get_help(), color=ctx.color)
                 ctx.exit()
         attrs.setdefault('is_flag', True)
         attrs.setdefault('expose_value', False)

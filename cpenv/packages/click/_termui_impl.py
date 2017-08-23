@@ -31,7 +31,7 @@ def _length_hint(obj):
     """Returns the length hint of an object."""
     try:
         return len(obj)
-    except TypeError:
+    except (AttributeError, TypeError):
         try:
             get_hint = type(obj).__length_hint__
         except AttributeError:
@@ -52,7 +52,7 @@ class ProgressBar(object):
     def __init__(self, iterable, length=None, fill_char='#', empty_char=' ',
                  bar_template='%(bar)s', info_sep='  ', show_eta=True,
                  show_percent=None, show_pos=False, item_show_func=None,
-                 label=None, file=None, width=30):
+                 label=None, file=None, color=None, width=30):
         self.fill_char = fill_char
         self.empty_char = empty_char
         self.bar_template = bar_template
@@ -65,6 +65,7 @@ class ProgressBar(object):
         if file is None:
             file = _default_text_stdout()
         self.file = file
+        self.color = color
         self.width = width
         self.autowidth = width == 0
 
@@ -86,6 +87,7 @@ class ProgressBar(object):
         self.entered = False
         self.current_item = None
         self.is_hidden = not isatty(self.file)
+        self._last_line = None
 
     def __enter__(self):
         self.entered = True
@@ -127,7 +129,18 @@ class ProgressBar(object):
 
     def format_eta(self):
         if self.eta_known:
-            return time.strftime('%H:%M:%S', time.gmtime(self.eta + 1))
+            t = self.eta + 1
+            seconds = t % 60
+            t /= 60
+            minutes = t % 60
+            t /= 60
+            hours = t % 24
+            t /= 24
+            if t > 0:
+                days = t
+                return '%dd %02d:%02d:%02d' % (days, hours, minutes, seconds)
+            else:
+                return '%02d:%02d:%02d' % (hours, minutes, seconds)
         return ''
 
     def format_pos(self):
@@ -178,40 +191,47 @@ class ProgressBar(object):
 
     def render_progress(self):
         from .termui import get_terminal_size
+        nl = False
 
         if self.is_hidden:
-            echo(self.label, file=self.file)
+            buf = [self.label]
+            nl = True
+        else:
+            buf = []
+            # Update width in case the terminal has been resized
+            if self.autowidth:
+                old_width = self.width
+                self.width = 0
+                clutter_length = term_len(self.format_progress_line())
+                new_width = max(0, get_terminal_size()[0] - clutter_length)
+                if new_width < old_width:
+                    buf.append(BEFORE_BAR)
+                    buf.append(' ' * self.max_width)
+                    self.max_width = new_width
+                self.width = new_width
+
+            clear_width = self.width
+            if self.max_width is not None:
+                clear_width = self.max_width
+
+            buf.append(BEFORE_BAR)
+            line = self.format_progress_line()
+            line_len = term_len(line)
+            if self.max_width is None or self.max_width < line_len:
+                self.max_width = line_len
+            buf.append(line)
+
+            buf.append(' ' * (clear_width - line_len))
+        line = ''.join(buf)
+
+        # Render the line only if it changed.
+        if line != self._last_line:
+            self._last_line = line
+            echo(line, file=self.file, color=self.color, nl=nl)
             self.file.flush()
-            return
 
-        # Update width in case the terminal has been resized
-        if self.autowidth:
-            old_width = self.width
-            self.width = 0
-            clutter_length = term_len(self.format_progress_line())
-            new_width = max(0, get_terminal_size()[0] - clutter_length)
-            if new_width < old_width:
-                self.file.write(BEFORE_BAR)
-                self.file.write(' ' * self.max_width)
-                self.max_width = new_width
-            self.width = new_width
-
-        clear_width = self.width
-        if self.max_width is not None:
-            clear_width = self.max_width
-
-        self.file.write(BEFORE_BAR)
-        line = self.format_progress_line()
-        line_len = term_len(line)
-        if self.max_width is None or self.max_width < line_len:
-            self.max_width = line_len
-        # Use echo here so that we get colorama support.
-        echo(line, file=self.file, nl=False)
-        self.file.write(' ' * (clear_width - line_len))
-        self.file.flush()
-
-    def make_step(self):
-        self.pos += 1
+    def make_step(self, n_steps):
+        self.pos += n_steps
         if self.length_known and self.pos >= self.length:
             self.finished = True
 
@@ -222,6 +242,10 @@ class ProgressBar(object):
         self.avg = self.avg[-6:] + [-(self.start - time.time()) / (self.pos)]
 
         self.eta_known = self.length_known
+
+    def update(self, n_steps):
+        self.make_step(n_steps)
+        self.render_progress()
 
     def finish(self):
         self.eta_known = 0
@@ -239,8 +263,7 @@ class ProgressBar(object):
             self.render_progress()
             raise StopIteration()
         else:
-            self.make_step()
-            self.render_progress()
+            self.update(1)
             return rv
 
     if not PY2:
@@ -253,10 +276,11 @@ def pager(text, color=None):
     stdout = _default_text_stdout()
     if not isatty(sys.stdin) or not isatty(stdout):
         return _nullpager(stdout, text, color)
-    if 'PAGER' in os.environ:
+    pager_cmd = (os.environ.get('PAGER', None) or '').strip()
+    if pager_cmd:
         if WIN:
-            return _tempfilepager(text, os.environ['PAGER'], color)
-        return _pipepager(text, os.environ['PAGER'], color)
+            return _tempfilepager(text, pager_cmd, color)
+        return _pipepager(text, pager_cmd, color)
     if os.environ.get('TERM') in ('dumb', 'emacs'):
         return _nullpager(stdout, text, color)
     if WIN or sys.platform.startswith('os2'):
@@ -302,9 +326,24 @@ def _pipepager(text, cmd, color):
     try:
         c.stdin.write(text.encode(encoding, 'replace'))
         c.stdin.close()
-    except IOError:
+    except (IOError, KeyboardInterrupt):
         pass
-    c.wait()
+
+    # Less doesn't respect ^C, but catches it for its own UI purposes (aborting
+    # search or other commands inside less).
+    #
+    # That means when the user hits ^C, the parent process (click) terminates,
+    # but less is still alive, paging the output and messing up the terminal.
+    #
+    # If the user wants to make the pager exit on ^C, they should set
+    # `LESS='-K'`. It's not our decision to make.
+    while True:
+        try:
+            c.wait()
+        except KeyboardInterrupt:
+            pass
+        else:
+            break
 
 
 def _tempfilepager(text, cmd, color):
@@ -348,7 +387,7 @@ class Editor(object):
         if WIN:
             return 'notepad'
         for editor in 'vim', 'nano':
-            if os.system('which %s &> /dev/null' % editor) == 0:
+            if os.system('which %s >/dev/null 2>&1' % editor) == 0:
                 return editor
         return 'vi'
 

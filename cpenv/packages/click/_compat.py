@@ -14,6 +14,10 @@ DEFAULT_COLUMNS = 80
 _ansi_re = re.compile('\033\[((?:\d|;)*)([a-zA-Z])')
 
 
+def get_filesystem_encoding():
+    return sys.getfilesystemencoding() or sys.getdefaultencoding()
+
+
 def _make_text_stream(stream, encoding, errors):
     if encoding is None:
         encoding = get_best_encoding(stream)
@@ -153,8 +157,19 @@ if PY2:
     # binary only, patch it back to the system, and then use a wrapper
     # stream that converts newlines.  It's not quite clear what's the
     # correct option here.
-    if WIN:
+    #
+    # This code also lives in _winconsole for the fallback to the console
+    # emulation stream.
+    #
+    # There are also Windows environments where the `msvcrt` module is not
+    # available (which is why we use try-catch instead of the WIN variable
+    # here), such as the Google App Engine development server on Windows. In
+    # those cases there is just nothing we can do.
+    try:
         import msvcrt
+    except ImportError:
+        set_binary_mode = lambda x: x
+    else:
         def set_binary_mode(f):
             try:
                 fileno = f.fileno()
@@ -163,8 +178,6 @@ if PY2:
             else:
                 msvcrt.setmode(fileno, os.O_BINARY)
             return f
-    else:
-        set_binary_mode = lambda x: x
 
     def isidentifier(x):
         return _identifier_re.search(x) is not None
@@ -179,17 +192,26 @@ if PY2:
         return set_binary_mode(sys.stderr)
 
     def get_text_stdin(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stdin, encoding, errors)
+        if rv is not None:
+            return rv
         return _make_text_stream(sys.stdin, encoding, errors)
 
     def get_text_stdout(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stdout, encoding, errors)
+        if rv is not None:
+            return rv
         return _make_text_stream(sys.stdout, encoding, errors)
 
     def get_text_stderr(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stderr, encoding, errors)
+        if rv is not None:
+            return rv
         return _make_text_stream(sys.stderr, encoding, errors)
 
     def filename_to_ui(value):
         if isinstance(value, bytes):
-            value = value.decode(sys.getfilesystemencoding(), 'replace')
+            value = value.decode(get_filesystem_encoding(), 'replace')
         return value
 else:
     import io
@@ -255,7 +277,11 @@ else:
 
     def _stream_is_misconfigured(stream):
         """A stream is misconfigured if its encoding is ASCII."""
-        return is_ascii_encoding(getattr(stream, 'encoding', None))
+        # If the stream does not have an encoding set, we assume it's set
+        # to ASCII.  This appears to happen in certain unittest
+        # environments.  It's not quite clear what the correct behavior is
+        # but this at least will force Click to recover somehow.
+        return is_ascii_encoding(getattr(stream, 'encoding', None) or 'ascii')
 
     def _is_compatible_text_stream(stream, encoding, errors):
         stream_encoding = getattr(stream, 'encoding', None)
@@ -350,17 +376,26 @@ else:
         return writer
 
     def get_text_stdin(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stdin, encoding, errors)
+        if rv is not None:
+            return rv
         return _force_correct_text_reader(sys.stdin, encoding, errors)
 
     def get_text_stdout(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stdout, encoding, errors)
+        if rv is not None:
+            return rv
         return _force_correct_text_writer(sys.stdout, encoding, errors)
 
     def get_text_stderr(encoding=None, errors=None):
+        rv = _get_windows_console_stream(sys.stderr, encoding, errors)
+        if rv is not None:
+            return rv
         return _force_correct_text_writer(sys.stderr, encoding, errors)
 
     def filename_to_ui(value):
         if isinstance(value, bytes):
-            value = value.decode(sys.getfilesystemencoding(), 'replace')
+            value = value.decode(get_filesystem_encoding(), 'replace')
         else:
             value = value.encode('utf-8', 'surrogateescape') \
                 .decode('utf-8', 'replace')
@@ -399,6 +434,19 @@ def open_stream(filename, mode='r', encoding=None, errors='strict',
             return open(filename, mode), True
         return io.open(filename, mode, encoding=encoding, errors=errors), True
 
+    # Some usability stuff for atomic writes
+    if 'a' in mode:
+        raise ValueError(
+            'Appending to an existing file is not supported, because that '
+            'would involve an expensive `copy`-operation to a temporary '
+            'file. Open the file in normal `w`-mode and copy explicitly '
+            'if that\'s what you\'re after.'
+        )
+    if 'x' in mode:
+        raise ValueError('Use the `overwrite`-parameter instead.')
+    if 'w' not in mode:
+        raise ValueError('Atomic writes only make sense with `w`-mode.')
+
     # Atomic writes are more complicated.  They work by opening a file
     # as a proxy in the same folder and then using the fdopen
     # functionality to wrap it in a Python file.  Then we wrap it in an
@@ -416,7 +464,12 @@ def open_stream(filename, mode='r', encoding=None, errors='strict',
 
 
 # Used in a destructor call, needs extra protection from interpreter cleanup.
-_rename = os.rename
+if hasattr(os, 'replace'):
+    _replace = os.replace
+    _can_replace = True
+else:
+    _replace = os.rename
+    _can_replace = not WIN
 
 
 class _AtomicFile(object):
@@ -435,7 +488,12 @@ class _AtomicFile(object):
         if self.closed:
             return
         self._f.close()
-        _rename(self._tmp_filename, self._real_filename)
+        if not _can_replace:
+            try:
+                os.remove(self._real_filename)
+            except OSError:
+                pass
+        _replace(self._tmp_filename, self._real_filename)
         self.closed = True
 
     def __getattr__(self, name):
@@ -456,12 +514,39 @@ colorama = None
 get_winterm_size = None
 
 
+def strip_ansi(value):
+    return _ansi_re.sub('', value)
+
+
+def should_strip_ansi(stream=None, color=None):
+    if color is None:
+        if stream is None:
+            stream = sys.stdin
+        return not isatty(stream)
+    return not color
+
+
 # If we're on Windows, we provide transparent integration through
 # colorama.  This will make ANSI colors through the echo function
 # work automatically.
 if WIN:
     # Windows has a smaller terminal
     DEFAULT_COLUMNS = 79
+
+    from ._winconsole import _get_windows_console_stream
+
+    def _get_argv_encoding():
+        import locale
+        return locale.getpreferredencoding()
+
+    if PY2:
+        def raw_input(prompt=''):
+            sys.stderr.flush()
+            if prompt:
+                stdout = _default_text_stdout()
+                stdout.write(prompt)
+            stdin = _default_text_stdin()
+            return stdin.readline().rstrip('\r\n')
 
     try:
         import colorama
@@ -470,7 +555,7 @@ if WIN:
     else:
         _ansi_stream_wrappers = WeakKeyDictionary()
 
-        def auto_wrap_for_ansi(stream):
+        def auto_wrap_for_ansi(stream, color=None):
             """This function wraps a stream so that calls through colorama
             are issued to the win32 console API to recolor on demand.  It
             also ensures to reset the colors if a write call is interrupted
@@ -482,7 +567,7 @@ if WIN:
                 cached = None
             if cached is not None:
                 return cached
-            strip = not isatty(stream)
+            strip = should_strip_ansi(stream, color)
             ansi_wrapper = colorama.AnsiToWin32(stream, strip=strip)
             rv = ansi_wrapper.stream
             _write = rv.write
@@ -505,10 +590,11 @@ if WIN:
             win = colorama.win32.GetConsoleScreenBufferInfo(
                 colorama.win32.STDOUT).srWindow
             return win.Right - win.Left, win.Bottom - win.Top
+else:
+    def _get_argv_encoding():
+        return getattr(sys.stdin, 'encoding', None) or get_filesystem_encoding()
 
-
-def strip_ansi(value):
-    return _ansi_re.sub('', value)
+    _get_windows_console_stream = lambda *x: None
 
 
 def term_len(x):
@@ -541,6 +627,8 @@ def _make_cached_stream_func(src_func, wrapper_func):
     return func
 
 
+_default_text_stdin = _make_cached_stream_func(
+    lambda: sys.stdin, get_text_stdin)
 _default_text_stdout = _make_cached_stream_func(
     lambda: sys.stdout, get_text_stdout)
 _default_text_stderr = _make_cached_stream_func(
