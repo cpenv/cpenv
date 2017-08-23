@@ -15,7 +15,8 @@ if sys.argv[-1] == 'cheeseit!':
     sys.exit()
 elif sys.argv[-1] == 'testit!':
     check_call('python tests')
-    check_call('python setup.py sdist bdist_wheel upload -r pypitest')
+    check_call('python setup.py sdist bdist_wheel')
+    check_call('twine upload --repository pypitest dist/*')
     sys.exit()
 
 

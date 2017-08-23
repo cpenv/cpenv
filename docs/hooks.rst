@@ -59,4 +59,5 @@ Environment hooks are stored in an environments hooks directory(``~/.cpenv/test_
 
 Module Hooks
 ============
-Module hooks are stored in a modules hooks directory(``~/.cpenv/test_env/modules/test_module/hooks``) and overide environment and global hooks. Only module event hooks are supported.
+Module hooks are stored in a modules hooks directory(``~/.cpenv/test_env/modules/test_module/hooks``) and overide environment and global hooks. Only module event hooks are supported. If the module is not inside an environment
+the env argument will be None.

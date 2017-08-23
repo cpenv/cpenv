@@ -146,7 +146,6 @@ def test_resolve_multi_args():
 
     r = Resolver('testenv', 'testmod')
     r.resolve()
-
     assert isinstance(r.resolved[0], VirtualEnvironment)
     assert isinstance(r.resolved[1], Module)
 
@@ -161,7 +160,15 @@ def test_combine_multi_args():
             'linux': data_path('home', 'testenv', 'bin'),
             'osx': data_path('home', 'testenv', 'bin')
         }[platform]],
-        'CPENV_ACTIVE_MODULES': [],
+        'CPENV_ACTIVE': [data_path('home', 'testenv')],
+        'CPENV_ACTIVE_MODULES': [
+            data_path('home', 'testenv', 'modules', 'testmod')
+        ],
+        'PYTHONPATH': [{
+            'win': data_path('home', 'testenv', 'Lib', 'site-packages'),
+            'linux': data_path('home', 'testenv', 'lib', 'python' + pyver, 'site-packages'),
+            'osx': data_path('home', 'testenv', 'lib', 'python' + pyver, 'site-packages')
+        }[platform]],
         'UNRESOLVED_PATH': '$NOVAR',
         'RESOLVED_PATH': data_path('home', 'testenv', 'resolved'),
         'PLATFORM_PATH': 'environ_' + platform,
@@ -177,6 +184,9 @@ def test_combine_multi_args():
     combined = r.combine()
 
     for k in expected.keys():
+        print k
+        print 'combined: ', combined[k]
+        print 'expected: ', expected[k]
         if isinstance(expected[k], list):
             assert expected[k] == combined[k]
             continue

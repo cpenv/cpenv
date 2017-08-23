@@ -6,15 +6,17 @@ Environments
 Environment Variables
 =====================
 
-+---------------+-------------------------------+-----------+
-| Variable      | Description                   | Default   |
-+===============+===============================+===========+
-| CPENV_HOME    | Where to create environments  | ~/.cpenv  |
-+---------------+-------------------------------+-----------+
-| CPENV_ACTIVE  | Path to active environments   |    Null   |
-+---------------+-------------------------------+-----------+
-| CPENV_MODULES | List of Active modules        |    Null   |
-+---------------+-------------------------------+-----------+
++----------------------+-------------------------------+-----------+
+| Variable             | Description                   | Default   |
++======================+===============================+===========+
+| CPENV_HOME           | Where to create environments  | ~/.cpenv  |
++----------------------+-------------------------------+-----------+
+| CPENV_MODULES        | List of module locations      |    Null   |
++----------------------+-------------------------------+-----------+
+| CPENV_ACTIVE         | Path to active environment    |    Null   |
++----------------------+-------------------------------+-----------+
+| CPENV_ACTIVE_MODULES | List of active module paths   |    Null   |
++----------------------+-------------------------------+-----------+
 
 Configuration
 =============

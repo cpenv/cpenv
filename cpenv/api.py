@@ -54,7 +54,7 @@ def create(name_or_path=None, config=None):
         else:
             shutil.copy2(config, env.config_path)
     else:
-        with open(config_path, 'w') as f:
+        with open(env.config_path, 'w') as f:
             f.write(defaults.environment_config)
 
     utils.ensure_path_exists(env.hook_path)

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
+import subprocess
 
 
 def main(*args):
     print('\n\nRunning Test Suite...\n\n')
     cmd = 'nosetests -v --logging-clear-handlers --with-coverage --cover-package=cpenv'
-    os.system(cmd)
+    sys.exit(subprocess.check_call(cmd, shell=True))
 
 
 if __name__ == '__main__':

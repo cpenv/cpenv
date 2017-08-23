@@ -18,14 +18,14 @@ def teardown_module():
 def test_create():
     '''Create an environment'''
 
-    cpenv.create('test')
-    assert_raises(OSError, cpenv.create, 'test')
+    cpenv.create('testenv')
+    assert_raises(OSError, cpenv.create, 'testenv')
 
 
 def test_add_module():
     '''Add a module'''
 
-    env = cpenv.get_environment('test')
+    env = cpenv.get_environment('testenv')
     env.add_module('test_mod', 'https://github.com/cpenv/template_module.git')
     assert_raises(
         OSError,
@@ -38,7 +38,7 @@ def test_add_module():
 def test_remove_module():
     '''Remove a module'''
 
-    env = cpenv.get_environment('test')
+    env = cpenv.get_environment('testenv')
     mod = env.get_module('test_mod')
     mod.remove()
     assert not os.path.exists(mod.path)
@@ -47,6 +47,6 @@ def test_remove_module():
 def test_remove_environment():
     '''Remove an environment'''
 
-    env = cpenv.get_environment('test')
+    env = cpenv.get_environment('testenv')
     env.remove()
     assert not os.path.exists(env.path)
