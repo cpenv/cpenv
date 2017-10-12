@@ -313,7 +313,9 @@ class VirtualEnvironment(BaseEnvironment):
 
         module_names = os.listdir(self.modules_path)
         for name in module_names:
-            modules.append(Module(unipath(self.modules_path, name)))
+            module_path = unipath(self.modules_path, name)
+            if utils.is_module(module_path):
+                modules.append(Module(module_path))
 
         return modules
 

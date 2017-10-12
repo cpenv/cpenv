@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from operator import itemgetter
 import collections
 from functools import partial
 import click
@@ -43,10 +44,16 @@ def contains_env(modules):
     return any([isinstance(m, cpenv.VirtualEnvironment) for m in modules])
 
 
-def format_object(obj, tmpl):
-    '''Format an environment or module for terminal output'''
+def get_info(obj, indent=0, root=None):
 
-    return tmpl.format(obj.name, get_type(obj), obj.path)
+    name = ' ' * indent + obj.name
+    type_ = get_type(obj)
+    if root:
+        path = '...' + os.path.sep + os.path.relpath(obj.path, root)
+    else:
+        path = obj.path
+
+    return name, type_, path
 
 
 def format_objects(objects, children=False, columns=None, header=True):
@@ -54,21 +61,25 @@ def format_objects(objects, children=False, columns=None, header=True):
 
     columns = columns or ('NAME', 'TYPE', 'PATH')
     objects = sorted(objects, key=_type_and_name)
-    lines = []
-    tmpl = '    {:16}{:16}{:48}'
-    local_tmpl = '      {:14}{:16}{:48}'
-    if header:
-        lines.append('\n' + bold_blue(tmpl.format(*columns)))
-
+    data = []
     for obj in objects:
         if isinstance(obj, cpenv.VirtualEnvironment):
-            lines.append(format_object(obj, tmpl))
+            data.append(get_info(obj))
             modules = obj.get_modules()
             if children and modules:
                 for mod in modules:
-                    lines.append(format_object(mod, local_tmpl))
+                    data.append(get_info(mod, indent=2, root=obj.path))
         else:
-            lines.append(format_object(obj, tmpl))
+            data.append(get_info(obj))
+
+    maxes = [len(max(col, key=len)) for col in zip(*data)]
+    tmpl = '{:%d}  {:%d}  {:%d}' % tuple(maxes)
+    lines = []
+    if header:
+        lines.append('\n' + bold_blue(tmpl.format(*columns)))
+
+    for obj_data in data:
+        lines.append(tmpl.format(*obj_data))
 
     return '\n'.join(lines)
 
