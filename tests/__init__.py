@@ -8,6 +8,7 @@ import virtualenv
 from cpenv.utils import rmtree, unipath
 from cpenv.log import logger
 import cpenv
+from .utils import touch
 
 data_path = partial(os.path.join, os.path.dirname(__file__), 'data')
 
@@ -30,6 +31,7 @@ class MockGit(cpenv.deps.Git):
 
         if not os.path.exists(destination):
             os.makedirs(destination)
+            touch(unipath(destination, 'module.yml'))
             return True
 
         return False
