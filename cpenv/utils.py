@@ -366,7 +366,7 @@ def restore_env_from_file(env_file):
     '''
 
     with open(env_file, 'r') as f:
-        env_dict = yaml.load(f.read())
+        env_dict = yaml.safe_load(f.read())
 
     restore_env(env_dict)
 
@@ -389,7 +389,7 @@ def set_env_from_file(env_file):
     '''
 
     with open(env_file, 'r') as f:
-        env_dict = yaml.load(f.read())
+        env_dict = yaml.safe_load(f.read())
 
     if 'environment' in env_dict:
         env_dict = env_dict['environment']
