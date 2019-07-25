@@ -9,8 +9,9 @@ directly from git.
 How it looks
 ============
 
-From a terminal:
+From a terminal
 ::
+
     >cpenv create my_env
     Creating new environment my_env
     ...
@@ -20,15 +21,17 @@ From a terminal:
     Installing https://github.com/cpenv/template_module.git
     ...
 
-From python:
+From python
 ::
+
     import cpenv
     my_env = cpenv.create('my_env)
     my_env.add_module('my_module', 'https://github.com/cpenv/template_module.git')
     cpenv.activate(my_env, my_module)
 
-From an environment config:
+From an environment config
 ::
+
     environment:
         PATH:
             - '$ENVIRON/relative/path'
@@ -43,7 +46,7 @@ From an environment config:
 
 Installation
 ============
-cpenv is available on pypi: 
+cpenv is available on pypi
 ::
 
     pip install cpenv

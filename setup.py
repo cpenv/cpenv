@@ -45,6 +45,7 @@ setup(
     name=info['title'],
     version=info['version'],
     description=info['description'],
+    long_description_content_type='text/x-rst',
     long_description=readme,
     author=info['author'],
     author_email=info['email'],
