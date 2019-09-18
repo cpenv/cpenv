@@ -184,9 +184,6 @@ def test_combine_multi_args():
     combined = r.combine()
 
     for k in expected.keys():
-        print k
-        print 'combined: ', combined[k]
-        print 'expected: ', expected[k]
         if isinstance(expected[k], list):
             assert expected[k] == combined[k]
             continue

@@ -289,6 +289,7 @@ def create_module(name_or_path, config=None, branch=None):
     if os.path.exists(path):
         raise OSError('{} already exists'.format(path))
 
+    utils.ensure_path_exists(path)
     module = Module(path)
 
     if config:

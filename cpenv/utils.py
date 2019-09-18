@@ -125,7 +125,7 @@ def walk_up(start_dir, depth=20):
     '''
     root = start_dir
 
-    for i in xrange(depth):
+    for i in range(depth):
         contents = os.listdir(root)
         subdirs, files = [], []
         for f in contents:
@@ -248,7 +248,7 @@ def join_dicts(*dicts):
     out_dict = {}
 
     for d in dicts:
-        for k, v in d.iteritems():
+        for k, v in d.items():
 
             if not type(v) in JOINERS:
                 raise KeyError('Invalid type in dict: {}'.format(type(v)))
@@ -264,13 +264,13 @@ def env_to_dict(env, pathsep=os.pathsep):
     Variables containing multiple values will be split into a list based on
     the argument passed to pathsep.
 
-    :param env: Environment dict like os.environ.data
+    :param env: Environment dict like dict(os.environ)
     :param pathsep: Path separator used to split variables
     '''
 
     out_dict = {}
 
-    for k, v in env.iteritems():
+    for k, v in env.items():
         if pathsep in v:
             out_dict[k] = v.split(pathsep)
         else:
@@ -290,7 +290,7 @@ def dict_to_env(d, pathsep=os.pathsep):
 
     out_env = {}
 
-    for k, v in d.iteritems():
+    for k, v in d.items():
         if isinstance(v, list):
             out_env[k] = pathsep.join(v)
         elif isinstance(v, string_types):
@@ -310,7 +310,7 @@ def expand_envvars(env):
 
     out_env = {}
 
-    for k, v in env.iteritems():
+    for k, v in env.items():
         out_env[k] = Template(v).safe_substitute(env)
 
     # Expand twice to make sure we expand everything we possibly can
@@ -339,7 +339,7 @@ def store_env(path=None):
 
     path = path or get_store_env_tmp()
 
-    env_dict = yaml.safe_dump(os.environ.data, default_flow_style=False)
+    env_dict = yaml.safe_dump(dict(os.environ), default_flow_style=False)
 
     with open(path, 'w') as f:
         f.write(env_dict)
@@ -375,7 +375,7 @@ def set_env(*env_dicts):
     '''Set environment variables in the current python process from a dict
     containing envvars and values.'''
 
-    old_env_dict = env_to_dict(os.environ.data)
+    old_env_dict = env_to_dict(dict(os.environ))
     new_env_dict = join_dicts(old_env_dict, *env_dicts)
     new_env = dict_to_env(new_env_dict)
     replace_osenviron(expand_envvars(new_env))
@@ -402,5 +402,5 @@ def replace_osenviron(env_dict):
         if k not in env_dict:
             del os.environ[k]
 
-    for k, v in env_dict.iteritems():
+    for k, v in env_dict.items():
         os.environ[k] = v

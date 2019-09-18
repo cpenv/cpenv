@@ -66,5 +66,10 @@ setup(
     entry_points={
         'console_scripts': ['cpenv = cpenv.__main__:cli']
     },
-    install_requires=['virtualenv']
+    install_requires=[
+        'virtualenv',
+        'click',
+        'colorama',
+        'pyyaml',
+    ]
 )
