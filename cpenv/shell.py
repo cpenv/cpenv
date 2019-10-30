@@ -70,4 +70,4 @@ def launch(prompt_prefix=None):
     if prompt_prefix:
         os.environ['PROMPT'] = prompt(prompt_prefix)
 
-    subprocess.call(cmd(), env=os.environ.data)
+    subprocess.call(cmd(), env=dict(os.environ))

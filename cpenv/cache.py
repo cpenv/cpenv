@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-from .packages import yaml
+import yaml
 from .utils import unipath
 from .models import VirtualEnvironment
 
@@ -47,7 +47,7 @@ class EnvironmentCache(set):
             return
 
         with open(self.path, 'r') as f:
-            env_data = yaml.load(f.read())
+            env_data = yaml.safe_load(f.read())
 
         if env_data:
             for env in env_data:

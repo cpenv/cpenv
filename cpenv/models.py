@@ -11,12 +11,12 @@ import shutil
 import sys
 import subprocess
 from string import Template
+import yaml
 from . import utils, platform
 from .compat import string_types
 from .deps import Pip, Git
 from .hooks import HookFinder, get_global_hook_path
 from .log import logger
-from .packages import yaml
 from .utils import unipath
 
 
@@ -84,7 +84,7 @@ class BaseEnvironment(object):
 
             bare = Template(self.bare_config)
             formatted = bare.safe_substitute(self.variables)
-            self._config = yaml.load(formatted)
+            self._config = yaml.safe_load(formatted)
 
         return self._config
 

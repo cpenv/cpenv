@@ -45,6 +45,7 @@ setup(
     name=info['title'],
     version=info['version'],
     description=info['description'],
+    long_description_content_type='text/x-rst',
     long_description=readme,
     author=info['author'],
     author_email=info['email'],
@@ -65,5 +66,10 @@ setup(
     entry_points={
         'console_scripts': ['cpenv = cpenv.__main__:cli']
     },
-    install_requires=['virtualenv']
+    install_requires=[
+        'virtualenv',
+        'click',
+        'colorama',
+        'pyyaml',
+    ]
 )

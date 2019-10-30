@@ -1,0 +1,4 @@
+virtualenv
+click
+colorama
+pyyaml
