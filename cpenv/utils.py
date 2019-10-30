@@ -71,12 +71,11 @@ def redirect_to_env_paths(path):
 def parse_redirect(data):
     '''Parses a redirect string - data of a .cpenv file'''
 
-    lines = [line for line in data.split('\n') if line]
+    lines = [line for line in data.split('\n') if line.strip()]
     if len(lines) == 1:
         return shlex.split(lines[0])
     else:
         return lines
-
 
 
 def expandpath(path):

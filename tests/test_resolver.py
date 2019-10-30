@@ -36,6 +36,8 @@ environment:
 REDIRECT_TEXT = 'testenv testmod'
 REDIRECT_TEXT_END_NEWLINE = 'testenv testmod\n'
 REDIRECT_TEXT_MULTILINE = 'testenv\ntestmod\n'
+REDIRECT_TEXT_MULTILINE2 = 'testenv\ntestmod\n \n     \n '
+REDIRECT_TEXT_MULTILINE3 = 'testenv\n\n \ntestmod\n '
 
 
 def setup_module():
@@ -66,6 +68,14 @@ def setup_module():
     make_files(
         data_path('not_home', 'projectb', '.cpenv'),
         text=REDIRECT_TEXT_MULTILINE
+    )
+    make_files(
+        data_path('not_home', 'projectc', '.cpenv'),
+        text=REDIRECT_TEXT_MULTILINE2
+    )
+    make_files(
+        data_path('not_home', 'projectd', '.cpenv'),
+        text=REDIRECT_TEXT_MULTILINE3
     )
     make_files(os.path.join(project_path, 'shot_file.txt'), text='')
 
@@ -211,23 +221,19 @@ def test_redirect_resolver_from_folder():
         data_path('home', 'testenv', 'modules', 'testmod'),
     ]
 
-    r = Resolver(data_path('not_home', 'project', 'sequence', 'shot'))
-    r.resolve()
+    resolve_paths = [
+        data_path('not_home', 'project', 'sequence', 'shot'),
+        data_path('not_home', 'projecta'),
+        data_path('not_home', 'projectb'),
+        data_path('not_home', 'projectc'),
+        data_path('not_home', 'projectd'),
+    ]
+    for path in resolve_paths:
+        r = Resolver(path)
+        r.resolve()
 
-    assert r.resolved[0].path == expected_paths[0]
-    assert r.resolved[1].path == expected_paths[1]
-
-    r = Resolver(data_path('not_home', 'projecta'))
-    r.resolve()
-
-    assert r.resolved[0].path == expected_paths[0]
-    assert r.resolved[1].path == expected_paths[1]
-
-    r = Resolver(data_path('not_home', 'projectb'))
-    r.resolve()
-
-    assert r.resolved[0].path == expected_paths[0]
-    assert r.resolved[1].path == expected_paths[1]
+        assert r.resolved[0].path == expected_paths[0]
+        assert r.resolved[1].path == expected_paths[1]
 
 
 def test_redirect_resolver_from_file():
@@ -279,6 +285,10 @@ def test_parse_redirect():
         ('testenv testmod\n', ['testenv', 'testmod']),
         ('testenv\ntestmod\n', ['testenv', 'testmod']),
         ('testenv\ntestmod\ntestmodb', ['testenv', 'testmod', 'testmodb']),
+        ('testenv testmod\n', ['testenv', 'testmod']),
+        ('testenv\ntestmod\n', ['testenv', 'testmod']),
+        ('testenv\ntestmod\n \n     \n ', ['testenv', 'testmod']),
+        ('testenv\ntestm\n \ntestmod\n ', ['testenv', 'testm', 'testmod']),
     ]
     for test, expected in tests:
         assert parse_redirect(test) == expected

@@ -42,8 +42,8 @@ module_config = '''
 # DO 'this${variable}isnested/' NOT 'this$variableisnested'
 
 environment: {}
-    # RELATIVE_VAR: '$ENVIRON/relative/path'
-    # PLATFORM_VAR: '$ENVIRON/$PLATFORM/path'
+    # RELATIVE_VAR: '$MODULE/relative/path'
+    # PLATFORM_VAR: '$MODULE/$PLATFORM/path'
     # PLATFORM_VARB:
     #    win: 'C:/windows/path'
     #    linux: '/linux/path'
