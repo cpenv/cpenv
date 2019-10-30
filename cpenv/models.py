@@ -11,13 +11,13 @@ import shutil
 import sys
 import subprocess
 from string import Template
-import cpenv.deps
-from .hooks import HookFinder, get_global_hook_path
-from .utils import unipath
-from .log import logger
 from . import utils, platform
-import yaml
 from .compat import string_types
+from .deps import Pip, Git
+from .hooks import HookFinder, get_global_hook_path
+from .log import logger
+from .packages import yaml
+from .utils import unipath
 
 
 class BaseEnvironment(object):
@@ -164,8 +164,8 @@ class VirtualEnvironment(BaseEnvironment):
         self.config_path = self.relative_path('environment.yml')
         self.modules_path = self.relative_path('modules')
         self.hook_finder = HookFinder(self.hook_path, get_global_hook_path())
-        self.pip = cpenv.deps.Pip(unipath(self.bin_path, 'pip'))
-        self.git = cpenv.deps.Git(self.path)
+        self.pip = Pip(unipath(self.bin_path, 'pip'))
+        self.git = Git(self.path)
 
     def __repr__(self):
         return '<VirtualEnvironment>({0})'.format(self.path)
@@ -338,7 +338,7 @@ class Module(BaseEnvironment):
                 self.parent.hook_path,
                 get_global_hook_path()
             )
-            self.pip = cpenv.deps.Pip(unipath(self.parent.bin_path, 'pip'))
+            self.pip = Pip(unipath(self.parent.bin_path, 'pip'))
         else:
             self.hook_finder = HookFinder(
                 self.hook_path,
@@ -346,7 +346,7 @@ class Module(BaseEnvironment):
             )
             self.pip = None
 
-        self.git = cpenv.deps.Git(self.path)
+        self.git = Git(self.path)
 
     def __repr__(self):
         return '<Module>({0})'.format(self.path)

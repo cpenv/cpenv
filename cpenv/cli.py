@@ -3,12 +3,12 @@ import os
 from operator import itemgetter
 import collections
 from functools import partial
-import click
 import colorama
 import cpenv
-import cpenv.utils as utils
-import cpenv.shell as shell
+from cpenv import utils
+from cpenv import shell
 from cpenv.cache import EnvironmentCache
+from cpenv.packages import click
 
 
 red = partial(click.style, fg='red')

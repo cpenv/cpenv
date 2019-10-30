@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import yaml
+from .packages import yaml
 from .utils import unipath
 from .models import VirtualEnvironment
 

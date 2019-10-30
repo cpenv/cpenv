@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+import subprocess
 from . import platform
 from .log import logger
 from .utils import binpath
-import os
-import subprocess
 
 
 def run(*args, **kwargs):

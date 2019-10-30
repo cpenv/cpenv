@@ -61,3 +61,5 @@ target/
 
 #test data
 tests/data
+
+venv

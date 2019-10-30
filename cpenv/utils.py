@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import os
-import tempfile
 import random
 import shlex
 import shutil
 import stat
 import sys
+import tempfile
 from string import Template
-import yaml
+from .packages import yaml
 from . import platform
 from .compat import string_types, numeric_types
 
@@ -63,9 +63,20 @@ def redirect_to_env_paths(path):
     '''Get environment path from redirect file'''
 
     with open(path, 'r') as f:
-        redirected = f.read()
+        data = f.read()
 
-    return shlex.split(redirected)
+    return parse_redirect(data)
+
+
+def parse_redirect(data):
+    '''Parses a redirect string - data of a .cpenv file'''
+
+    lines = [line for line in data.split('\n') if line]
+    if len(lines) == 1:
+        return shlex.split(lines[0])
+    else:
+        return lines
+
 
 
 def expandpath(path):

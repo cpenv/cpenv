@@ -6,7 +6,7 @@ import sys
 from cpenv.resolver import Resolver, ResolveError
 from cpenv.models import VirtualEnvironment, Module
 from cpenv import platform
-from cpenv.utils import rmtree
+from cpenv.utils import rmtree, parse_redirect
 from . import data_path
 from .utils import make_files, cwd
 from nose.tools import raises, assert_raises
@@ -33,7 +33,9 @@ environment:
             - $PYVER/linuxb
 '''
 
-REDIRECT_TEXT = '''testenv testmod'''
+REDIRECT_TEXT = 'testenv testmod'
+REDIRECT_TEXT_END_NEWLINE = 'testenv testmod\n'
+REDIRECT_TEXT_MULTILINE = 'testenv\ntestmod\n'
 
 
 def setup_module():
@@ -53,7 +55,18 @@ def setup_module():
 
     project_path = data_path('not_home', 'project', 'sequence', 'shot')
     os.makedirs(project_path)
-    make_files(data_path('not_home', 'project', '.cpenv'), text=REDIRECT_TEXT)
+    make_files(
+        data_path('not_home', 'project', '.cpenv'),
+        text=REDIRECT_TEXT
+    )
+    make_files(
+        data_path('not_home', 'projecta', '.cpenv'),
+        text=REDIRECT_TEXT_END_NEWLINE
+    )
+    make_files(
+        data_path('not_home', 'projectb', '.cpenv'),
+        text=REDIRECT_TEXT_MULTILINE
+    )
     make_files(os.path.join(project_path, 'shot_file.txt'), text='')
 
 
@@ -207,6 +220,18 @@ def test_redirect_resolver_from_folder():
     assert r.resolved[0].path == expected_paths[0]
     assert r.resolved[1].path == expected_paths[1]
 
+    r = Resolver(data_path('not_home', 'projecta'))
+    r.resolve()
+
+    assert r.resolved[0].path == expected_paths[0]
+    assert r.resolved[1].path == expected_paths[1]
+
+    r = Resolver(data_path('not_home', 'projectb'))
+    r.resolve()
+
+    assert r.resolved[0].path == expected_paths[0]
+    assert r.resolved[1].path == expected_paths[1]
+
 
 def test_redirect_resolver_from_file():
     '''Resolve environment from file, parent folder has .cpenv file'''
@@ -247,3 +272,16 @@ def test_multi_module_does_not_exist():
 
     r = Resolver('testenv', 'testmod', 'does_not_exist')
     r.resolve()
+
+
+def test_parse_redirect():
+    '''Test parse redirect strings.'''
+
+    tests = [
+        ('testenv testmod', ['testenv', 'testmod']),
+        ('testenv testmod\n', ['testenv', 'testmod']),
+        ('testenv\ntestmod\n', ['testenv', 'testmod']),
+        ('testenv\ntestmod\ntestmodb', ['testenv', 'testmod', 'testmodb']),
+    ]
+    for test, expected in tests:
+        assert parse_redirect(test) == expected
