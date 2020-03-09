@@ -49,7 +49,7 @@ class HookFinder(object):
         try:
             exec(code, hook.__dict__)
             return hook
-        except:
+        except Exception:
             logger.error('Error executing hook: {}'.format(hook_path))
             raise
 

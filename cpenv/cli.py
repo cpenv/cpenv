@@ -87,8 +87,9 @@ def format_objects(objects, children=False, columns=None, header=True):
 @click.group()
 @click.version_option(cpenv.__version__)
 def cli():
-   '''Cpenv commands'''
-   EnvironmentCache.validate()
+    '''Cpenv commands'''
+
+    EnvironmentCache.validate()
 
 
 @cli.command()
@@ -144,7 +145,6 @@ def list_():
 def activate(paths, skip_local, skip_shared):
     '''Activate an environment'''
 
-
     if not paths:
         ctx = click.get_current_context()
         if cpenv.get_active_env():
@@ -186,8 +186,8 @@ def activate(paths, skip_local, skip_shared):
 
     if old_modules and not new_modules:
         click.echo(
-            '\nModules already active: '
-            + bold(' '.join([obj.name for obj in old_modules]))
+            '\nModules already active: ' +
+            bold(' '.join([obj.name for obj in old_modules]))
         )
         return
 
@@ -347,8 +347,8 @@ def create(name_or_path, config):
 
     click.echo('Creating module {}...'.format(name_or_path), nl=False)
     try:
-        module = cpenv.create_module(name_or_path, config)
-    except Exception as e:
+        cpenv.create_module(name_or_path, config)
+    except Exception:
         click.echo(bold_red('FAILED'))
         raise
     else:
@@ -369,7 +369,8 @@ def create(name_or_path, config):
     help='local to active environment or shared',
     type=click.Choice(['local', 'shared']),
     default='local',
-    show_default=True)
+    show_default=True
+)
 def add(name, path, branch, type):
     '''Add a module to an environment. PATH can be a git repository path or
     a filesystem path. '''
@@ -394,7 +395,7 @@ def add(name, path, branch, type):
         click.echo('Missing required argument: path')
 
     env = cpenv.get_active_env()
-    if type=='local':
+    if type == 'local':
         if not env:
             click.echo('\nActivate an environment to add a local module.\n')
             return
@@ -403,7 +404,7 @@ def add(name, path, branch, type):
             click.echo('Adding module...', nl=False)
             try:
                 env.add_module(name, path, branch)
-            except:
+            except Exception:
                 click.echo(bold_red('FAILED'))
                 raise
             else:
@@ -425,7 +426,7 @@ def add(name, path, branch, type):
     click.echo('Creating module {}...'.format(module_path), nl=False)
     try:
         cpenv.create_module(module_path, path, branch)
-    except:
+    except Exception:
         click.echo(bold_red('FAILED'))
         raise
     else:
@@ -436,11 +437,12 @@ def add(name, path, branch, type):
 @click.argument('name')
 @click.option('--local', is_flag=True, help='Ensure we remove a local module')
 def remove(name, local):
-    '''Remove a module named NAME. Will remove the first resolved module named NAME. You can also specify a full path to a module. Use the --local option
+    '''Remove a module named NAME. Will remove the first resolved module named
+    NAME. You can also specify a full path to a module. Use the --local option
     to ensure removal of modules local to the currently active environment.'''
 
     click.echo()
-    if not local: # Use resolver to find module
+    if not local:  # Use resolver to find module
         try:
             r = cpenv.resolve(name)
         except cpenv.ResolveError as e:
@@ -448,7 +450,7 @@ def remove(name, local):
             return
 
         obj = r.resolved[0]
-    else: # Try to find module in active environment
+    else:  # Try to find module in active environment
         env = cpenv.get_active_env()
         if not env:
             click.echo('You must activate an env to remove local modules')
@@ -516,11 +518,11 @@ def localize(name):
         click.echo('Adding module...', nl=False)
         try:
             module = env.add_module(module.name, module.path)
-        except:
+        except Exception:
             click.echo(bold_red('FAILED'))
             raise
         else:
             click.echo(bold_green('OK!'))
 
-    click.echo('\nActivate the localize module:')
+    click.echo('\nActivate the localized module:')
     click.echo('    cpenv activate {} {}'.format(env.name, module.name))

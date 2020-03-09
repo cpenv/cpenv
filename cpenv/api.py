@@ -10,11 +10,11 @@ directly from the cpenv namespace.
 import os
 import virtualenv
 import shutil
+from .log import logger
 from .cache import EnvironmentCache
 from .resolver import Resolver
 from .utils import unipath
 from .models import VirtualEnvironment, Module
-from .hooks import run_global_hook
 from .deps import Git
 from . import utils, defaults
 
@@ -69,7 +69,7 @@ def create(name_or_path=None, config=None):
 
     try:
         env.update()
-    except:
+    except Exception:
         utils.rmtree(path)
         logger.debug('Failed to update, rolling back...')
         raise
@@ -279,6 +279,15 @@ def rem_active_module(module):
 
 
 def create_module(name_or_path, config=None, branch=None):
+    '''Create a new module.
+
+    Optionally specify a config which can be a git repo. If the config is a git
+    repo you can specify a branch as well.
+
+    :param name_or_path: Name or full path of environment
+    :param config: Environment configuration including dependencies etc...
+    :param branch: If config is a git repo, use this branch
+    '''
 
     # Get the real path of the module
     if utils.is_system_path(name_or_path):
