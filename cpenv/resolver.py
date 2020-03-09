@@ -6,8 +6,18 @@ Defines :class:`Resolver` used to resolve cpenv :class:`VirtualEnvironment` s an
 '''
 import os
 from .models import VirtualEnvironment, Module
-from .utils import (unipath, is_environment, is_module, join_dicts,
-                    set_env, walk_up, is_redirecting, redirect_to_env_paths)
+from .utils import (
+    is_alias,
+    is_environment,
+    is_module,
+    is_redirecting,
+    is_system_path,
+    join_dicts,
+    redirect_to_env_paths,
+    set_env,
+    unipath,
+    walk_up,
+)
 from .cache import EnvironmentCache
 
 
@@ -223,17 +233,59 @@ def redirect_resolver(resolver, path):
     raise ResolveError
 
 
+def alias_home_resolver(resolver, path):
+    '''Checks if path is an alias file in CPENV_HOME.'''
+
+    from .api import get_home_path
+
+    names = [
+        path,
+        path + '.cpenv'
+    ]
+
+    for name in names:
+        candidate = unipath(get_home_path(), name)
+        if is_alias(candidate):
+            env_paths = redirect_to_env_paths(candidate)
+            r = Resolver(*env_paths)
+            return r.resolve()
+
+    raise ResolveError
+
+
+def alias_module_path_resolver(resolver, path):
+    '''Checks if path is an alias file in CPENV_HOME.'''
+
+    from .api import get_module_paths
+
+    names = [
+        path,
+        path + '.cpenv'
+    ]
+
+    for name in names:
+        for module_path in get_module_paths():
+            candidate = unipath(module_path, name)
+            if is_alias(candidate):
+                env_paths = redirect_to_env_paths(candidate)
+                r = Resolver(*env_paths)
+                return r.resolve()
+
+    raise ResolveError
+
+
 resolvers = [
     path_is_venv_resolver,
     path_resolver,
     home_resolver,
     cache_resolver,
     redirect_resolver,
+    alias_resolver,
 ]
 
 module_resolvers = [
     path_is_module_resolver,
     module_resolver,
     active_env_module_resolver,
-    modules_path_resolver
+    modules_path_resolver,
 ]

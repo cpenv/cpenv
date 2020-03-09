@@ -46,17 +46,26 @@ def is_module(path):
     return os.path.exists(unipath(path, 'module.yml'))
 
 
+def is_alias(path):
+    '''Returns True if a path refers to a cpenv alias file'''
+
+    return (
+        os.path.isfile(path) or
+        os.path.isfile(path + '.cpenv')
+    )
+
+
 def is_system_path(path):
     '''Returns True if path is a system path'''
 
-    return '\\' in path or '/' in path
+    return '/' in path.replace('\\', '/')
 
 
 def is_redirecting(path):
     '''Returns True if path contains a .cpenv file'''
 
     candidate = unipath(path, '.cpenv')
-    return os.path.exists(candidate) and os.path.isfile(candidate)
+    return os.path.isfile(candidate)
 
 
 def redirect_to_env_paths(path):

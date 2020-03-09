@@ -320,3 +320,55 @@ def create_module(name_or_path, config=None, branch=None):
     module.run_hook('postcreatemodule')
 
     return module
+
+
+def alias(name_or_path, *args, **kwargs):
+    '''Create an alias to activate a list of modules. If you do not specify
+    args - alias will attempt to use the currently active modules. If no
+    modules are active an exception is raised.
+
+    :param name_or_path: Name or path to alias cpenv file
+    :param *args: Names of modules to activate - Optional
+    :param force: Overwrite existing aliases
+
+    :raises OSError: When alias already exists
+    :raises Exception: When no modules are provided or activated
+    '''
+
+    force = kwargs.get('force', False)
+
+    # Generate the aliases file path
+    if not name_or_path.endswith('.cpenv'):
+        name_or_path += '.cpenv'
+
+    if utils.is_system_path(name_or_path):
+        path = unipath(name_or_path)
+    else:
+        module_paths = get_module_paths()
+        if len(module_paths) == 1:
+            path = unipath(get_home_path(), name_or_path)
+        else:
+            path = unipath(module_paths[0], name_or_path)
+
+    # Get the modules the alias will activate
+    modules = []
+    if args:
+        modules += list(args)
+    else:
+        env = get_active_env()
+        if env:
+            modules.append(env)
+
+        modules.extend(get_active_modules())
+
+    if not modules:
+        raise Exception(
+            'You must provide modules or activate '
+            ' some before creating an alias.'
+        )
+
+    if os.path.exists(path) and not force:
+        raise OSError('{} already exists'.format(path))
+
+    with open(path, 'w') as f:
+        f.write('\n'.join([obj.name for obj in modules]))
