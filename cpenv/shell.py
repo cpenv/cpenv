@@ -45,7 +45,7 @@ def cmd():
     return [cmd, binpath('subshell.sh')]
 
 
-def prompt(prefix=None, colored=True):
+def prompt(prefix='', colored=True):
     '''Generate a prompt with a given prefix
 
     linux/osx: [prefix] user@host cwd $
@@ -67,7 +67,7 @@ def prompt(prefix=None, colored=True):
 def launch(prompt_prefix=None):
     '''Launch a subshell'''
 
-    if prompt_prefix:
+    if prompt_prefix is not None:
         os.environ['PROMPT'] = prompt(prompt_prefix)
 
     subprocess.call(cmd(), env=dict(os.environ))
