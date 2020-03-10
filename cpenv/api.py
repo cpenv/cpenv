@@ -11,7 +11,6 @@ import os
 import virtualenv
 import shutil
 from .log import logger
-from .cache import EnvironmentCache
 from .resolver import Resolver
 from .utils import unipath
 from .models import VirtualEnvironment, Module
@@ -63,9 +62,6 @@ def create(name_or_path=None, config=None):
     env.run_hook('precreate')
 
     virtualenv.create_environment(env.path)
-    if not utils.is_home_environment(env.path):
-        EnvironmentCache.add(env)
-        EnvironmentCache.save()
 
     try:
         env.update()
@@ -87,9 +83,6 @@ def remove(name_or_path):
 
     r = resolve(name_or_path)
     r.resolved[0].remove()
-
-    EnvironmentCache.discard(r.resolved[0])
-    EnvironmentCache.save()
 
 
 def resolve(*args):
@@ -191,10 +184,8 @@ def get_environment(name_or_path):
 
 
 def get_environments():
-    '''Returns a list of all known virtual environments as
-    :class:`VirtualEnvironment` instances. This includes those in CPENV_HOME
-    and any others that are cached(created by the current user or activated
-    once by full path.)
+    '''Returns a list of python virtual environments in CPENV_HOME as
+    :class:`VirtualEnvironment` instances.
     '''
 
     environments = set()
@@ -216,9 +207,6 @@ def get_environments():
         path = unipath(home, d)
         if utils.is_environment(path):
             environments.add(VirtualEnvironment(path))
-
-    for env in EnvironmentCache:
-        environments.add(env)
 
     return sorted(list(environments), key=lambda x: x.name)
 
@@ -298,7 +286,6 @@ def create_module(name_or_path, config=None, branch=None):
     if os.path.exists(path):
         raise OSError('{} already exists'.format(path))
 
-    utils.ensure_path_exists(path)
     module = Module(path)
 
     if config:
@@ -309,6 +296,7 @@ def create_module(name_or_path, config=None, branch=None):
         elif os.path.isfile(config) and config.endswith('.yml'):
             utils.ensure_path_exists(module.path)
             shutil.copy2(config, module.config_path)
+            module.update()
         else:
             raise Exception('Config must be a repo, module, or config_path.')
     else:

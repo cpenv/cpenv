@@ -89,7 +89,6 @@ def format_objects(objects, children=False, columns=None, header=True):
 def cli():
     '''Cpenv commands'''
 
-    EnvironmentCache.validate()
 
 
 @cli.command()

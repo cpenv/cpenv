@@ -8,7 +8,6 @@ import os
 from .models import VirtualEnvironment, Module
 from .utils import (unipath, is_environment, is_module, join_dicts,
                     set_env, walk_up, is_redirecting, redirect_to_env_paths)
-from .cache import EnvironmentCache
 
 
 class ResolveError(Exception):
@@ -16,33 +15,26 @@ class ResolveError(Exception):
 
 
 class Resolver(object):
-    '''Resolve, combine, activate :class:`VirtualEnvironment` and :class:`Module` environments.
-    The args passed can follow two possible signatures.
+    '''Resolve, combine, and activate :class:`VirtualEnvironment`s and
+    class:`Module`s.
+
+    Each argument should be the name or path of a VirtualEnvironment or Module
+    resolve. VirtualEnvironments will be looked up using the resolver functions
+    in the cpenv.resolver.resolvers list. Modules will be looked up using
+    the resolver functions in the cpenv.resolver.module_resolvers list. In both
+    cases the first resolver to return a resolved file path will be used.
 
     usage::
 
         >>> Resolver('production_env', 'module_a', 'module_b', 'module_c')
-
-    If the first argument passed is a VirtualEnvironment, each additional arg
-    is looked up relative to that VirtualEnvironment.
-
-    OR::
-
-        >>> Resolver('module_a', 'module_b', 'module_c')
-
-    In this case the modules are looked up in the active VirtualEnvironment.
-
-    :param cache: Optional keyword argument, cache for use with path resolvers
-
     '''
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *paths):
 
-        if not args:
+        if not paths:
             raise ValueError('Resolver expects at least 1 argument.')
 
-        self.paths = args
-        self.cache = kwargs.get('cache', EnvironmentCache)
+        self.paths = paths
         self.resolved = None
         self.combined = None
 
@@ -140,16 +132,6 @@ def home_resolver(resolver, path):
     raise ResolveError
 
 
-def cache_resolver(resolver, path):
-    '''Resolves VirtualEnvironments in EnvironmentCache'''
-
-    env = resolver.cache.find(path)
-    if env:
-        return env
-
-    raise ResolveError
-
-
 def path_is_module_resolver(resolver, path):
     '''Checks if path is already a :class:`Module` object'''
 
@@ -227,13 +209,12 @@ resolvers = [
     path_is_venv_resolver,
     path_resolver,
     home_resolver,
-    cache_resolver,
     redirect_resolver,
 ]
 
 module_resolvers = [
     path_is_module_resolver,
-    module_resolver,
     active_env_module_resolver,
-    modules_path_resolver
+    module_resolver,
+    modules_path_resolver,
 ]
