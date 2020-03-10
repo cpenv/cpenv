@@ -141,7 +141,7 @@ def deactivate():
 
 
 def get_home_path():
-    ''':returns: your home path...CPENV_HOME env var OR ~/.cpenv'''
+    '''Returns $CPENV_HOME or ~/.cpenv'''
 
     home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
     home_modules = unipath(home, 'modules')
@@ -152,23 +152,43 @@ def get_home_path():
     return home
 
 
-def get_module_paths():
-    ''':returns: paths in CPENV_MODULES env var and CPENV_HOME/modules'''
+def get_user_path():
+    '''Returns ~/.cpenv'''
 
-    module_paths = []
+    user = unipath('~/.cpenv')
+    user_modules = unipath(user, 'modules')
+    if not os.path.exists(user):
+        os.makedirs(user)
+    if not os.path.exists(user_modules):
+        os.makedirs(user_modules)
+    return user
+
+
+def get_module_paths():
+    '''Returns a list of paths used to lookup modules.
+
+    The list of lookup paths contains:
+        1. ~/.cpenv/modules
+        2. $CPENV_HOME/modules
+        3. $CPENV_MODULES
+    '''
+
+
+    module_paths = [unipath(get_user_path(), 'modules')]
+
+    cpenv_home_modules = unipath(get_home_path(), 'modules')
+    if cpenv_home_modules not in module_paths:
+        module_paths.append(cpenv_home_modules)
 
     cpenv_modules_path = os.environ.get('CPENV_MODULES', None)
     if cpenv_modules_path:
         module_paths.extend(cpenv_modules_path.split(os.pathsep))
 
-    module_paths.append(unipath(get_home_path(), 'modules'))
-
     return module_paths
 
 
 def get_active_env():
-    ''':returns: the active environment as a :class:`VirtualEnvironment`
-    instance or None if one is not active.
+    '''Returns the active environment as a :class:`VirtualEnvironment` or None
     '''
 
     active = os.environ.get('CPENV_ACTIVE', None)
@@ -201,6 +221,13 @@ def get_environments():
         if utils.is_environment(path):
             environments.add(VirtualEnvironment(path))
 
+    user = get_user_path()
+    for d in os.listdir(user):
+
+        path = unipath(user, d)
+        if utils.is_environment(path):
+            environments.add(VirtualEnvironment(path))
+
     home = get_home_path()
     for d in os.listdir(home):
 
@@ -228,6 +255,10 @@ def get_modules():
 
     module_paths = get_module_paths()
     for module_path in module_paths:
+
+        if not os.path.exists(module_path):
+            continue
+
         for d in os.listdir(module_path):
 
             path = unipath(module_path, d)
