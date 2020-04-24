@@ -11,7 +11,7 @@ import shutil
 import sys
 import subprocess
 from string import Template
-import yaml
+from .vendor import yaml
 from . import utils, platform
 from .compat import string_types
 from .deps import Pip, Git
