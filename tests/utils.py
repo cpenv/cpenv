@@ -12,7 +12,7 @@ def cwd(new_cwd):
     try:
         os.chdir(new_cwd)
         yield
-    except:
+    except Exception:
         raise
     finally:
         os.chdir(old_cwd)
@@ -32,7 +32,7 @@ def make_files(*filepaths, **kwargs):
 
         try:
             os.makedirs(d)
-        except:
+        except Exception:
             pass
 
         if not data:

@@ -2,7 +2,6 @@
 import os
 from functools import partial
 import shutil
-import colorama
 import click
 import cpenv
 from cpenv import utils

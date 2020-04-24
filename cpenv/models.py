@@ -13,7 +13,6 @@ import subprocess
 from string import Template
 from .vendor import yaml
 from . import utils, platform
-from .compat import string_types
 from .deps import Pip, Git
 from .hooks import HookFinder, get_global_hook_path
 from .log import logger

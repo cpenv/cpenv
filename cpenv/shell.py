@@ -36,7 +36,7 @@ def cmd():
                 cmd = cmd[:-1]
             cmd = cmd.split('\x00')
             return cmd + [binpath('subshell.sh')]
-        except:
+        except Exception:
             cmd = 'bash'
 
     else:
