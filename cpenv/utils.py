@@ -8,7 +8,7 @@ import stat
 import sys
 import tempfile
 from string import Template
-import yaml
+from .vendor import yaml
 from . import platform
 from .compat import string_types, numeric_types
 
