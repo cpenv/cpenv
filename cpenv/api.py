@@ -3,9 +3,10 @@ from __future__ import absolute_import, print_function
 
 # Standard library imports
 import os
+from collections import OrderedDict
 
 # Local imports
-from . import utils
+from . import hooks, utils
 from .module import Module, is_module, module_header
 from .resolver import Resolver
 from .vendor import yaml
@@ -52,29 +53,46 @@ def create(where, name, version, **kwargs):
         Module object
     '''
 
-    kwargs['name'] = name
-    kwargs['version'] = version
-    kwargs.setdefault('description', '')
-    kwargs.setdefault('author', '')
-    kwargs.setdefault('email', '')
-    kwargs.setdefault('requires', [])
-    kwargs.setdefault('environment', {})
-
-    data = module_header + yaml.dump(kwargs)
+    # Setup configuration defaults
+    config = OrderedDict([
+        ('name', name),
+        ('version', version),
+        ('description', kwargs.get('description', '')),
+        ('author', kwargs.get('author', '')),
+        ('email', kwargs.get('email', '')),
+        ('requires', kwargs.get('requires', [])),
+        ('environment', kwargs.get('environment', {})),
+    ])
 
     # Check if module already exists
     where = utils.normpath(where)
     if os.path.isdir(where):
         raise OSError('Module already exists at "%s"' % where)
 
+    # Create a Module object - does not yet exist on disk
+    module = Module(where, name, version)
+
+    # Run global precreate hook
+    # Allows users to inject data into a config prior to creating a new module
+    hooks.run_global_hook('pre_create', module, config)
+
     # Create module folder structure
     utils.ensure_path_exists(where)
     utils.ensure_path_exists(where + '/hooks')
 
+    data = module_header + yaml.dump(
+        dict(config),
+        default_flow_style=False,
+        sort_keys=False,
+    )
     with open(utils.normpath(where, 'module.yml'), 'w') as f:
         f.write(data)
 
-    return Module(where)
+    # Run global postcreate hook
+    # Allows users to perform some action after a module is created
+    hooks.run_global_hook('post_create', module)
+
+    return
 
 
 def publish(name_or_path=None, repository=None):

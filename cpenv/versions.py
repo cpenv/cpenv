@@ -5,6 +5,7 @@ import re
 from collections import namedtuple
 from functools import total_ordering
 
+
 __all__ = [
     'ParseError',
     'Version',

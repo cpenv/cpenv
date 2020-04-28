@@ -42,14 +42,19 @@ class ModuleSpec(object):
 class Module(object):
 
     def __init__(self, path, name=None, version=None):
+
         self.path = utils.normpath(path)
         self.name = name or os.path.basename(self.path)
         self.version = version
+
+        # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
         self.hook_finder = HookFinder(
             self.hook_path,
             get_global_hook_path(),
         )
+
+        # Setup config
         self.config_path = self.relative_path('module.yml')
         self.config_vars = {
             'MODULE': self.path,
@@ -82,16 +87,16 @@ class Module(object):
 
     def activate(self):
         from . import api
-        self.run_hook('preactivatemodule')
+        self.run_hook('pre_activate')
         api.add_active_module(self)
-        self.run_hook('postactivatemodule')
+        self.run_hook('post_activate')
 
     def remove(self):
         from . import api
-        self.run_hook('preremovemodule')
+        self.run_hook('pre_remove')
         utils.rmtree(self.path)
         api.remove_active_module(self)
-        self.run_hook('postremovemodule')
+        self.run_hook('post_remove')
 
     @property
     def is_active(self):

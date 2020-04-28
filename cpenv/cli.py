@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
+'''Minimal and standalone CLI framework.'''
 from __future__ import absolute_import, print_function
 
 # Standard library imports
 import argparse
 import os
 import sys
+from itertools import zip_longest
 from textwrap import wrap
 
 
+version = sys.version_info[0]
+is_py2 = version == 2
+is_py3 = version == 3
 missing = object()
 
 
@@ -95,6 +100,14 @@ class CLI(object):
         self.parser.print_help()
 
 
+def prompt(message):
+    '''Prompt a user for input'''
+    if is_py2:
+        return raw_input(message)
+
+    return input(message)
+
+
 def format_section(header, rows):
 
     width = max(len(max(rows, key=lambda x: len(x[0]))), 8) + 2
@@ -129,6 +142,23 @@ def format_section(header, rows):
     return '\n'.join(lines)
 
 
+def columns_to_rows(items, columns, width):
+
+    row_count = int(len(items) / columns + 1)
+
+    # Build columns
+    columns = []
+    for i in range(0, len(items), row_count):
+        column = [elide(item, width) for item in items[i:i + row_count]]
+        if len(column) < row_count:
+            column += [''] * (row_count - len(column))
+        columns.append(column)
+
+    # Transpose for rows
+    rows = [list(row) for row in zip_longest(*columns)]
+    return rows
+
+
 def format_columns(header, items, indent='    '):
 
     size = os.get_terminal_size()
@@ -136,12 +166,7 @@ def format_columns(header, items, indent='    '):
     columns = int((size.columns) / (width + 4))
 
     lines = [header]
-    for i in range(0, len(items), columns):
-        row = [elide(item, width) for item in items[i:i + columns]]
-        row_len = len(row)
-        if row_len < columns:
-            row.extend([''] * (columns - row_len))
-
+    for row in columns_to_rows(items, columns, width):
         lines.append((
             indent +
             '{:<{width}} ' * columns
@@ -169,7 +194,14 @@ def run(cli, unparsed_args=missing):
             raise
 
     # First parse used to pass arguments along to subcommands
-    args, more_args = cli.parser.parse_known_args(unparsed_args)
+    try:
+        args, more_args = cli.parser.parse_known_args(unparsed_args)
+    except SystemExit:
+        if '-h' in unparsed_args or '--help' in unparsed_args:
+            cli.parser.print_help()
+            sys.exit()
+        raise
+
     global_options = [('help', '-h'), ('verbose', '-v')]
     options = [f for n, f in global_options if args.__dict__.get(n, False)]
 

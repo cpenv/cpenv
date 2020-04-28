@@ -7,7 +7,7 @@ import sys
 
 # Local imports
 import cpenv
-from cpenv import ResolveError, api, cli, shell, utils
+from cpenv import ResolveError, api, cli, shell, utils, versions
 
 
 class CpenvCLI(cli.CLI):
@@ -19,6 +19,7 @@ class CpenvCLI(cli.CLI):
     def commands(self):
         return [
             Version(self),
+            Create(self),
             Activate(self),
             List(self),
         ]
@@ -29,7 +30,7 @@ class Version(cli.CLI):
 
     def run(self, args):
 
-        print('')
+        print()
         print(cli.format_section(
             'Version Info',
             [
@@ -57,6 +58,68 @@ class Version(cli.CLI):
         print(cli.format_section('Dependencies', dependencies), end='\n\n')
 
 
+class Create(cli.CLI):
+    '''Create a new module.'''
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'where',
+            help='Path to new module',
+        )
+        parser.add_argument(
+            '--name', '-n',
+            help='Name of new module',
+            default='',
+        )
+        parser.add_argument(
+            '--version', '-v',
+            help='Version of the new module',
+            default='',
+        )
+        parser.add_argument(
+            '--description', '-d',
+            help='Details about the module',
+            default='',
+        )
+        parser.add_argument(
+            '--author', '-a',
+            help='Author of the module',
+            default='',
+        )
+        parser.add_argument(
+            '--email', '-e',
+            help="Author's email address",
+            default='',
+        )
+
+    def run(self, args):
+        print()
+        where = utils.normpath(args.where)
+        basename = os.path.basename(where)
+
+        # Try to parse version from basename of where
+        try:
+            version = versions.parse(basename)
+            head = basename.replace(version.string, '')
+            if head:
+                name = head.rstrip('_v').rstrip('-v').rstrip('-_')
+            else:
+                name = os.path.basename(os.path.dirname(where))
+            version = version.string
+        except versions.ParseError:
+            name = basename
+            version = '0.1.0'
+
+        api.create(
+            where=where,
+            name=args.name or name,
+            version=args.version or version,
+            description=args.description,
+            author=args.author,
+            email=args.email,
+        )
+
+
 class Activate(cli.CLI):
     '''Activate a list of modules.'''
 
@@ -68,19 +131,19 @@ class Activate(cli.CLI):
         )
 
     def run(self, args):
-        print('')
+        print()
         print('  - Resolving modules')
         try:
             modules = api.activate(*args.modules)
         except ResolveError:
-            print('')
+            print()
             print('Error: failed to resolve %s' % args.modules)
             sys.exit(1)
 
-        print('')
+        print()
         for module in modules:
             print('%s' % module.name)
-        print('')
+        print()
 
         print('  - Launching subshell')
         shell.launch('[*]')
@@ -97,7 +160,7 @@ class List(cli.CLI):
         )
 
     def run(self, args):
-        print('')
+        print()
         active_modules = api.get_active_modules()
         if active_modules:
             print(cli.format_columns(
@@ -105,7 +168,7 @@ class List(cli.CLI):
                 [m.name for m in active_modules],
             ))
 
-        print('')
+        print()
         available_modules = api.get_modules()
         if available_modules:
             print(cli.format_columns(
