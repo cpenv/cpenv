@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
+
+# Standard library imports
+import os
+
+# Local imports
+from .module import Module, is_module
+from .utils import (
+    is_redirecting,
+    join_dicts,
+    normpath,
+    redirect_to_modules,
+    set_env,
+    walk_up,
+)
+
+
 '''
 cpenv.resolver
 ==============

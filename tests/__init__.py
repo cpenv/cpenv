@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
+# Standard library imports
 import os
 import sys
-from functools import partial
-import mock
-import virtualenv
-from cpenv.utils import rmtree, unipath
-from cpenv.log import logger
+
+# Local imports
 import cpenv
+from cpenv.utils import normpath, rmtree
+
+# Local imports
 from .utils import touch
 
 data_path = partial(os.path.join, os.path.dirname(__file__), 'data')

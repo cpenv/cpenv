@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import sys
+# Standard library imports
 import subprocess
+import sys
 
 
 def main(*args):

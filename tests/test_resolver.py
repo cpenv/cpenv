@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 
+# Standard library imports
 import os
-import mock
-import sys
-from cpenv.resolver import Resolver, ResolveError
-from cpenv.models import VirtualEnvironment, Module
-from cpenv import platform
-from cpenv.utils import rmtree, parse_redirect
+
+# Third party imports
+from nose.tools import assert_raises, raises
+
+# Local imports
+from cpenv.resolver import ResolveError, Resolver
+from cpenv.utils import parse_redirect, rmtree
+
+# Local imports
 from . import data_path
-from .utils import make_files, cwd
+from .utils import cwd, make_files
 from nose.tools import raises, assert_raises
 
 

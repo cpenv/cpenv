@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+'''isort:skip_file'''
 __title__ = 'cpenv'
 __version__ = '0.5.0'
 __author__ = 'Dan Bradham'
@@ -9,14 +9,19 @@ __license__ = 'MIT'
 __description__ = 'Cross-platform Python environment management.'
 
 
-import sys
+# Standard library imports
 import os
+import sys
+
 
 platform = sys.platform.rstrip('1234567890').lower()
 if platform == 'darwin':  # Use osx instead of darwin
     platform = 'osx'
 os.environ['CPENV_PLATFORM'] = platform
 
-from . import log
+
+# Local imports
+from . import deps, versions
 from .api import *
-from .resolver import ResolveError, module_resolvers, resolvers
+from .repos import *
+from .resolver import *

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import os
+# Third party imports
 from nose.tools import assert_raises
+
+# Local imports
 import cpenv
 from cpenv.utils import rmtree
+
+# Local imports
 from . import data_path
 
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
 
+# Standard library imports
 import os
 import random
 import shlex
@@ -8,9 +10,11 @@ import stat
 import sys
 import tempfile
 from string import Template
-from .vendor import yaml
+
+# Local imports
 from . import platform
-from .compat import string_types, numeric_types
+from .compat import numeric_types, string_types
+from .vendor import yaml
 
 
 def is_git_repo(path):

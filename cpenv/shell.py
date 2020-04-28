@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
+
+# Standard library imports
 import os
 import subprocess
+
+# Local imports
 from . import platform
-from .log import logger
 from .utils import binpath
 
 

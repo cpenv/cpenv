@@ -1,4 +1,31 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
+
+# Standard library imports
+import os
+
+# Local imports
+from . import utils
+from .module import Module, is_module, module_header
+from .resolver import Resolver
+from .vendor import yaml
+
+
+__all__ = [
+    'create',
+    'publish',
+    'remove',
+    'resolve',
+    'activate',
+    'deactivate',
+    'get_home_path',
+    'get_user_path',
+    'get_module_paths',
+    'get_modules',
+    'get_active_modules',
+    'add_active_module',
+    'remove_active_module',
+]
 '''
 cpenv.api
 =========

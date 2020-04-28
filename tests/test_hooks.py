@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
 
+# Standard library imports
 import unittest
-from cpenv.hooks import HookFinder
-from cpenv.models import VirtualEnvironment
-from cpenv.utils import rmtree
+
+# Third party imports
 from nose.tools import raises
+
+# Local imports
+from cpenv.hooks import HookFinder
+from cpenv.module import Module
+from cpenv.utils import rmtree
+
+# Local imports
 from . import data_path
 from .utils import make_files
 

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# Standard library imports
 import sys
 
 version = sys.version_info[0]

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function
 
+# Local imports
 from . import shell
-from .log import logger
+from .utils import normpath, walk_dn
 from .utils import unipath, walk_dn
 
 
