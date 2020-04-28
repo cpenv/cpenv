@@ -19,6 +19,11 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
 version = "5.1"
 
+[package.dependencies]
+[package.dependencies.toml]
+optional = true
+version = "*"
+
 [package.extras]
 toml = ["toml"]
 
@@ -62,8 +67,16 @@ optional = false
 python-versions = "*"
 version = "1.3.7"
 
+[[package]]
+category = "dev"
+description = "Python Library for Tom's Obvious, Minimal Language"
+name = "toml"
+optional = false
+python-versions = "*"
+version = "0.10.0"
+
 [metadata]
-content-hash = "26a31a314ceaec6e47bfc692fb5c71410ddd4f5cc3ef06e181dc09ac541abab2"
+content-hash = "d65ef9f9be46e4aced66e98e71834ca2ad29cc2b509ea52f2f84b342315cd1c6"
 python-versions = "^2.7 || ^3.6"
 
 [metadata.files]
@@ -117,4 +130,9 @@ nose = [
     {file = "nose-1.3.7-py2-none-any.whl", hash = "sha256:dadcddc0aefbf99eea214e0f1232b94f2fa9bd98fa8353711dacb112bfcbbb2a"},
     {file = "nose-1.3.7-py3-none-any.whl", hash = "sha256:9ff7c6cc443f8c51994b34a667bbcf45afd6d945be7477b52e97516fd17c53ac"},
     {file = "nose-1.3.7.tar.gz", hash = "sha256:f1bffef9cbc82628f6e7d7b40d7e255aefaa1adb6a1b1d26c69a8b79e6208a98"},
+]
+toml = [
+    {file = "toml-0.10.0-py2.7.egg", hash = "sha256:f1db651f9657708513243e61e6cc67d101a39bad662eaa9b5546f789338e07a3"},
+    {file = "toml-0.10.0-py2.py3-none-any.whl", hash = "sha256:235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e"},
+    {file = "toml-0.10.0.tar.gz", hash = "sha256:229f81c57791a41d65e399fc06bf0848bab550a9dfd5ed66df18ce5f05e73d5c"},
 ]
