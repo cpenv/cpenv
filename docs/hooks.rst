@@ -7,21 +7,21 @@ Hooks are python modules that have a run function. There are many types of hooks
 Available Hooks
 ===============
 
-- Activate
-    + preactivate.py
-        * signature: run(env)
-    + postactivate.py
-        * signature: run(env)
 - Create
-    + precreate.py
-        * signature: run(env)
-    + postcreate.py
-        * signature: run(env)
+    + pre_create.py
+        * signature: run(module, config)
+    + post_create.py
+        * signature: run(module)
+- Activate
+    + pre_activate.py
+        * signature: run(module)
+    + post_activate.py
+        * signature: run(module)
 - Remove
-    + preremove.py
-        * signature: run(env)
-    + postremove.py
-        * signature: run(env)
+    + pre_remove.py
+        * signature: run(module)
+    + post_remove.py
+        * signature: run(module)
 
 
 Global Hooks
