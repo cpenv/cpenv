@@ -23,31 +23,10 @@ def is_git_repo(path):
     if path.startswith('git@') or path.startswith('https://'):
         return True
 
-    if os.path.exists(unipath(path, '.git')):
+    if os.path.exists(normpath(path, '.git')):
         return True
 
     return False
-
-
-def is_home_environment(path):
-    '''Returns True if path is in CPENV_HOME'''
-
-    home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
-    path = unipath(path)
-
-    return path.startswith(home)
-
-
-def is_environment(path):
-    '''Returns True if path refers to an environment'''
-
-    return os.path.exists(unipath(path, 'environment.yml'))
-
-
-def is_module(path):
-    '''Returns True if path refers to a module'''
-
-    return os.path.exists(unipath(path, 'module.yml'))
 
 
 def is_system_path(path):
@@ -59,11 +38,11 @@ def is_system_path(path):
 def is_redirecting(path):
     '''Returns True if path contains a .cpenv file'''
 
-    candidate = unipath(path, '.cpenv')
+    candidate = normpath(path, '.cpenv')
     return os.path.exists(candidate) and os.path.isfile(candidate)
 
 
-def redirect_to_env_paths(path):
+def redirect_to_modules(path):
     '''Get environment path from redirect file'''
 
     with open(path, 'r') as f:
@@ -82,16 +61,11 @@ def parse_redirect(data):
         return lines
 
 
-def expandpath(path):
-    '''Returns an absolute expanded path'''
+def normpath(*parts):
+    '''Join, expand, and normalize a filepath.'''
 
-    return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-
-def unipath(*paths):
-    '''Like os.path.join but also expands and normalizes path parts.'''
-
-    return os.path.normpath(expandpath(os.path.join(*paths)))
+    path = os.path.expanduser(os.path.expandvars(os.path.join(*parts)))
+    return os.path.abspath(path).replace('\\', '/')
 
 
 def binpath(*paths):
@@ -103,6 +77,7 @@ def binpath(*paths):
 
 def ensure_path_exists(path, *args):
     '''Like os.makedirs but keeps quiet if path already exists'''
+
     if os.path.exists(path):
         return
 
@@ -110,9 +85,8 @@ def ensure_path_exists(path, *args):
 
 
 def walk_dn(start_dir, depth=10):
-    '''
-    Walk down a directory tree. Same as os.walk but allows for a depth limit
-    via depth argument
+    '''Walk down a directory tree.
+    Same as os.walk but allows for a depth limit
     '''
 
     start_depth = len(os.path.split(start_dir))
@@ -126,6 +100,8 @@ def walk_dn(start_dir, depth=10):
 
 
 def rmtree(path):
+    '''Safely remove directory and all of it's contents.'''
+
     def onerror(func, path, _):
         os.chmod(path, stat.S_IWRITE)
         func(path)
@@ -134,9 +110,7 @@ def rmtree(path):
 
 
 def walk_up(start_dir, depth=20):
-    '''
-    Walk up a directory tree
-    '''
+    '''Walk up a directory tree'''
     root = start_dir
 
     for i in range(depth):
@@ -339,7 +313,7 @@ def get_store_env_tmp():
 
     tempdir = tempfile.gettempdir()
     temp_name = 'envstore{0:0>3d}'
-    temp_path = unipath(tempdir, temp_name.format(random.getrandbits(9)))
+    temp_path = normpath(tempdir, temp_name.format(random.getrandbits(9)))
     if not os.path.exists(temp_path):
         return temp_path
     else:
