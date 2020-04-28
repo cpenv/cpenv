@@ -17,19 +17,18 @@ from .utils import make_files
 
 
 HOOK_TEXT = '''
-def run(env):
+def run(module):
     return True
 '''
 MODULE_HOOK_TEXT = '''
-def run(env, module):
+def run(module):
     return True
 '''
 
 
 def setup_module():
-    env_files = (
-        data_path('home', 'testenv', 'environment.yml'),
-        data_path('home', 'testenv', 'modules', 'testmod', 'module.yml'),
+    mod_files = (
+        data_path('home', 'modules', 'testmod', 'module.yml'),
     )
     global_hook_files = (
         data_path('home', 'hooks', 'precreate.py'),
@@ -37,24 +36,19 @@ def setup_module():
         data_path('home', 'hooks', 'preactivate.py'),
         data_path('home', 'hooks', 'postactivate.py'),
     )
-    env_hook_files = (
-        data_path('home', 'testenv', 'hooks', 'preactivate.py'),
-        data_path('home', 'testenv', 'hooks', 'preactivatemodule.py'),
-    )
     mod_hook_files = (
         data_path(
-            'home', 'testenv', 'modules', 'testmod', 'hooks', 'postactivatemodule.py'
+            'home', 'modules', 'testmod', 'hooks', 'postactivate.py'
         ),
         data_path(
-            'home', 'testenv', 'modules', 'testmod', 'hooks', 'postcreatemodule.py'
+            'home', 'modules', 'testmod', 'hooks', 'precreate.py'
         ),
         data_path(
-            'home', 'testenv', 'modules', 'testmod', 'hooks', 'precreatemodule.py'
+            'home', 'modules', 'testmod', 'hooks', 'postcreate.py'
         ),
     )
-    make_files(text='', *env_files)
+    make_files(text='', *mod_files)
     make_files(text=HOOK_TEXT, *global_hook_files)
-    make_files(text=HOOK_TEXT, *env_hook_files)
     make_files(text=MODULE_HOOK_TEXT, *mod_hook_files)
 
 
@@ -67,44 +61,40 @@ class TestHookFinder(unittest.TestCase):
     def setUp(self):
 
         self.hook_finder = HookFinder(
-            data_path('home', 'testenv', 'modules', 'testmod', 'hooks'),
-            data_path('home', 'testenv', 'hooks'),
+            data_path('home', 'modules', 'testmod', 'hooks'),
             data_path('home', 'hooks'),
         )
 
     def test_hook_resolution(self):
         '''Test hook resolution'''
 
-        hook = self.hook_finder('precreate')
-        assert hook.__file__ == data_path('home', 'hooks', 'precreate.py')
-
         hook = self.hook_finder('preactivate')
-        assert hook.__file__ == data_path('home', 'testenv',
-                                          'hooks', 'preactivate.py')
+        print(hook.__file__)
+        print(data_path('home', 'hooks', 'preactivate.py'))
+        assert hook.__file__ == data_path('home', 'hooks', 'preactivate.py')
 
-        hook = self.hook_finder('postactivatemodule')
-        assert hook.__file__ == data_path('home', 'testenv', 'modules',
-                                          'testmod', 'hooks',
-                                          'postactivatemodule.py')
+        hook = self.hook_finder('postactivate')
+        assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                          'hooks', 'postactivate.py')
 
-    def test_env_hook(self):
-        '''Test run environment hook'''
+        hook = self.hook_finder('postcreate')
+        assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                          'hooks', 'postcreate.py')
 
-        env = VirtualEnvironment(data_path('home', 'testenv'))
         hook = self.hook_finder('precreate')
-        assert hook.run(env) is True
+        assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                          'hooks', 'precreate.py')
 
     def test_mod_hook(self):
         '''Test run module hook'''
 
-        env = VirtualEnvironment(data_path('home', 'testenv'))
-        mod = env.get_module('testmod')
-        hook = self.hook_finder('postactivatemodule')
-        assert hook.run(env, mod) is True
-        hook = self.hook_finder('postcreatemodule')
-        assert hook.run(env, mod) is True
-        hook = self.hook_finder('precreatemodule')
-        assert hook.run(env, mod) is True
+        mod = Module(data_path('home', 'testmod'))
+        hook = self.hook_finder('postactivate')
+        assert hook.run(mod) is True
+        hook = self.hook_finder('postcreate')
+        assert hook.run(mod) is True
+        hook = self.hook_finder('precreate')
+        assert hook.run(mod) is True
 
     def test_hook_not_found(self):
         '''Test hook not found'''
@@ -123,6 +113,7 @@ class TestHookFinder(unittest.TestCase):
     def test_hook_runerror(self):
         '''Test hook run raises error'''
 
+        fake_module = []
         make_files(data_path('home', 'hooks', 'badrunhook.py'),
-                   text='def run(env):\n\treturn env[1]')
-        self.hook_finder('badrunhook').run([0])
+                   text='def run(module):\n\treturn module[1]')
+        self.hook_finder('badrunhook').run(fake_module)

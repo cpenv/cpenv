@@ -11,7 +11,9 @@ from cpenv.utils import normpath, rmtree
 # Local imports
 from .utils import touch
 
-data_path = partial(os.path.join, os.path.dirname(__file__), 'data')
+
+def data_path(*args):
+    return normpath(os.path.dirname(__file__), 'data', *args)
 
 
 # Mock some stuff
@@ -23,22 +25,20 @@ class MockGit(cpenv.deps.Git):
 
     def clone(self, repo_path, destination, branch=None):
 
-        logger.debug('Mock clone ' + repo_path)
         if repo_path not in self.REPOS:
             return False
 
         if not destination.startswith(self.env_path):
-            destination = unipath(self.env_path, destination)
+            destination = normpath(self.env_path, destination)
 
         if not os.path.exists(destination):
             os.makedirs(destination)
-            touch(unipath(destination, 'module.yml'))
+            touch(normpath(destination, 'module.yml'))
             return True
 
         return False
 
     def pull(self, repo_path, *args):
-        logger.debug('Mock pull')
         return True
 
 
@@ -48,28 +48,26 @@ class MockPip(cpenv.deps.Pip):
         pass
 
     def install(self, package):
-        logger.debug('Mock installing ' + package)
+        pass
 
     def upgrade(self, package):
-        logger.debug('Mock upgrading ' + package)
+        pass
 
 
 def mock_create_environment(env_path):
-    logger.debug('IN MOCK CREATE ENVIRONMENT')
     if cpenv.platform == 'win':
-        os.makedirs(unipath(env_path, 'Scripts'))
-        os.makedirs(unipath(env_path, 'Lib', 'site-packages'))
+        os.makedirs(normpath(env_path, 'Scripts'))
+        os.makedirs(normpath(env_path, 'Lib', 'site-packages'))
         return
 
     py_ver = 'python{0}'.format(sys.version[:3])
-    os.makedirs(unipath(env_path, 'lib', py_ver, 'site-packages'))
-    os.makedirs(unipath(env_path, 'bin'))
+    os.makedirs(normpath(env_path, 'lib', py_ver, 'site-packages'))
+    os.makedirs(normpath(env_path, 'bin'))
 
 
 def patch_stuff():
     cpenv.deps.Git = MockGit
     cpenv.deps.Pip = MockPip
-    virtualenv.create_environment = mock_create_environment
 
 
 def setup_package():
