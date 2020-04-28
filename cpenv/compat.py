@@ -3,6 +3,7 @@
 # Standard library imports
 import sys
 
+
 version = sys.version_info[0]
 is_py2 = version == 2
 is_py3 = version == 3

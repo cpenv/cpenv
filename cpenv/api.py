@@ -34,72 +34,51 @@ which can be used to manipulate virtualenvs and modules. Members are available
 directly from the cpenv namespace.
 '''
 
-import os
-import virtualenv
-import shutil
-from .log import logger
-from .resolver import Resolver
-from .utils import unipath
-from .models import VirtualEnvironment, Module
-from .deps import Git
-from . import utils, defaults
 
+def create(where, name, version, **kwargs):
+    '''Create a new module.
 
-def create(name_or_path=None, config=None):
-    '''Create a virtual environment. You can pass either the name of a new
-    environment to create in your CPENV_HOME directory OR specify a full path
-    to create an environment outisde your CPENV_HOME.
+    Arguments:
+        where (str): Path to new module
+        name (str): Name of module
+        version (str): Version of module
+        description (str): Optional description of module
+        author (str): Optional author of module
+        email (str): Optional email address of author
+        requires (list): Optional modules that this module depends on
+        environment (dict): Optional environment variables
 
-    Create an environment in CPENV_HOME::
-
-        >>> cpenv.create('myenv')
-
-    Create an environment elsewhere::
-
-        >>> cpenv.create('~/custom_location/myenv')
-
-    :param name_or_path: Name or full path of environment
-    :param config: Environment configuration including dependencies etc...
+    Returns:
+        Module object
     '''
 
-    # Get the real path of the environment
-    if utils.is_system_path(name_or_path):
-        path = unipath(name_or_path)
-    else:
-        path = unipath(get_home_path(), name_or_path)
+    kwargs['name'] = name
+    kwargs['version'] = version
+    kwargs.setdefault('description', '')
+    kwargs.setdefault('author', '')
+    kwargs.setdefault('email', '')
+    kwargs.setdefault('requires', [])
+    kwargs.setdefault('environment', {})
 
-    if os.path.exists(path):
-        raise OSError('{} already exists'.format(path))
+    data = module_header + yaml.dump(kwargs)
 
-    env = VirtualEnvironment(path)
-    utils.ensure_path_exists(env.path)
+    # Check if module already exists
+    where = utils.normpath(where)
+    if os.path.isdir(where):
+        raise OSError('Module already exists at "%s"' % where)
 
-    if config:
-        if utils.is_git_repo(config):
-            Git('').clone(config, env.path)
-        else:
-            shutil.copy2(config, env.config_path)
-    else:
-        with open(env.config_path, 'w') as f:
-            f.write(defaults.environment_config)
+    # Create module folder structure
+    utils.ensure_path_exists(where)
+    utils.ensure_path_exists(where + '/hooks')
 
-    utils.ensure_path_exists(env.hook_path)
-    utils.ensure_path_exists(env.modules_path)
+    with open(utils.normpath(where, 'module.yml'), 'w') as f:
+        f.write(data)
 
-    env.run_hook('precreate')
+    return Module(where)
 
-    virtualenv.create_environment(env.path)
 
-    try:
-        env.update()
-    except Exception:
-        utils.rmtree(path)
-        logger.debug('Failed to update, rolling back...')
-        raise
-    else:
-        env.run_hook('postcreate')
-
-    return env
+def publish(name_or_path=None, repository=None):
+    '''Publish the module to the specified repository.'''
 
 
 def remove(name_or_path):
@@ -141,19 +120,7 @@ def activate(*args):
 
     r = resolve(*args)
     r.activate()
-    return get_active_env()
-
-
-def launch(module_name, *args, **kwargs):
-    '''Activates and launches a module
-
-    :param module_name: name of module to launch
-    '''
-
-    r = resolve(module_name)
-    r.activate()
-    mod = r.resolved[0]
-    mod.launch(*args, **kwargs)
+    return r.resolved
 
 
 def deactivate():
@@ -161,33 +128,36 @@ def deactivate():
     stored prior to activating environments
     '''
 
-    if 'CPENV_ACTIVE' not in os.environ or 'CPENV_CLEAN_ENV' not in os.environ:
-        raise EnvironmentError('Can not deactivate environment...')
-
-    utils.restore_env_from_file(os.environ['CPENV_CLEAN_ENV'])
+    pass
 
 
 def get_home_path():
     '''Returns $CPENV_HOME or ~/.cpenv'''
 
-    home = unipath(os.environ.get('CPENV_HOME', '~/.cpenv'))
-    home_modules = unipath(home, 'modules')
+    home = utils.normpath(os.environ.get('CPENV_HOME', '~/.cpenv'))
+    home_modules = utils.normpath(home, 'modules')
+
     if not os.path.exists(home):
         os.makedirs(home)
+
     if not os.path.exists(home_modules):
         os.makedirs(home_modules)
+
     return home
 
 
 def get_user_path():
     '''Returns ~/.cpenv'''
 
-    user = unipath('~/.cpenv')
-    user_modules = unipath(user, 'modules')
+    user = utils.normpath('~/.cpenv')
+    user_modules = utils.normpath(user, 'modules')
+
     if not os.path.exists(user):
         os.makedirs(user)
+
     if not os.path.exists(user_modules):
         os.makedirs(user_modules)
+
     return user
 
 
@@ -200,69 +170,19 @@ def get_module_paths():
         3. $CPENV_MODULES
     '''
 
+    module_paths = [utils.normpath(get_user_path(), 'modules')]
 
-    module_paths = [unipath(get_user_path(), 'modules')]
-
-    cpenv_home_modules = unipath(get_home_path(), 'modules')
+    cpenv_home_modules = utils.normpath(get_home_path(), 'modules')
     if cpenv_home_modules not in module_paths:
         module_paths.append(cpenv_home_modules)
 
     cpenv_modules_path = os.environ.get('CPENV_MODULES', None)
     if cpenv_modules_path:
-        module_paths.extend(cpenv_modules_path.split(os.pathsep))
+        for module_path in cpenv_modules_path.split(os.pathsep):
+            if module_path not in module_paths:
+                module_paths.append(utils.normpath(module_path))
 
     return module_paths
-
-
-def get_active_env():
-    '''Returns the active environment as a :class:`VirtualEnvironment` or None
-    '''
-
-    active = os.environ.get('CPENV_ACTIVE', None)
-    if active:
-        return VirtualEnvironment(active)
-
-
-def get_environment(name_or_path):
-    '''Get a :class:`VirtualEnvironment` by name or path.'''
-
-    r = resolve(name_or_path)
-    return r.resolved[0]
-
-
-def get_environments():
-    '''Returns a list of python virtual environments in CPENV_HOME as
-    :class:`VirtualEnvironment` instances.
-    '''
-
-    environments = set()
-
-    cwd = os.getcwd()
-    for d in os.listdir(cwd):
-
-        if d == 'environment.yml':
-            environments.add(VirtualEnvironment(cwd))
-            continue
-
-        path = unipath(cwd, d)
-        if utils.is_environment(path):
-            environments.add(VirtualEnvironment(path))
-
-    user = get_user_path()
-    for d in os.listdir(user):
-
-        path = unipath(user, d)
-        if utils.is_environment(path):
-            environments.add(VirtualEnvironment(path))
-
-    home = get_home_path()
-    for d in os.listdir(home):
-
-        path = unipath(home, d)
-        if utils.is_environment(path):
-            environments.add(VirtualEnvironment(path))
-
-    return sorted(list(environments), key=lambda x: x.name)
 
 
 def get_modules():
@@ -276,8 +196,8 @@ def get_modules():
         if d == 'module.yml':
             modules.add(Module(cwd))
 
-        path = unipath(cwd, d)
-        if utils.is_module(path):
+        path = utils.normpath(cwd, d)
+        if is_module(path):
             modules.add(Module(cwd))
 
     module_paths = get_module_paths()
@@ -288,8 +208,8 @@ def get_modules():
 
         for d in os.listdir(module_path):
 
-            path = unipath(module_path, d)
-            if utils.is_module(path):
+            path = utils.normpath(module_path, d)
+            if is_module(path):
                 modules.add(Module(path))
 
     return sorted(list(modules), key=lambda x: x.name)
@@ -315,54 +235,10 @@ def add_active_module(module):
     os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
 
 
-def rem_active_module(module):
+def remove_active_module(module):
     '''Remove a module from CPENV_ACTIVE_MODULES environment variable'''
 
     modules = set(get_active_modules())
     modules.discard(module)
     new_modules_path = os.pathsep.join([m.path for m in modules])
     os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
-
-
-def create_module(name_or_path, config=None, branch=None):
-    '''Create a new module.
-
-    Optionally specify a config which can be a git repo. If the config is a git
-    repo you can specify a branch as well.
-
-    :param name_or_path: Name or full path of environment
-    :param config: Environment configuration including dependencies etc...
-    :param branch: If config is a git repo, use this branch
-    '''
-
-    # Get the real path of the module
-    if utils.is_system_path(name_or_path):
-        path = unipath(name_or_path)
-    else:
-        path = unipath('.', name_or_path)
-
-    if os.path.exists(path):
-        raise OSError('{} already exists'.format(path))
-
-    module = Module(path)
-
-    if config:
-        if utils.is_git_repo(config):
-            Git('').clone(config, module.path, branch)
-        elif utils.is_module(config):
-            shutil.copytree(unipath(config), module.path)
-        elif os.path.isfile(config) and config.endswith('.yml'):
-            utils.ensure_path_exists(module.path)
-            shutil.copy2(config, module.config_path)
-            module.update()
-        else:
-            raise Exception('Config must be a repo, module, or config_path.')
-    else:
-        with open(module.config_path, 'w') as f:
-            f.write(defaults.module_config)
-
-    utils.ensure_path_exists(module.hook_path)
-    module.run_hook('precreatemodule')
-    module.run_hook('postcreatemodule')
-
-    return module
