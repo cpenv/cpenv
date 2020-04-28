@@ -22,40 +22,11 @@ Available Hooks
         * signature: run(env)
     + postremove.py
         * signature: run(env)
-- Update
-    + preupdate.py
-        * signature: run(env)
-    + postupdate.py
-        * signature: run(env)
-- Activate Module
-    + preactivatemodule.py
-        * signature: run(env, module)
-    + postactivatemodule.py
-        * signature: run(env, module)
-- Create Module
-    + precreatemodule.py
-        * signature: run(env, module)
-    + postcreatemodule.py
-        * signature: run(env, module)
-- Remove Module
-    + preremovemodule.py
-        * signature: run(env, module)
-    + postremovemodule.py
-        * signature: run(env, module)
-- Update Module
-    + preupdatemodule.py
-        * signature: run(env, module)
-    + postupdatemodule.py
-        * signature: run(env, module)
 
 
 Global Hooks
 ============
 The global hook path is ``$CPENV_HOME/hooks`` or ``~/.cpenv/hooks`` if the ``$CPENV_HOME`` environment variable is undefined. All hooks are available as global hooks.
-
-Environment Hooks
-=================
-Environment hooks are stored in an environments hooks directory(``~/.cpenv/test_env/hooks``) and overide global hooks.
 
 Module Hooks
 ============
