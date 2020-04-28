@@ -4,7 +4,6 @@ from __future__ import absolute_import, print_function
 # Local imports
 from . import shell
 from .utils import normpath, walk_dn
-from .utils import unipath, walk_dn
 
 
 class Git(object):
@@ -29,9 +28,9 @@ class Git(object):
     def clone(self, repo_path, destination, branch=None):
         '''Clone a repository to a destination relative to envrionment root'''
 
-        logger.debug('Installing ' + repo_path)
+        print('Installing ' + repo_path)
         if not destination.startswith(self.env_path):
-            destination = unipath(self.env_path, destination)
+            destination = normpath(self.env_path, destination)
 
         if branch:
             return shell.run('git', 'clone', repo_path, '--branch', branch,
@@ -42,9 +41,9 @@ class Git(object):
     def pull(self, repo_path, *args):
         '''Clone a repository to a destination relative to envrionment root'''
 
-        logger.debug('Pulling ' + repo_path)
+        print('Pulling ' + repo_path)
         if not repo_path.startswith(self.env_path):
-            repo_path = unipath(self.env_path, repo_path)
+            repo_path = normpath(self.env_path, repo_path)
 
         return shell.run('git', 'pull', *args, **{'cwd': repo_path})
 
@@ -63,11 +62,11 @@ class Pip(object):
     def install(self, package):
         '''Install a python package using pip'''
 
-        logger.debug('Installing ' + package)
+        print('Installing ' + package)
         shell.run(self.pip_path, 'install', package)
 
     def upgrade(self, package):
         '''Update a python package using pip'''
 
-        logger.debug('Upgrading ' + package)
+        print('Upgrading ' + package)
         shell.run(self.pip_path, 'install', '--upgrade', package)
