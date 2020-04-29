@@ -7,14 +7,7 @@ import sys
 
 # Local imports
 import cpenv
-from cpenv import (
-    ResolveError,
-    api,
-    cli,
-    shell,
-    utils,
-    versions,
-)
+from cpenv import ResolveError, api, cli, shell, utils
 from cpenv.module import parse_module_path
 
 
@@ -127,20 +120,20 @@ class Activate(cli.CLI):
 
     def run(self, args):
         print()
-        print('  - Resolving modules')
+        print('- Resolving modules')
         try:
-            modules = api.activate(*args.modules)
+            activated_modules = api.activate(*args.modules)
         except ResolveError:
             print()
             print('Error: failed to resolve %s' % args.modules)
             sys.exit(1)
 
         print()
-        for module in modules:
-            print('%s' % module.name)
+        for module in activated_modules:
+            print('  ' + module.real_name)
         print()
 
-        print('  - Launching subshell')
+        print('- Launching subshell')
         shell.launch('[*]')
 
 
@@ -156,11 +149,11 @@ class List(cli.CLI):
 
     def run(self, args):
         print()
-        active_modules = api.get_active_modules()
+        active_modules = api.get_active_modules(resolve=True)
         if active_modules:
             print(cli.format_columns(
                 '[*] Active',
-                [m.name for m in active_modules],
+                [m.real_name for m in api.sort_modules(active_modules)],
             ))
 
         print()
@@ -168,7 +161,7 @@ class List(cli.CLI):
         if available_modules:
             print(cli.format_columns(
                 '[ ] Available Modules',
-                [m.name for m in available_modules],
+                [m.real_name for m in api.sort_modules(available_modules)],
             ))
         else:
             print('No modules available.')

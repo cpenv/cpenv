@@ -37,6 +37,7 @@ class Module(object):
     def __init__(self, path, name=None, version=None):
 
         self.path = utils.normpath(path)
+        self.base_name = os.path.basename(self.path)
 
         # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
@@ -49,7 +50,7 @@ class Module(object):
         self.config_path = self.relative_path('module.yml')
         self.config_vars = {
             'MODULE': self.path,
-            'PLATFORM': platform,
+            'PLATFORM': compat.platform,
             'PYVER': sys.version[:3],
         }
         self._raw_config = None
@@ -60,7 +61,7 @@ class Module(object):
 
             # Use name and version if explicitly passed
             self.name = name
-            self.version = versions.parse(version)
+            self.version = parse_version(version)
 
         else:
 
@@ -76,6 +77,12 @@ class Module(object):
             self.name = name
             self.version = version
 
+        self.qualified_name = self.name + '-' + self.version.string
+        if self.version.string != self.base_name:
+            self.real_name = self.base_name
+        else:
+            self.real_name = self.qualified_name
+
     def __eq__(self, other):
         if hasattr(other, 'path'):
             return self.path == other.path
@@ -83,10 +90,15 @@ class Module(object):
             return self.path == other
 
     def __hash__(self):
-        return hash(self.path)
+        return hash((self.__class__.__name__, self.path))
 
     def __repr__(self):
-        return '<Module>({0})'.format(self.path)
+        return '<{}>(path="{}", name="{}", version={})'.format(
+            self.__class__.__name__,
+            self.path,
+            self.name,
+            self.version,
+        )
 
     def relative_path(self, *args):
         return utils.normpath(self.path, *args)
@@ -137,7 +149,11 @@ class Module(object):
                 self._config = {}
                 return self._config
 
-            self._config = read_config(self.config_path, self._raw_config)
+            self._config = read_config(
+                self.config_path,
+                self.config_vars,
+                self._raw_config,
+            )
 
         return self._config
 
@@ -146,7 +162,7 @@ class Module(object):
         if self._environ is None:
             env = self.config.get('environment', {})
             additional = {
-                'CPENV_ACTIVE_MODULES': [self.path],
+                'CPENV_ACTIVE_MODULES': [self.qualified_name],
             }
             env = utils.join_dicts(additional, env)
             self._environ = utils.preprocess_dict(env)
@@ -155,17 +171,21 @@ class Module(object):
 
 
 def read_raw_config(module_file):
+    ''''Read the raw text data of a module.yml file'''
 
     with open(module_file, 'r') as f:
         return f.read()
 
 
-def read_config(module_file, data=None):
-    config_vars = {
-        'MODULE': utils.normpath(os.path.dirname(module_file)),
-        'PLATFORM': platform,
-        'PYVER': sys.version[:3],
-    }
+def read_config(module_file, config_vars=None, data=None):
+    '''Read and formats a module.yml file'''
+
+    if config_vars is None:
+        config_vars = {
+            'MODULE': utils.normpath(os.path.dirname(module_file)),
+            'PLATFORM': compat.platform,
+            'PYVER': sys.version[:3],
+        }
 
     if data is None:
         with open(module_file, 'r') as f:

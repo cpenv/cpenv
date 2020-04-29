@@ -167,6 +167,8 @@ def format_columns(header, items, indent='    '):
 
     lines = [header]
     for row in columns_to_rows(items, columns, width):
+        if len(row) < columns:
+            row += [''] * (columns - len(row))
         lines.append((
             indent +
             '{:<{width}} ' * columns
