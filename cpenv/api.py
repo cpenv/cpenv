@@ -92,8 +92,19 @@ def create(where, name, version, **kwargs):
     return
 
 
-def publish(name_or_path=None, repository=None):
-    '''Publish the module to the specified repository.'''
+def clone(module, where='.', repo=None):
+    '''Clone a module.
+
+    Useful for development. One might do something like:
+        1. clone a module
+        2. make changes
+        3. test changes
+        3. publish a new version of the module
+    '''
+
+
+def publish(module, repo=None):
+    '''Publish a module to the specified repository.'''
 
 
 def remove(name_or_path):
