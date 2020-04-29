@@ -8,7 +8,8 @@ from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import platform, utils, versions
+from . import compat, utils
+from .versions import ParseError, default_version, parse_version
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
 
@@ -179,9 +180,9 @@ def parse_module_path(path):
     basename = os.path.basename(path)
 
     try:
-        version = versions.parse(basename)
-    except versions.ParseError:
-        return basename, versions.default()
+        version = parse_version(basename)
+    except ParseError:
+        return basename, default_version()
 
     head = basename.replace(version.string, '')
     if head:

@@ -25,3 +25,6 @@ from . import deps, versions
 from .api import *
 from .repos import *
 from .resolver import *
+from .versions import *
+
+

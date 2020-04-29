@@ -9,7 +9,8 @@ from functools import total_ordering
 __all__ = [
     'ParseError',
     'Version',
-    'parse',
+    'parse_version',
+    'default_version',
 ]
 
 
@@ -72,7 +73,7 @@ class ParseError(Exception):
     '''Raised when a parse method fails.'''
 
 
-def parse(string):
+def parse_version(string):
     '''Parse and return a Version from the provided string.
 
     Supports:
@@ -114,7 +115,7 @@ def parse(string):
     raise ParseError('Could not parse version from %s' % string)
 
 
-def default():
+def default_version():
     return Version(
         major=0,
         minor=1,
