@@ -7,7 +7,15 @@ import sys
 
 # Local imports
 import cpenv
-from cpenv import ResolveError, api, cli, shell, utils, versions
+from cpenv import (
+    ResolveError,
+    api,
+    cli,
+    shell,
+    utils,
+    versions,
+)
+from cpenv.module import parse_module_path
 
 
 class CpenvCLI(cli.CLI):
@@ -95,25 +103,12 @@ class Create(cli.CLI):
     def run(self, args):
         print()
         where = utils.normpath(args.where)
-        basename = os.path.basename(where)
-
-        # Try to parse version from basename of where
-        try:
-            version = versions.parse(basename)
-            head = basename.replace(version.string, '')
-            if head:
-                name = head.rstrip('_v').rstrip('-v').rstrip('-_')
-            else:
-                name = os.path.basename(os.path.dirname(where))
-            version = version.string
-        except versions.ParseError:
-            name = basename
-            version = '0.1.0'
+        name, version = parse_module_path(where)
 
         api.create(
             where=where,
             name=args.name or name,
-            version=args.version or version,
+            version=args.version or version.string,
             description=args.description,
             author=args.author,
             email=args.email,

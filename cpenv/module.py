@@ -4,10 +4,11 @@ from __future__ import absolute_import, print_function
 # Standard library imports
 import os
 import sys
+from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import platform, utils
+from . import platform, utils, versions
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
 
@@ -24,19 +25,10 @@ module_header = '''
 '''
 
 
-def is_module(path):
-    '''Returns True if path refers to a module'''
-
-    return os.path.exists(utils.normpath(path, 'module.yml'))
-
-
-class ModuleSpec(object):
-
-    def __init__(self, name, version, path, repo):
-        self.name = name
-        self.version = version
-        self.path = path
-        self.repo = repo
+ModuleSpec = namedtuple(
+    'ModuleSpec',
+    ['name', 'version', 'path', 'repo'],
+)
 
 
 class Module(object):
@@ -44,8 +36,6 @@ class Module(object):
     def __init__(self, path, name=None, version=None):
 
         self.path = utils.normpath(path)
-        self.name = name or os.path.basename(self.path)
-        self.version = version
 
         # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
@@ -64,6 +54,26 @@ class Module(object):
         self._raw_config = None
         self._config = None
         self._environ = None
+
+        if name and version:
+
+            # Use name and version if explicitly passed
+            self.name = name
+            self.version = versions.parse(version)
+
+        else:
+
+            # Check config
+            if self.exists:
+                name = self.config.get('name', None)
+                version = self.config.get('version', None)
+
+            # Last resort parse module path
+            if name is None or version is None:
+                name, version = parse_module_path(self.path)
+
+            self.name = name
+            self.version = version
 
     def __eq__(self, other):
         if hasattr(other, 'path'):
@@ -114,9 +124,7 @@ class Module(object):
     @property
     def raw_config(self):
         if self._raw_config is None:
-
-            with open(self.config_path, 'r') as f:
-                self._raw_config = f.read()
+            self._raw_config = read_raw_config(self.config_path)
 
         return self._raw_config
 
@@ -128,9 +136,7 @@ class Module(object):
                 self._config = {}
                 return self._config
 
-            bare = Template(self.raw_config)
-            formatted = bare.safe_substitute(self.config_vars)
-            self._config = yaml.safe_load(formatted)
+            self._config = read_config(self.config_path, self._raw_config)
 
         return self._config
 
@@ -145,3 +151,48 @@ class Module(object):
             self._environ = utils.preprocess_dict(env)
 
         return self._environ
+
+
+def read_raw_config(module_file):
+
+    with open(module_file, 'r') as f:
+        return f.read()
+
+
+def read_config(module_file, data=None):
+    config_vars = {
+        'MODULE': utils.normpath(os.path.dirname(module_file)),
+        'PLATFORM': platform,
+        'PYVER': sys.version[:3],
+    }
+
+    if data is None:
+        with open(module_file, 'r') as f:
+            data = f.read()
+
+    return yaml.safe_load(Template(data).safe_substitute(config_vars))
+
+
+def parse_module_path(path):
+    '''Return name and version from a module's path.'''
+
+    basename = os.path.basename(path)
+
+    try:
+        version = versions.parse(basename)
+    except versions.ParseError:
+        return basename, versions.default()
+
+    head = basename.replace(version.string, '')
+    if head:
+        name = head.rstrip('_v').rstrip('-v').rstrip('-_')
+    else:
+        name = os.path.basename(os.path.dirname(path))
+
+    return name, version
+
+
+def is_module(path):
+    '''Returns True if path refers to a module'''
+
+    return os.path.exists(utils.normpath(path, 'module.yml'))
