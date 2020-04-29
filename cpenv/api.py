@@ -107,46 +107,38 @@ def publish(module, repo=None):
     '''Publish a module to the specified repository.'''
 
 
-def remove(name_or_path):
-    '''Remove an environment or module
+def remove(module, repo=None):
+    '''Remove a module from the specified repository.
 
     :param name_or_path: name or path to environment or module
     '''
 
-    r = resolve(name_or_path)
-    r.resolved[0].remove()
 
-
-def resolve(*args):
+def resolve(*modules):
     '''Resolve a list of virtual environment and module names then return
     a :class:`Resolver` instance.'''
 
-    r = Resolver(*args)
-    r.resolve()
-    return r
+    resolver = Resolver(*modules)
+    resolver.resolve()
+    return resolver
 
 
-def activate(*args):
-    '''Activate a virtual environment by name or path. Additional args refer
-    to modules residing in the specified environment that you would
-    also like to activate.
+def activate(*modules):
+    '''Resolve and active a list of modules.
 
-    Activate an environment::
+    Usage:
+        >>> cpenv.activate('moduleA', 'moduleB')
 
-        >>> cpenv.activate('myenv')
+    Arguments:
+        modulues (List[str, Module]): List of string or
 
-    Activate an environment with some modules::
-
-        >>> cpenv.activate('myenv', 'maya', 'mtoa', 'vray_for_maya')
-
-    :param name_or_path: Name or full path of environment
-    :param modules: Additional modules to activate
-    :returns: :class:`VirtualEnv` instance of active environment
+    Returns:
+        list of Module objects that have been activated
     '''
 
-    r = resolve(*args)
-    r.activate()
-    return r.resolved
+    resolver = resolve(*modules)
+    resolver.activate()
+    return resolver.resolved
 
 
 def deactivate():
@@ -157,6 +149,42 @@ def deactivate():
     pass
 
 
+def get_active_modules():
+    '''Returns a list of active :class:`Module` s'''
+
+    modules = os.environ.get('CPENV_ACTIVE_MODULES', None)
+    if modules:
+        modules = [m for m in modules.split(os.pathsep) if m]
+        resolver = resolve(*modules)
+        return resolver.resolved
+
+    return []
+
+
+def add_active_module(module):
+    '''Add a module to CPENV_ACTIVE_MODULES environment variable.
+
+    Arguments:
+        module (Module): Module to add to CPENV_ACTIVE_MODULES
+    '''
+
+    modules = set(get_active_modules())
+    modules.add(module)
+    new_modules_path = os.pathsep.join(sorted([m.name for m in modules]))
+    os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
+
+
+def remove_active_module(module):
+    '''Remove a module from CPENV_ACTIVE_MODULES environment variable.
+
+    Arguments:
+        module (Module): Module to remove from CPENV_ACTIVE_MODULES
+    '''
+
+    modules = set(get_active_modules())
+    modules.discard(module)
+    new_modules_path = os.pathsep.join(sorted([m.name for m in modules]))
+    os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
 
 
 def set_home_path(path):
