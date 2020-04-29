@@ -12,8 +12,7 @@ import tempfile
 from string import Template
 
 # Local imports
-from . import platform
-from .compat import numeric_types, string_types
+from .compat import numeric_types, platform, string_types
 from .vendor import yaml
 
 

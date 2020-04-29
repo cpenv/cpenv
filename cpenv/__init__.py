@@ -9,17 +9,6 @@ __license__ = 'MIT'
 __description__ = 'Cross-platform Python environment management.'
 
 
-# Standard library imports
-import os
-import sys
-
-
-platform = sys.platform.rstrip('1234567890').lower()
-if platform == 'darwin':  # Use osx instead of darwin
-    platform = 'osx'
-os.environ['CPENV_PLATFORM'] = platform
-
-
 # Local imports
 from .api import *
 from .repos import *

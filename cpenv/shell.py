@@ -6,8 +6,7 @@ import os
 import subprocess
 
 # Local imports
-from . import platform
-from .utils import binpath
+from . import compat, utils
 
 
 def run(*args, **kwargs):
@@ -27,10 +26,10 @@ def run(*args, **kwargs):
 def get_subshell_command():
     '''Return a command to launch a subshell'''
 
-    if platform == 'win':
+    if compat.platform == 'win':
         return ['cmd.exe', '/K']
 
-    elif platform == 'linux':
+    elif compat.platform == 'linux':
         ppid = os.getppid()
         ppid_cmdline_file = '/proc/{0}/cmdline'.format(ppid)
         try:
@@ -39,14 +38,14 @@ def get_subshell_command():
             if command.endswith('\x00'):
                 command = command[:-1]
             command = command.split('\x00')
-            return command + [binpath('subshell.sh')]
+            return command + [utils.binpath('subshell.sh')]
         except Exception:
             command = 'bash'
 
     else:
         command = 'bash'
 
-    return [command, binpath('subshell.sh')]
+    return [command, utils.binpath('subshell.sh')]
 
 
 def prompt(prefix='', colored=True):
@@ -56,7 +55,7 @@ def prompt(prefix='', colored=True):
           win: [prefix] cwd:
     '''
 
-    if platform == 'win':
+    if compat.platform == 'win':
         return '{0} $P$G'.format(prefix)
     else:
         if colored:
