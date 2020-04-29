@@ -21,10 +21,12 @@ os.environ['CPENV_PLATFORM'] = platform
 
 
 # Local imports
-from . import deps, versions
 from .api import *
 from .repos import *
 from .resolver import *
 from .versions import *
 
 
+# Initialize cpenv
+from .api import _init
+_init()

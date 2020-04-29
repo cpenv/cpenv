@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function
 
 # Standard library imports
 import os
@@ -70,7 +69,7 @@ class Resolver(object):
                     continue
             else:
                 raise ResolveError(
-                    'Could not resolve environment or module: ' + path
+                    'Could not resolve module: ' + path
                 )
 
         return self.resolved

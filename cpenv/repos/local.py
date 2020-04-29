@@ -5,7 +5,7 @@ import os
 import shutil
 
 # Local imports
-from .. import utils
+from .. import api, utils
 from ..module import Module, ModuleSpec
 from .base import Repo
 
@@ -17,22 +17,34 @@ class LocalRepo(Repo):
     hierarchy.
 
     A flat hierarchy is like:
-        <repo_path>/<module_name>/module.yml
+        <repo_path>/<name>-<version>/module.yml
 
     A nested hierarchy is like:
-        <repo_path>/<module_name>/<version>/module.yml
+        <repo_path>/<name>/<version>/module.yml
     '''
 
     def __init__(self, path):
-        self.path = path
+        self.path = utils.normpath(path)
 
-    def _relpath(self, *parts):
+    def __eq__(self, other):
+        return (
+            isinstance(other, self.__class__) and
+            self.path == getattr(other, 'path', None)
+        )
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.path))
+
+    def __repr__(self):
+        return '<{}>(path="{}")'.format(self.__class__.__name__, self.path)
+
+    def _relative_path(self, *parts):
         return utils.normpath(self.path, *parts)
 
     def _make_spec(self, module):
         return ModuleSpec(
-            name=module.config.get('name', module.name),
-            version=module.config.get('version', module.version),
+            name=module.name,
+            version=module.version,
             path=module.path,
             repo=self,
         )
@@ -40,12 +52,14 @@ class LocalRepo(Repo):
     def find_module(self, requirement):
         '''Return a single ModuleSpec object matching the requirement.'''
 
-        candidate = self._relpath(requirement)
-        candidate_file = self._relpath(requirement, 'module.yml')
+        candidate = self._relative_path(requirement)
+        candidate_file = self._relative_path(requirement, 'module.yml')
         if os.path.isfile(candidate_file):
             return self._make_spec(Module(candidate))
 
-        versions = glob.glob(self._relpath(requirement, '*', 'module.yml'))
+        versions = glob.glob(
+            self._relative_path(requirement, '*', 'module.yml')
+        )
         if versions:
             latest = utils.normpath(sorted(versions)[-1])
             latest_dir = os.path.dirname(latest)
@@ -62,11 +76,11 @@ class LocalRepo(Repo):
         '''
 
         modules = []
-        for module_file in glob.glob(self._relpath('*', 'module.yml')):
+        for module_file in glob.glob(self._relative_path('*', 'module.yml')):
             module = Module(utils.normpath(os.path.dirname(module_file)))
             modules.append(self._make_spec(module))
 
-        versions = glob.glob(self._relpath('*', '*', 'module.yml'))
+        versions = glob.glob(self._relative_path('*', '*', 'module.yml'))
         for version_file in versions:
             version_dir = os.path.dirname(version_file)
             version = os.path.basename(version_dir)
@@ -76,7 +90,7 @@ class LocalRepo(Repo):
 
         return modules
 
-    def download_module(self, spec, where, overwrite=True):
+    def clone_module(self, spec, where, overwrite=True):
         '''Download a module using a ModuleSpec to the specified directory.'''
 
         if os.path.isdir(where):
@@ -89,7 +103,7 @@ class LocalRepo(Repo):
 
         return Module(where)
 
-    def upload_module(self, module):
+    def publish_module(self, module):
         '''Upload a module'''
 
         if module.path.startswith(self.path):
@@ -99,12 +113,12 @@ class LocalRepo(Repo):
 
         name = module.config.get('name', module.name)
         version = module.config.get('version', module.version)
-        new_module_path = self._relpath(name)
+        new_module_path = self._relative_path(name)
         if version and name.endswith(version):
             basename = name.replace(version, '').rstrip('-_')
             if basename[-2:] in ['-v', '_v']:
                 basename = basename[:-2]
-            new_module_path = self._relpath(basename, version)
+            new_module_path = self._relative_path(basename, version)
 
         if os.path.isdir(new_module_path):
             raise OSError('Module already exists in repo...')
