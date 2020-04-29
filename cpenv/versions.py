@@ -13,7 +13,8 @@ __all__ = [
 ]
 
 
-semcal_version_pattern = (
+# Modified regex from semver.org
+semver_version_pattern = (
     r'(?:v)?'
     r'(?P<major>\d+)'
     r'\.(?P<minor>\d+)'
@@ -40,11 +41,16 @@ class Version(VersionBase):
         'buildmetadata': None
     }
 
-    def _cmp(self):
+    def _comparable(self):
+        '''Generate a comparison key for a Version object.
+
+        We use 'zzzzzzzz' as a default in lieu of complicated conditional logic
+        to force releases to take precendence over prereleases.
+        '''
         return (
-            int(self.major),
-            int(self.minor),
-            int(self.patch),
+            self.major,
+            self.minor,
+            self.patch,
             self.prerelease or 'zzzzzzzz',
             self.buildmetadata or 'zzzzzzzz',
         )
@@ -53,13 +59,13 @@ class Version(VersionBase):
         if not isinstance(other, Version):
             raise ValueError('Can only compare two Version objects.')
 
-        return self._cmp() < other._cmp()
+        return self._comparable() < other._comparable()
 
     def __eq__(self, other):
         if not isinstance(other, Version):
             raise ValueError('Can only compare two Version objects.')
 
-        return self._cmp() == other._cmp()
+        return self._comparable() == other._comparable()
 
 
 class ParseError(Exception):
@@ -67,7 +73,7 @@ class ParseError(Exception):
 
 
 def parse(string):
-    '''Attempt to parse a version from the provided string.
+    '''Parse and return a Version from the provided string.
 
     Supports:
       - semver / calver
@@ -84,12 +90,12 @@ def parse(string):
     '''
 
     # Parse Semver / Calver
-    match = re.search(semcal_version_pattern, string)
+    match = re.search(semver_version_pattern, string)
     if match:
         return Version(
-            major=match.group('major'),
-            minor=match.group('minor'),
-            patch=match.group('patch'),
+            major=int(match.group('major')),
+            minor=int(match.group('minor')),
+            patch=int(match.group('patch')),
             prerelease=match.group('prerelease'),
             buildmetadata=match.group('buildmetadata'),
             string=match.group(0),
@@ -102,7 +108,18 @@ def parse(string):
         kwargs['string'] = match.group(0)
         version_parts = match.group('version').split('.')
         for part, part_name in zip(version_parts, ['major', 'minor', 'patch']):
-            kwargs[part_name] = part
+            kwargs[part_name] = int(part)
         return Version(**kwargs)
 
     raise ParseError('Could not parse version from %s' % string)
+
+
+def default():
+    return Version(
+        major=0,
+        minor=1,
+        patch=0,
+        prerelease=None,
+        buildmetadata=None,
+        string='0.1.0',
+    )

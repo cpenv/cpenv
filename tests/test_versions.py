@@ -23,9 +23,9 @@ def test_parse_version():
         versions.parse('module2-0.1.0'),
     ]
     for version in basic_semver:
-        assert version.major == '0'
-        assert version.minor == '1'
-        assert version.patch == '0'
+        assert version.major == 0
+        assert version.minor == 1
+        assert version.patch == 0
         assert not version.prerelease
         assert not version.buildmetadata
 
@@ -42,35 +42,35 @@ def test_parse_version():
     ]
 
     for version in full_semver_spec:
-        assert version.major == '10'
-        assert version.minor == '2'
-        assert version.patch == '19'
+        assert version.major == 10
+        assert version.minor == 2
+        assert version.patch == 19
         assert version.prerelease == 'dev'
         assert version.buildmetadata == '02ab'
 
     # These should be parsed by versions.simple_version_pattern
     version = versions.parse('module1')
     assert version.string == '1'
-    assert version.major == '1'
+    assert version.major == 1
     assert not version.minor
     assert not version.patch
 
     version = versions.parse('module-1')
     assert version.string == '1'
-    assert version.major == '1'
+    assert version.major == 1
     assert not version.minor
     assert not version.patch
 
     version = versions.parse('module-v20')
     assert version.string == 'v20'
-    assert version.major == '20'
+    assert version.major == 20
     assert not version.minor
     assert not version.patch
 
     version = versions.parse('modulev1.0')
     assert version.string == 'v1.0'
-    assert version.major == '1'
-    assert version.minor == '0'
+    assert version.major == 1
+    assert version.minor == 0
     assert not version.patch
 
 
