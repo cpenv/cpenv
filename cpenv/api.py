@@ -27,7 +27,7 @@ __all__ = [
     'add_active_module',
     'remove_active_module',
 ]
-'''
+_registry = {}
 cpenv.api
 =========
 This module provides the main api for cpenv. Members of the api return models
@@ -233,30 +233,15 @@ def get_modules():
     return sorted(list(modules), key=lambda x: x.name)
 
 
-def get_active_modules():
-    ''':returns: a list of active :class:`Module` s or []'''
+def register_repo(repo):
+    '''Register a Repo.'''
 
-    modules = os.environ.get('CPENV_ACTIVE_MODULES', None)
-    if modules:
-        modules = modules.split(os.pathsep)
-        return [Module(module) for module in modules]
-
-    return []
+    if repo not in _registry['repos']:
+        _registry['repos'].append(repo)
 
 
-def add_active_module(module):
-    '''Add a module to CPENV_ACTIVE_MODULES environment variable'''
+def unregister_repo(repo):
+    '''Unregister a Repo.'''
 
-    modules = set(get_active_modules())
-    modules.add(module)
-    new_modules_path = os.pathsep.join([m.path for m in modules])
-    os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
-
-
-def remove_active_module(module):
-    '''Remove a module from CPENV_ACTIVE_MODULES environment variable'''
-
-    modules = set(get_active_modules())
-    modules.discard(module)
-    new_modules_path = os.pathsep.join([m.path for m in modules])
-    os.environ['CPENV_ACTIVE_MODULES'] = str(new_modules_path)
+    if repo in _registry['repos']:
+        _registry['repos'].pop(repo)
