@@ -9,7 +9,7 @@ from collections import OrderedDict
 from . import hooks, utils
 from .module import Module, is_module, module_header
 from .resolver import Resolver
-from .vendor import yaml
+from .vendor import yaml, appdirs
 
 
 __all__ = [
@@ -20,20 +20,17 @@ __all__ = [
     'activate',
     'deactivate',
     'get_home_path',
+    'get_home_modules_path',
+    'get_cache_path',
     'get_user_path',
-    'get_module_paths',
+    'get_user_modules_path',
     'get_modules',
+    'get_module_paths',
     'get_active_modules',
     'add_active_module',
     'remove_active_module',
 ]
 _registry = {}
-cpenv.api
-=========
-This module provides the main api for cpenv. Members of the api return models
-which can be used to manipulate virtualenvs and modules. Members are available
-directly from the cpenv namespace.
-'''
 
 
 def create(where, name, version, **kwargs):
@@ -149,48 +146,105 @@ def deactivate():
     pass
 
 
+
+
+def set_home_path(path):
+    '''Convenient function used to set the CPENV_HOME environment variable.'''
+
+    os.environ['CPENV_HOME'] = path
+
+
 def get_home_path():
-    '''Returns $CPENV_HOME or ~/.cpenv'''
+    '''Returns the cpenv home directory.
 
-    home = utils.normpath(os.environ.get('CPENV_HOME', '~/.cpenv'))
+    Default home paths:
+        win - C:/ProgramData/cpenv
+        mac - /Library/Application Support/cpenv
+        linux - /usr/local/share/cpenv OR /usr/share/cpenv
+    '''
+
+    home_default = appdirs.site_data_dir('cpenv', appauthor=False)
+    home = utils.normpath(os.getenv('CPENV_HOME', home_default))
     home_modules = utils.normpath(home, 'modules')
+    home_cache = utils.normpath(home, 'cache')
 
-    if not os.path.exists(home):
-        os.makedirs(home)
-
-    if not os.path.exists(home_modules):
-        os.makedirs(home_modules)
+    utils.ensure_path_exists(home)
+    utils.ensure_path_exists(home_modules)
+    utils.ensure_path_exists(home_cache)
 
     return home
 
 
-def get_user_path():
-    '''Returns ~/.cpenv'''
+def get_home_modules_path():
+    '''Return the modules directory within the cpenv home directory.
 
-    user = utils.normpath('~/.cpenv')
+    Default home modules paths:
+        win - C:/ProgramData/cpenv/modules
+        mac - /Library/Application Support/cpenv/modules
+        linux - /usr/local/share/cpenv OR /usr/share/cpenv/modules
+    '''
+
+    return utils.normpath(get_home_path(), 'modules')
+
+
+def get_cache_path(*paths):
+    '''Return the cpenv cache directory within the cpenv home directory.
+
+    Default cache paths:
+        win - C:/ProgramData/cpenv/cache
+        mac - /Library/Application Support/cpenv/cache
+        linux - /usr/local/share/cpenv OR /usr/share/cpenv/cache
+
+    Arguments:
+        *paths (str) - List of paths to join with cache path
+    '''
+
+    return utils.normpath(get_home_path(), 'cache', *paths)
+
+
+def get_user_path():
+    '''Returns the cpenv user directory.
+
+    Default user paths:
+        win - C:/Users/<username>/AppData/Roaming/cpenv
+        mac - ~/Library/Application Support/cpenv
+        linux - ~/.local/share/cpenv
+    '''
+
+    user_default = appdirs.user_data_dir('cpenv', appauthor=False)
+    user = utils.normpath(user_default)
     user_modules = utils.normpath(user, 'modules')
 
-    if not os.path.exists(user):
-        os.makedirs(user)
-
-    if not os.path.exists(user_modules):
-        os.makedirs(user_modules)
+    utils.ensure_path_exists(user)
+    utils.ensure_path_exists(user_modules)
 
     return user
 
 
-def get_module_paths():
-    '''Returns a list of paths used to lookup modules.
+def get_user_modules_path():
+    '''Returns the modules directory within the cpenv user directory.
 
-    The list of lookup paths contains:
-        1. ~/.cpenv/modules
-        2. $CPENV_HOME/modules
-        3. $CPENV_MODULES
+    Default user paths:
+        win - C:/Users/<username>/AppData/Roaming/cpenv/modules
+        mac - ~/Library/Application Support/cpenv/modules
+        linux - ~/.local/share/cpenv/modules
     '''
 
-    module_paths = [utils.normpath(get_user_path(), 'modules')]
+    return utils.normpath(get_user_path(), 'modules')
 
-    cpenv_home_modules = utils.normpath(get_home_path(), 'modules')
+
+def get_module_paths():
+    '''Returns a list of paths used to lookup local modules.
+
+    The list of lookup paths contains:
+        1. use modules path
+        2. home modules path
+        3. paths in CPENV_MODULES environment variable
+    '''
+
+    module_paths = [get_user_modules_path()]
+
+    cpenv_home_modules = get_home_modules_path()
     if cpenv_home_modules not in module_paths:
         module_paths.append(cpenv_home_modules)
 
