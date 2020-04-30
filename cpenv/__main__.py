@@ -19,44 +19,49 @@ class CpenvCLI(cli.CLI):
 
     def commands(self):
         return [
-            Version(self),
-            Create(self),
             Activate(self),
+            Clone(self),
+            Create(self),
             List(self),
+            Localize(self),
+            Publish(self),
+            Remove(self),
+            Version(self),
         ]
 
 
-class Version(cli.CLI):
-    '''Show version information.'''
+class Activate(cli.CLI):
+    '''Activate a list of modules.'''
+
+    usage = 'cpenv [-h] [<modules>...]'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'modules',
+            help='Space separated list of modules.',
+            nargs='*',
+        )
 
     def run(self, args):
-
-        print()
-        print(cli.format_section(
-            'Version Info',
-            [
-                ('version', cpenv.__version__),
-                ('url', cpenv.__url__),
-                ('package', utils.normpath(os.path.dirname(cpenv.__file__))),
-                ('path', api.get_module_paths()),
-            ]
-        ), end='\n\n')
-
-        # List package versions
-        dependencies = []
+        cli.echo()
+        cli.echo('- Resolving modules...', end='')
         try:
-            import Qt
-            dependencies.extend([
-                ('Qt.py', Qt.__version__),
-                ('Qt Binding', Qt.__binding__ + '-' + Qt.__binding_version__),
-            ])
-        except ImportError:
-            pass
+            activated_modules = api.activate(*args.modules)
+        except ResolveError:
+            cli.echo('OOPS!')
+            cli.echo()
+            cli.echo('Error: failed to resolve %s' % args.modules)
+            sys.exit(1)
+        cli.echo('OK!')
 
-        if not dependencies:
-            return
+        cli.echo()
+        for module in activated_modules:
+            cli.echo('  ' + module.real_name)
+        cli.echo()
 
-        print(cli.format_section('Dependencies', dependencies), end='\n\n')
+        cli.echo('- Launching subshell...')
+        cli.echo()
+        shell.launch('[*]')
 
 
 class Clone(cli.CLI):
@@ -126,33 +131,33 @@ class Create(cli.CLI):
             help='Path to new module',
         )
         parser.add_argument(
-            '--name', '-n',
+            '--name',
             help='Name of new module',
             default='',
         )
         parser.add_argument(
-            '--version', '-v',
+            '--version',
             help='Version of the new module',
             default='',
         )
         parser.add_argument(
-            '--description', '-d',
+            '--description',
             help='Details about the module',
             default='',
         )
         parser.add_argument(
-            '--author', '-a',
+            '--author',
             help='Author of the module',
             default='',
         )
         parser.add_argument(
-            '--email', '-e',
+            '--email',
             help="Author's email address",
             default='',
         )
 
     def run(self, args):
-        print()
+        cli.echo()
         where = utils.normpath(args.where)
         name, version = parse_module_path(where)
 
@@ -166,33 +171,47 @@ class Create(cli.CLI):
         )
 
 
-class Activate(cli.CLI):
-    '''Activate a list of modules.'''
+class List(cli.CLI):
+    '''List active and available modules.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'modules',
+            'matching',
             help='Space separated list of modules.',
-            nargs='*',
+            nargs='?',
+            default=None,
+        )
+        parser.add_argument(
+            '--verbose', '-v',
+            help='Print more module info.',
+            action='store_true',
         )
 
     def run(self, args):
-        print()
-        print('- Resolving modules')
-        try:
-            activated_modules = api.activate(*args.modules)
-        except ResolveError:
-            print()
-            print('Error: failed to resolve %s' % args.modules)
-            sys.exit(1)
+        cli.echo()
+        active_modules = api.get_active_modules()
+        if args.matching:
+            active_modules = [
+                m for m in active_modules
+                if args.matching == m.name
+            ]
 
-        print()
-        for module in activated_modules:
-            print('  ' + module.real_name)
-        print()
+        if active_modules:
+            cli.echo(cli.format_columns(
+                '[*] Active',
+                [m.real_name for m in api.sort_modules(active_modules)],
+            ))
 
-        print('- Launching subshell')
-        shell.launch('[*]')
+        cli.echo()
+        all_modules = api.get_modules(matching=args.matching)
+        available_modules = set(all_modules) - set(active_modules)
+        if available_modules:
+            cli.echo(cli.format_columns(
+                '[ ] Available Modules',
+                [m.real_name for m in api.sort_modules(available_modules)],
+            ))
+        else:
+            cli.echo('No modules available.')
 
 
 class Localize(cli.CLI):
@@ -353,8 +372,71 @@ class Remove(cli.CLI):
 
         cli.echo('Successfully removed module.')
 
+
+class Version(cli.CLI):
+    '''Show version information.'''
+
+    def run(self, args):
+
+        cli.echo()
+        cli.echo(cli.format_section(
+            'Version Info',
+            [
+                ('version', cpenv.__version__),
+                ('url', cpenv.__url__),
+                ('package', utils.normpath(os.path.dirname(cpenv.__file__))),
+                ('path', api.get_module_paths()),
+            ]
+        ), end='\n\n')
+
+        # List package versions
+        dependencies = []
+        try:
+            import Qt
+            dependencies.extend([
+                ('Qt.py', Qt.__version__),
+                ('Qt Binding', Qt.__binding__ + '-' + Qt.__binding_version__),
+            ])
+        except ImportError:
+            pass
+
+        if not dependencies:
+            return
+
+        cli.echo(cli.format_section('Dependencies', dependencies), end='\n\n')
+
+
+def prompt_for_repo(repos, message, default_repo_name='home'):
+    '''Prompt a user to select a repository'''
+
+    for i, from_repo in enumerate(repos):
+        if from_repo.name == default_repo_name:
+            default = i
+        if from_repo.name == from_repo.path:
+            line = '  [{}] {}'.format(i, from_repo.path)
         else:
-            print('No modules available.')
+            line = '  [{}] {} - {}'.format(
+                i,
+                from_repo.name,
+                from_repo.path,
+            )
+        cli.echo(line)
+
+    # Prompt user to choose a repo defaults to home
+    cli.echo()
+    choice = cli.prompt('{}: [{}]'.format(message, default))
+
+    if not choice:
+        choice = default
+    else:
+        choice = int(choice)
+        if choice > len(repos) - 1:
+            cli.echo()
+            cli.echo('Error: {} is not a valid choice'.format(choice))
+            sys.exit(1)
+
+    # Get the repo the user chose
+    return repos[choice]
 
 
 def main():

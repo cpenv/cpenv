@@ -3,24 +3,27 @@ from __future__ import absolute_import, print_function
 
 # Standard library imports
 import os
+import shutil
 import sys
 from collections import OrderedDict
 
 # Local imports
 from . import hooks, utils
-from .module import Module, module_header
-from .repos import LocalRepo
-from .resolver import Resolver
+from .module import Module, ModuleSpec, module_header
+from .repos import Repo, LocalRepo
+from .resolver import Resolver, ResolveError
 from .vendor import appdirs, yaml
 
 
 __all__ = [
+    'activate',
+    'deactivate',
+    'clone',
     'create',
+    'localize',
     'publish',
     'remove',
     'resolve',
-    'activate',
-    'deactivate',
     'set_home_path',
     'get_home_path',
     'get_home_modules_path',
@@ -39,7 +42,6 @@ __all__ = [
     'remove_repo',
     'sort_modules',
 ]
-this = sys.modules[__name__]
 _registry = {
     'repos': [],
 }
@@ -248,18 +250,15 @@ def deactivate():
     '''Deactivates an environment by restoring all env vars to a clean state
     stored prior to activating environments
     '''
-
+    # TODO: implement me!
+    # probably need to store a clean environment prior to activate
     pass
 
 
-def get_active_modules(resolve=False):
+def get_active_modules():
     '''Returns a list of active :class:`Module` s'''
 
-    if not _active_modules or not resolve:
-        return _active_modules
-
-    resolver = this.resolve(*_active_modules)
-    return resolver.resolved
+    return _active_modules
 
 
 def add_active_module(module):
@@ -296,7 +295,8 @@ def set_home_path(path):
     '''Convenient function used to set the CPENV_HOME environment variable.'''
 
     # Remove old LocalRepo
-    remove_repo(LocalRepo(get_home_modules_path()))
+    # Store old index
+    idx = remove_repo(LocalRepo('home', get_home_modules_path()))
 
     # Set new home path
     home = utils.normpath(path)
@@ -304,7 +304,7 @@ def set_home_path(path):
     _init_home_path(home)
 
     # Add new LocalRepo
-    add_repo(LocalRepo(get_home_modules_path()))
+    add_repo(LocalRepo('home', get_home_modules_path()), idx)
 
     return home
 
@@ -433,7 +433,7 @@ def add_module_path(path):
     # Add new module lookup path
     if path not in module_paths:
         module_paths.append(path)
-        add_repo(LocalRepo(path))
+        add_repo(LocalRepo(path, path))
 
     # Persist in CPENV_MODULES
     os.environ['CPENV_MODULES'] = os.pathsep.join(module_paths)
@@ -441,29 +441,35 @@ def add_module_path(path):
     return module_paths
 
 
-def get_modules():
+def get_modules(matching=None):
     '''Returns a list of available modules.'''
 
     modules = []
 
     for repo in get_repos():
-        modules.extend(repo.list_modules())
+        modules.extend(repo.list_modules(matching))
 
     return sort_modules(list(modules))
 
 
-def add_repo(repo):
+def add_repo(repo, idx=None):
     '''Register a Repo.'''
 
-    if repo not in this._registry['repos']:
-        this._registry['repos'].append(repo)
+    if repo not in _registry['repos']:
+        if idx is not None:
+            _registry['repos'].insert(idx, repo)
+        else:
+            _registry['repos'].append(repo)
 
 
 def remove_repo(repo):
     '''Unregister a Repo.'''
 
-    if repo in this._registry['repos']:
-        this._registry['repos'].remove(repo)
+    if repo in _registry['repos']:
+        idx = _registry['repos'].index(repo)
+        _registry['repos'].pop(idx)
+
+        return idx
 
 
 def get_repo(**query):
@@ -480,7 +486,7 @@ def get_repo(**query):
 def get_repos():
     '''Get a list of all registered Repos.'''
 
-    return list(this._registry['repos'])
+    return list(_registry['repos'])
 
 
 def sort_modules(modules, reverse=False):
@@ -499,11 +505,17 @@ def _init():
 
     # Register all LocalRepos
     for path in get_module_paths():
-        add_repo(LocalRepo(path))
+        if path == get_home_modules_path():
+            name = 'home'
+        elif path == get_user_modules_path():
+            name = 'user'
+        else:
+            name = path
+        add_repo(LocalRepo(name, path))
 
     # Set _active_modules from CPENV_ACTIVE_MODULES
     active_modules = os.getenv('CPENV_ACTIVE_MODULES')
     if active_modules:
         for module in active_modules.split(os.pathsep):
             if module:
-                _active_modules.append(module)
+                _active_modules.append(resolve(module).resolved[0])
