@@ -4,6 +4,7 @@
 import os
 
 # Local imports
+from .repos import Repo
 from .module import Module, is_module
 from .utils import (
     is_redirecting,
@@ -77,22 +78,50 @@ class Resolver(object):
 
         return self.resolved
 
-    def localize(self):
+    def localize(self, to_repo='home', overwrite=False):
         '''Localize all resolved modules.'''
+
+        from . import api
+
+        if not isinstance(to_repo, Repo):
+            to_repo = api.get_repo(name=to_repo)
+
+        if not isinstance(to_repo, LocalRepo):
+            raise ValueError(
+                'to_repo expected LocalRepo got %s' % type(to_repo)
+            )
 
         if self.resolved is None:
             raise ValueError('You must call Resolver.resolve first.')
 
         self.modules = []
-        for module in self.resolved:
+        for source_module in self.resolved:
             if isinstance(module, Module):
                 self.modules.append(module)
                 continue
 
             # We hit a ModuleSpec - we need to localize it.
             module_spec = module
-            repo = module.repo
-            module = repo.localize_module(module_spec)
+            from_repo = module.repo
+            existing_module = to_repo.find_module(module_spec.qual_name)
+            if existing_module and not overwrite:
+                self.modules.append(existing_module)
+                continue
+
+            # Generate a new module path in to_repo
+            if module.version.string in module.real_name:
+                new_module_path = to_repo.relative_path(module.real_name)
+            else:
+                new_module_path = to_repo.relative_path(
+                    module.name,
+                    module.version.string,
+                )
+
+            module = from_repo.clone_module(
+                module=module_spec,
+                where=new_module_path,
+                overwrite=overwrite,
+            )
             self.modules.append(module)
 
     def combine(self):

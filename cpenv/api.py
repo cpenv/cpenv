@@ -128,11 +128,14 @@ def remove(module, repo=None):
 
 
 def localize(*modules, repo=None):
+def localize(*modules, to_repo='home', overwrite=False):
     '''Localize a list of modules.'''
 
+    if not isinstance(to_repo, Repo):
+        to_repo = get_repo(name=to_repo)
+
     resolver = resolve(*modules)
-    resolver.resolve()
-    resolver.localize()
+    resolver.localize(to_repo, overwrite)
     return resolver.modules
 
 

@@ -137,8 +137,12 @@ class Activate(cli.CLI):
         shell.launch('[*]')
 
 
-class List(cli.CLI):
-    '''List active and available modules.'''
+class Localize(cli.CLI):
+    '''Localize a list of modules.
+
+    Downloads modules from a remote Repo and places them in the home LocalRepo
+    by default. Use the --to_repo option to specify a LocalRepo.
+    '''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -146,23 +150,44 @@ class List(cli.CLI):
             help='Space separated list of modules.',
             nargs='*',
         )
+        parser.add_argument(
+            '--to_repo', '-r',
+            help='Specific repo to localize to. (first match)',
+            default=None,
+        )
+        parser.add_argument(
+            '--overwrite', '-o',
+            help='Overwrite the destination directory. (False)',
+            action='store_true',
+        )
 
     def run(self, args):
-        print()
-        active_modules = api.get_active_modules(resolve=True)
-        if active_modules:
-            print(cli.format_columns(
-                '[*] Active',
-                [m.real_name for m in api.sort_modules(active_modules)],
-            ))
 
-        print()
-        available_modules = set(api.get_modules()) - set(active_modules)
-        if available_modules:
-            print(cli.format_columns(
-                '[ ] Available Modules',
-                [m.real_name for m in api.sort_modules(available_modules)],
-            ))
+        cli.echo()
+
+        if args.to_repo:
+            to_repo = api.get_repo(name=args.to_repo)
+        else:
+            repos = [r for r in repos if isinstance(repo, LocalRepo)]
+            to_repo = prompt_for_repo(
+                [r for r in api.get_repos() if isinstance(repo, LocalRepo)],
+                'Choose a repo to localize to',
+                default_repo_name='home',
+            )
+
+        cli.echo()
+        cli.echo(
+            '- Localizing %s to %s...' % (args.modules, to_repo.name),
+            end='',
+        )
+        modules = api.localize(*args.modules, to_repo, args.overwrite)
+        cli.echo('OK!')
+        cli.echo()
+
+        cli.echo()
+        cli.echo('Localized the following modules:')
+        for module in modules:
+            click.echo('  %s - %s' % (module.real_name, module.path))
         else:
             print('No modules available.')
 
