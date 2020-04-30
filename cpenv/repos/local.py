@@ -23,13 +23,15 @@ class LocalRepo(Repo):
         <repo_path>/<name>/<version>/module.yml
     '''
 
-    def __init__(self, path):
+    def __init__(self, name, path):
+        super(LocalRepo, self).__init__(name)
         self.path = utils.normpath(path)
 
     def __eq__(self, other):
         return (
             isinstance(other, self.__class__) and
-            self.path == getattr(other, 'path', None)
+            self.path == getattr(other, 'path', None) and
+            self.name == other.name
         )
 
     def __hash__(self):
@@ -41,55 +43,71 @@ class LocalRepo(Repo):
     def relative_path(self, *parts):
         return utils.normpath(self.path, *parts)
 
-    def match_module(self, module, requirement, name, version):
+    def exact_match(self, module, string, name, version):
         return (
-            module.qual_name == requirement or
-            module.real_name == requirement or
+            module.qual_name == string or
+            module.real_name == string or
             version and module.name == name and module.version == version or
-            module.name == name
+            module.name == string
         )
 
-    def find_module(self, requirement):
-        '''Return a single ModuleSpec object matching the requirement.'''
+    def partial_match(self, module, string, name, version):
+        return module.name == name
+
+    def find_module(self, matching):
+        '''Return a single ModuleSpec.'''
 
         name, version = parse_module_path(
-            requirement,
+            matching,
             default_version=None,
         )
 
+        matches = []
         for module in api.sort_modules(self.list_modules(), reverse=True):
-            if self.match_module(module, requirement, name, version):
+            if self.exact_match(module, matching, name, version):
                 return module
+            if self.partial_match(module, matching, name, version):
+                matches.append(module)
 
-    def list_modules(self, requirement=None):
-        '''Return a list of ModuleSpec objects matching the requirement.
+        # Choose the best match if no version was provided
+        if not version and matches:
+            return matches[0]
 
-        If no requirement is provided, list all ModuleSpecs available in the
-        repo.
+    def list_modules(self, matching=None):
+        '''Return a list of ModuleSpec objects.
+
+        Arguments:
+            matching (str) - string used to filter modules
         '''
 
-        if requirement:
+        if matching:
             name, version = parse_module_path(
-                requirement,
+                matching,
                 default_version=None,
             )
 
         modules = []
         for module_file in glob(self.relative_path('*', 'module.yml')):
             module = Module(utils.normpath(os.path.dirname(module_file)))
-            if not requirement or self.match_module(module, requirement, name):
+            if (
+                not matching or
+                self.match_module(module, matching, name, version)
+            ):
                 modules.append(module)
 
         versions = glob(self.relative_path('*', '*', 'module.yml'))
         for version_file in versions:
             version_dir = os.path.dirname(version_file)
             module = Module(version_dir)
-            if not requirement or self.match_module(module, requirement, name):
+            if (
+                not matching or
+                self.match_module(module, matching, name, version)
+            ):
                 modules.append(module)
 
         return modules
 
-    def clone_module(self, module, where, overwrite=True):
+    def clone_module(self, module, where, overwrite=False):
         '''Download a module using a ModuleSpec to the specified directory.'''
 
         if os.path.isdir(where):
@@ -102,25 +120,38 @@ class LocalRepo(Repo):
 
         return Module(where)
 
-    def publish_module(self, module):
+    def publish_module(self, module, overwrite=False):
         '''Upload a module'''
 
-        if module.path.startswith(self.path):
+        if not overwrite and module.path.startswith(self.path):
             raise OSError(
-                'Can not upload_module that is already in LocalRepo...'
+                'Module already exists in repo...'
             )
 
-        name = module.config.get('name', module.name)
-        version = module.config.get('version', module.version)
-        new_module_path = self.relative_path(name)
-        if version and name.endswith(version):
-            basename = name.replace(version, '').rstrip('-_')
-            if basename[-2:] in ['-v', '_v']:
-                basename = basename[:-2]
-            new_module_path = self.relative_path(basename, version)
+        if module.version.string in module.real_name:
+            new_module_path = self.relative_path(module.real_name)
+        else:
+            new_module_path = self.relative_path(
+                module.name,
+                module.version.string,
+            )
 
         if os.path.isdir(new_module_path):
-            raise OSError('Module already exists in repo...')
+            if overwrite:
+                utils.rmtree(new_module_path)
+            else:
+                raise OSError('Module already exists in repo...')
 
         shutil.copytree(module.path, new_module_path)
         return Module(new_module_path)
+
+    def remove_module(self, module):
+        '''Remove a module.'''
+
+        if not module.path.startswith(self.path):
+            raise OSError(
+                'You can only remove modules from a repo that the module is '
+                'actually in!'
+            )
+
+        module.remove()

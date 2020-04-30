@@ -3,6 +3,9 @@
 class Repo(object):
     '''Base class for all repos.'''
 
+    def __init__(self, name):
+        self.name = name
+
     def __ne__(self, other):
         return not self == other
 
@@ -31,16 +34,17 @@ class Repo(object):
         You must return the localized Module object.
         '''
 
-    def find_module(self, requirement):
+    def find_module(self, matching):
         '''Subclasses can return either Module objects for a local Repo or
         ModuleSpec objects for a remote Repo.'''
 
         return NotImplemented
 
-    def list_modules(self, requirement=None):
-        '''Return a list of Module or ModuleSpec objects matching requirement.
+    def list_modules(self, matching=None):
+        '''Return a list of ModuleSpec objects.
 
-        If no requirement is provided return all items in the Repo.
+        Arguments:
+            matching (str) - string used to filter modules
         '''
 
         return NotImplemented
