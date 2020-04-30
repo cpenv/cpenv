@@ -190,6 +190,52 @@ class Localize(cli.CLI):
             click.echo('  %s - %s' % (module.real_name, module.path))
 
 
+class Publish(cli.CLI):
+    '''Publish a module to a repo.'''
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'module',
+            help='Path of module to publish. (".")',
+            default='.',
+            nargs='?',
+        )
+        parser.add_argument(
+            '--to_repo',
+            help='Specific repo to clone from.',
+            default=None,
+        )
+        parser.add_argument(
+            '--overwrite',
+            help='Overwrite the destination directory. (False)',
+            action='store_true',
+        )
+
+    def run(self, args):
+
+        cli.echo()
+
+        if args.to_repo:
+            to_repo = api.get_repo(name=args.to_repo)
+        else:
+            to_repo = prompt_for_repo(
+                api.get_repos(),
+                'Choose a repo to publish to',
+                default_repo_name='home',
+            )
+
+        cli.echo()
+        cli.echo(
+            '- Publishing %s to %s...' % (args.module, to_repo.name),
+            end='',
+        )
+        module = api.publish(args.module, to_repo, args.overwrite)
+        cli.echo('OK!', end='\n\n')
+
+        cli.echo('Activate it using the following command:')
+        cli.echo('  cpenv activate %s' % module.real_name)
+
+
 class Remove(cli.CLI):
     '''Permanently remove a module from a repo.'''
 

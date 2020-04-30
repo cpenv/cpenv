@@ -116,9 +116,22 @@ def clone(module, where='.', repo=None):
     '''
 
 
-def publish(module, repo=None):
+def publish(module, to_repo='home', overwrite=False):
     '''Publish a module to the specified repository.'''
 
+    if not isinstance(to_repo, Repo):
+        to_repo = get_repo(name=to_repo)
+
+    if not isinstance(module, (Module, ModuleSpec)):
+        module_ = Module(module)
+        if not module_:
+            raise ResolveError(
+                'Failed to resolve %s in %s' % (module, to_repo.name)
+            )
+        module = module_
+
+    published_module = to_repo.publish_module(module, overwrite)
+    return published_module
 
 
 def remove(module, from_repo=None):
