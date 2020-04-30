@@ -188,6 +188,67 @@ class Localize(cli.CLI):
         cli.echo('Localized the following modules:')
         for module in modules:
             click.echo('  %s - %s' % (module.real_name, module.path))
+
+
+class Remove(cli.CLI):
+    '''Permanently remove a module from a repo.'''
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'module',
+            help='Module to remove.',
+        )
+        parser.add_argument(
+            '--from_repo',
+            help='Specific repo to remove from.',
+            default=None,
+        )
+        parser.add_argument(
+            '--quiet',
+            help='Overwrite the destination directory. (False)',
+            action='store_true',
+        )
+
+    def run(self, args):
+
+        cli.echo()
+
+        if args.from_repo:
+            from_repo = api.get_repo(name=args.from_repo)
+        else:
+            from_repo = prompt_for_repo(
+                api.get_repos(),
+                'Choose a repo to remove module from',
+                default_repo_name='home',
+            )
+
+        cli.echo()
+        cli.echo(
+            '- Finding module %s to %s...' % (args.module, from_repo.name),
+            end='',
+        )
+        module = from_repo.find_module(args.module)
+        if not module:
+            click.echo('ER!', end='\n\n')
+            click.echo(
+                'Error: %s not found in %s' % (args.module, from_repo.name)
+            )
+            sys.exit(1)
+        cli.echo('OK!')
+        cli.echo()
+        cli.echo('%s - %s' % (module.name, module.path))
+        cli.echo()
+        choice = cli.prompt('Delete this module?(y/n)')
+        if choice.lower() not in ['y', 'yes', 'yup']:
+            cli.echo('Aborted.')
+            sys.exit(1)
+
+        cli.echo('- Removing module...', end='')
+        api.remove(module, from_repo)
+        cli.echo('OK!', end='\n\n')
+
+        cli.echo('Successfully removed module.')
+
         else:
             print('No modules available.')
 

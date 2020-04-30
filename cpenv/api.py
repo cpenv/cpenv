@@ -120,14 +120,53 @@ def publish(module, repo=None):
     '''Publish a module to the specified repository.'''
 
 
-def remove(module, repo=None):
+
+def remove(module, from_repo=None):
     '''Remove a module from the specified repository.
 
-    :param name_or_path: name or path to environment or module
+    Arguments:
+        module (Module, ModuleSpec, or str): Module to remove
+        from_repo (Repo or str): Repository to remove the module from
     '''
 
+    # A Module is always local and can be removed outright
+    if isinstance(module, Module):
+        module.remove()
+        return
 
-def localize(*modules, repo=None):
+    # A ModuleSpec has a reference to it's repo
+    if isinstance(module, ModuleSpec):
+        module.repo.remove(module)
+        return
+
+    # Typecheck arguments
+    if not isinstance(module, compat.string_types):
+        raise ValueError('module must be a Module, ModuleSpec or string')
+
+    if from_repo is None:
+        raise ValueError(
+            'You must specify from_repo when passing module as a string'
+        )
+
+    if not isinstance(from_repo, Repo):
+        from_repo = get_repo(name=from_repo)
+
+    # Find a Module or ModuleSpec
+    module_ = module
+    module = from_repo.find_module(module)
+
+    if not module:
+        raise ResolveError('Could not find %s in %s' % (module_, from_repo))
+
+    if isinstance(module, Module):
+        module.remove()
+        return
+
+    if isinstance(module, ModuleSpec):
+        module.repo.remove(module)
+        return
+
+
 def localize(*modules, to_repo='home', overwrite=False):
     '''Localize a list of modules.'''
 
