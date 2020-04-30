@@ -77,4 +77,3 @@ def setup_package():
 
 def teardown_package():
     rmtree(data_path())
-    pass
