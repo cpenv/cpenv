@@ -4,7 +4,7 @@
 from nose.tools import assert_raises
 
 # Local imports
-from cpenv import versions
+from cpenv.versions import ParseError, parse_version
 
 
 def test_parse_version():
@@ -12,15 +12,15 @@ def test_parse_version():
 
     # These should be parsed by parsers.semver_version_pattern
     basic_semver = [
-        versions.parse('0.1.0'),
-        versions.parse('v0.1.0'),
-        versions.parse('module0.1.0'),
-        versions.parse('module-0.1.0'),
-        versions.parse('module_0.1.0'),
-        versions.parse('modulev0.1.0'),
-        versions.parse('module-v0.1.0'),
-        versions.parse('module_v0.1.0'),
-        versions.parse('module2-0.1.0'),
+        parse_version('0.1.0'),
+        parse_version('v0.1.0'),
+        parse_version('module0.1.0'),
+        parse_version('module-0.1.0'),
+        parse_version('module_0.1.0'),
+        parse_version('modulev0.1.0'),
+        parse_version('module-v0.1.0'),
+        parse_version('module_v0.1.0'),
+        parse_version('module2-0.1.0'),
     ]
     for version in basic_semver:
         assert version.major == 0
@@ -30,15 +30,15 @@ def test_parse_version():
         assert not version.buildmetadata
 
     full_semver_spec = [
-        versions.parse('10.2.19-dev+02ab'),
-        versions.parse('v10.2.19-dev+02ab'),
-        versions.parse('module10.2.19-dev+02ab'),
-        versions.parse('module-10.2.19-dev+02ab'),
-        versions.parse('module_10.2.19-dev+02ab'),
-        versions.parse('modulev10.2.19-dev+02ab'),
-        versions.parse('module-v10.2.19-dev+02ab'),
-        versions.parse('module_v10.2.19-dev+02ab'),
-        versions.parse('module1-10.2.19-dev+02ab'),
+        parse_version('10.2.19-dev+02ab'),
+        parse_version('v10.2.19-dev+02ab'),
+        parse_version('module10.2.19-dev+02ab'),
+        parse_version('module-10.2.19-dev+02ab'),
+        parse_version('module_10.2.19-dev+02ab'),
+        parse_version('modulev10.2.19-dev+02ab'),
+        parse_version('module-v10.2.19-dev+02ab'),
+        parse_version('module_v10.2.19-dev+02ab'),
+        parse_version('module1-10.2.19-dev+02ab'),
     ]
 
     for version in full_semver_spec:
@@ -49,25 +49,25 @@ def test_parse_version():
         assert version.buildmetadata == '02ab'
 
     # These should be parsed by versions.simple_version_pattern
-    version = versions.parse('module1')
+    version = parse_version('module1')
     assert version.string == '1'
     assert version.major == 1
     assert not version.minor
     assert not version.patch
 
-    version = versions.parse('module-1')
+    version = parse_version('module-1')
     assert version.string == '1'
     assert version.major == 1
     assert not version.minor
     assert not version.patch
 
-    version = versions.parse('module-v20')
+    version = parse_version('module-v20')
     assert version.string == 'v20'
     assert version.major == 20
     assert not version.minor
     assert not version.patch
 
-    version = versions.parse('modulev1.0')
+    version = parse_version('modulev1.0')
     assert version.string == 'v1.0'
     assert version.major == 1
     assert version.minor == 0
@@ -85,7 +85,7 @@ def test_parse_version_raises():
     ]
 
     for string in bad_strings:
-        assert_raises(versions.ParseError, versions.parse, string)
+        assert_raises(ParseError, parse_version, string)
 
 
 def test_compare_versions():
@@ -113,6 +113,6 @@ def test_compare_versions():
     ]
 
     # Parse and sort
-    version_objects = [versions.parse(v) for v in version_strings]
+    version_objects = [parse_version(v) for v in version_strings]
     ordered_versions = [v.string for v in sorted(version_objects)]
     assert ordered_versions == expected_order

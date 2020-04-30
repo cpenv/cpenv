@@ -44,52 +44,107 @@ class Resolver(object):
 
         self.paths = paths
         self.resolved = None
+        self.modules = None
         self.combined = None
 
     def resolve(self):
+        '''Resolve all paths'''
+
+        from . import api
 
         self.resolved = []
         paths = list(self.paths)
 
-        for path in paths:
-            for resolver in module_resolvers:
-                try:
+        # Attempt to resolve paths using Repos
+        for path in list(paths):
 
-                    resolved = resolver(self, path)
+            for repo in api.get_repos():
 
-                    if isinstance(resolved, Module):
-                        self.resolved.append(resolved)
-
-                    elif isinstance(resolved, list):
-                        self.resolved.extend(resolved)
-
+                module_or_spec = repo.find_module(path)
+                if module_or_spec:
+                    self.resolved.append(module_or_spec)
+                    paths.remove(path)
                     break
 
-                except ResolveError:
-                    continue
-            else:
-                raise ResolveError(
-                    'Could not resolve module: ' + path
-                )
+        # Call the old resolution algorithm for backwards compatability
+        self.resolved.extend(_old_resolve_algorithm(paths))
+
+        # If we have left over paths we did not resolve everything!!
+        if paths:
+            raise ResolveError(
+                'Could not resolve: ' + ' '.join(paths)
+            )
 
         return self.resolved
 
-    def combine(self):
+    def localize(self):
+        '''Localize all resolved modules.'''
 
-        if not self.resolved:
+        if self.resolved is None:
             raise ValueError('You must call Resolver.resolve first.')
 
-        return join_dicts(*[obj.environment for obj in self.resolved])
+        self.modules = []
+        for module in self.resolved:
+            if isinstance(module, Module):
+                self.modules.append(module)
+                continue
+
+            # We hit a ModuleSpec - we need to localize it.
+            module_spec = module
+            repo = module.repo
+            module = repo.localize_module(module_spec)
+            self.modules.append(module)
+
+    def combine(self):
+        '''Combine all of the resolved modules environments.'''
+
+        if self.modules is None:
+            raise ValueError('You must call resolve and localize first.')
+
+        return join_dicts(*[obj.environment for obj in self.modules])
 
     def activate(self):
+        '''Active this resolvers resolved modules.'''
 
+        if self.resolved is None:
+            self.resolve()
+
+        if self.modules is None:
+            self.localize()
+
+        # Combine and set environment variables
         set_env(self.combine())
 
-        for obj in self.resolved:
+        # Activate all modules
+        for obj in self.modules:
             obj.activate()
 
 
-def path_is_module_resolver(resolver, path):
+def _old_resolve_algorithm(paths):
+    '''Extracted and maintained for backwards compatability.'''
+
+    modules = []
+    for path in list(paths):
+
+        for resolver in module_resolvers:
+            try:
+
+                resolved = resolver(path)
+                paths.remove(path)
+
+                if isinstance(resolved, Module):
+                    modules.append(resolved)
+                else:
+                    modules.extend(resolved)
+
+                break
+            except ResolveError:
+                continue
+
+    return modules
+
+
+def path_is_module_resolver(path):
     '''Checks if path is already a :class:`Module` object'''
 
     if isinstance(path, Module):
@@ -98,7 +153,7 @@ def path_is_module_resolver(resolver, path):
     raise ResolveError
 
 
-def cwd_resolver(resolver, path):
+def cwd_resolver(path):
     '''Checks if path is already a :class:`Module` object'''
 
     mod_path = normpath(os.getcwd(), path)
@@ -108,7 +163,7 @@ def cwd_resolver(resolver, path):
     raise ResolveError
 
 
-def modules_path_resolver(resolver, path):
+def modules_path_resolver(path):
     '''Resolves modules in CPENV_MODULES path and CPENV_HOME/modules'''
 
     from .api import get_module_paths
@@ -122,7 +177,7 @@ def modules_path_resolver(resolver, path):
     raise ResolveError
 
 
-def redirect_resolver(resolver, path):
+def redirect_resolver(path):
     '''Resolves environment from .cpenv file...recursively walks up the tree
     in attempt to find a .cpenv file'''
 

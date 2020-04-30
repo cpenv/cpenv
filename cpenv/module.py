@@ -28,7 +28,7 @@ module_header = '''
 
 ModuleSpec = namedtuple(
     'ModuleSpec',
-    ['name', 'version', 'path', 'repo'],
+    ['name', 'real_name', 'qual_name', 'version', 'path', 'repo'],
 )
 
 
@@ -37,7 +37,6 @@ class Module(object):
     def __init__(self, path, name=None, version=None):
 
         self.path = utils.normpath(path)
-        self.base_name = os.path.basename(self.path)
 
         # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
@@ -69,6 +68,8 @@ class Module(object):
             if self.exists:
                 name = self.config.get('name', None)
                 version = self.config.get('version', None)
+                if version:
+                    version = parse_version(version)
 
             # Last resort parse module path
             if name is None or version is None:
@@ -77,11 +78,13 @@ class Module(object):
             self.name = name
             self.version = version
 
-        self.qualified_name = self.name + '-' + self.version.string
-        if self.version.string != self.base_name:
-            self.real_name = self.base_name
+        self.qual_name = self.name + '-' + self.version.string
+
+        base_name = os.path.basename(self.path)
+        if self.version.string != base_name:
+            self.real_name = base_name
         else:
-            self.real_name = self.qualified_name
+            self.real_name = self.qual_name
 
     def __eq__(self, other):
         if hasattr(other, 'path'):
@@ -101,20 +104,40 @@ class Module(object):
         )
 
     def relative_path(self, *args):
+        '''Get a path relative to this module'''
+
         return utils.normpath(self.path, *args)
 
     def run_hook(self, hook_name):
+        '''Run a module hook by name, fallback to global hook location.'''
+
         hook = self.hook_finder(hook_name)
         if hook:
             hook.run(self)
 
+    def spec(self, **kwargs):
+        '''Return a ModuleSpec object for this Module.'''
+
+        return ModuleSpec(
+            name=kwargs.get('name', self.name),
+            real_name=kwargs.get('real_name', self.real_name),
+            qual_name=kwargs.get('qual_name', self.qual_name),
+            path=kwargs.get('path', self.path),
+            version=kwargs.get('version', self.version),
+            repo=kwargs.get('repo', None),
+        )
+
     def activate(self):
+        '''Add this module to active modules'''
+
         from . import api
         self.run_hook('pre_activate')
         api.add_active_module(self)
         self.run_hook('post_activate')
 
     def remove(self):
+        '''Delete this module'''
+
         from . import api
         self.run_hook('pre_remove')
         utils.rmtree(self.path)
@@ -124,7 +147,7 @@ class Module(object):
     @property
     def is_active(self):
         from . import api
-        return self in api.get_active_modules()
+        return self.real_name in api.get_active_modules()
 
     @property
     def exists(self):
@@ -162,7 +185,7 @@ class Module(object):
         if self._environ is None:
             env = self.config.get('environment', {})
             additional = {
-                'CPENV_ACTIVE_MODULES': [self.qualified_name],
+                'CPENV_ACTIVE_MODULES': [self.real_name],
             }
             env = utils.join_dicts(additional, env)
             self._environ = utils.preprocess_dict(env)
@@ -194,7 +217,7 @@ def read_config(module_file, config_vars=None, data=None):
     return yaml.safe_load(Template(data).safe_substitute(config_vars))
 
 
-def parse_module_path(path):
+def parse_module_path(path, default_version=default_version):
     '''Return name and version from a module's path.'''
 
     basename = os.path.basename(path)
@@ -202,7 +225,11 @@ def parse_module_path(path):
     try:
         version = parse_version(basename)
     except ParseError:
-        return basename, default_version()
+        if callable(default_version):
+            default = default_version()
+        else:
+            default = default_version
+        return basename, default
 
     head = basename.replace(version.string, '')
     if head:

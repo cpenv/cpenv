@@ -72,7 +72,7 @@ def patch_stuff():
 
 def setup_package():
     patch_stuff()
-    os.environ['CPENV_HOME'] = data_path('home')
+    cpenv.set_home_path(data_path('home'))
 
 
 def teardown_package():

@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 # Local imports
 from . import hooks, utils
-from .module import Module, is_module, module_header
+from .module import Module, module_header
 from .repos import LocalRepo
 from .resolver import Resolver
 from .vendor import appdirs, yaml
@@ -21,6 +21,7 @@ __all__ = [
     'resolve',
     'activate',
     'deactivate',
+    'set_home_path',
     'get_home_path',
     'get_home_modules_path',
     'get_cache_path',
@@ -28,10 +29,12 @@ __all__ = [
     'get_user_modules_path',
     'get_modules',
     'get_module_paths',
+    'add_module_path',
     'get_active_modules',
     'add_active_module',
     'remove_active_module',
     'get_repos',
+    'get_repo',
     'add_repo',
     'remove_repo',
     'sort_modules',
@@ -124,9 +127,17 @@ def remove(module, repo=None):
     '''
 
 
+def localize(*modules, repo=None):
+    '''Localize a list of modules.'''
+
+    resolver = resolve(*modules)
+    resolver.resolve()
+    resolver.localize()
+    return resolver.modules
+
+
 def resolve(*modules):
-    '''Resolve a list of virtual environment and module names then return
-    a :class:`Resolver` instance.'''
+    '''Resolve a list of modules and return a :class:`Resolver` instance.'''
 
     resolver = Resolver(*modules)
     resolver.resolve()
@@ -351,31 +362,12 @@ def add_module_path(path):
 def get_modules():
     '''Returns a list of available modules.'''
 
-    modules = set()
+    modules = []
 
-    cwd = os.getcwd()
-    for d in os.listdir(cwd):
+    for repo in get_repos():
+        modules.extend(repo.list_modules())
 
-        if d == 'module.yml':
-            modules.add(Module(cwd))
-
-        path = utils.normpath(cwd, d)
-        if is_module(path):
-            modules.add(Module(cwd))
-
-    module_paths = get_module_paths()
-    for module_path in module_paths:
-
-        if not os.path.exists(module_path):
-            continue
-
-        for d in os.listdir(module_path):
-
-            path = utils.normpath(module_path, d)
-            if is_module(path):
-                modules.add(Module(path))
-
-    return sorted(list(modules), key=lambda x: x.name)
+    return sort_modules(list(modules))
 
 
 def add_repo(repo):
@@ -389,7 +381,18 @@ def remove_repo(repo):
     '''Unregister a Repo.'''
 
     if repo in this._registry['repos']:
-        this._registry['repos'].pop(repo)
+        this._registry['repos'].remove(repo)
+
+
+def get_repo(**query):
+    '''Get a repo by specifying an attribute to lookup'''
+
+    if not query:
+        raise ValueError('Expected an attribute lookup.')
+
+    for repo in get_repos():
+        if all([getattr(repo, k, None) == v for k, v in query.items()]):
+            return repo
 
 
 def get_repos():
@@ -398,8 +401,12 @@ def get_repos():
     return list(this._registry['repos'])
 
 
-def sort_modules(modules):
-    return sorted(modules, key=lambda m: (m.real_name, m.version))
+def sort_modules(modules, reverse=False):
+    return sorted(
+        modules,
+        key=lambda m: (m.real_name, m.version),
+        reverse=reverse
+    )
 
 
 def _init():

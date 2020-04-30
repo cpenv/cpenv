@@ -157,7 +157,7 @@ class List(cli.CLI):
             ))
 
         print()
-        available_modules = api.get_modules()
+        available_modules = set(api.get_modules()) - set(active_modules)
         if available_modules:
             print(cli.format_columns(
                 '[ ] Available Modules',

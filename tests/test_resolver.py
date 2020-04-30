@@ -7,8 +7,8 @@ import os
 from nose.tools import assert_raises, raises
 
 # Local imports
-from cpenv.resolver import ResolveError, Resolver
-from cpenv.utils import parse_redirect, rmtree
+import cpenv
+from cpenv import utils
 
 # Local imports
 from . import data_path
@@ -44,8 +44,8 @@ REDIRECT_TEXT_MULTILINE3 = 'testmod\ntestmodb\n\n \ntestmodc\n '
 
 
 def setup_module():
-    os.environ['CPENV_HOME'] = data_path('home')
-    os.environ['CPENV_MODULES'] = data_path('modules')
+    cpenv.set_home_path(data_path('home'))
+    cpenv.add_module_path(data_path('modules'))
 
     files = (
         data_path('home', 'modules', 'testmod', 'module.yml'),
@@ -82,14 +82,14 @@ def setup_module():
 
 
 def teardown_module():
-    rmtree(data_path('home'))
-    rmtree(data_path('not_home'))
+    utils.rmtree(data_path('home'))
+    utils.rmtree(data_path('not_home'))
 
 
 def test_resolve_home():
     '''Resolve module in CPENV_HOME'''
 
-    r = Resolver('testmod')
+    r = cpenv.Resolver('testmod')
     r.resolve()
     assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
 
@@ -98,27 +98,27 @@ def test_resolve_module_on_path():
     '''Resolve module in CPENV_MODULES path'''
 
     # Test resolve global module
-    r = Resolver('testmodb')
+    r = cpenv.Resolver('testmodb')
     r.resolve()
 
     assert r.resolved[0].path == data_path('modules', 'testmodb')
 
     # Test resolve module in home, should take precedence over global
     # module of the same name
-    r = Resolver('testmod')
+    r = cpenv.Resolver('testmod')
     r.resolve()
 
     assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
 
     # Test resoluve module in CPENV_HOME/modules
-    r = Resolver('testmodc')
+    r = cpenv.Resolver('testmodc')
     r.resolve()
 
     assert r.resolved[0].path == data_path('home', 'modules', 'testmodc')
 
     # Test global module does not exist
-    r = Resolver('testmod', 'does_not_exist')
-    with assert_raises(ResolveError):
+    r = cpenv.Resolver('testmod', 'does_not_exist')
+    with assert_raises(cpenv.ResolveError):
         r.resolve()
 
 
@@ -126,7 +126,7 @@ def test_resolve_relative():
     '''Resolve module from relative path'''
 
     with cwd(data_path('not_home')):
-        r = Resolver('relmod')
+        r = cpenv.Resolver('relmod')
         r.resolve()
 
     assert r.resolved[0].path == data_path('not_home', 'relmod')
@@ -136,7 +136,7 @@ def test_resolve_absolute():
     '''Resolve module from absolute path'''
 
     with cwd(data_path('not_home')):
-        r = Resolver(data_path('home', 'modules', 'testmod'))
+        r = cpenv.Resolver(data_path('home', 'modules', 'testmod'))
         r.resolve()
 
     assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
@@ -145,7 +145,7 @@ def test_resolve_absolute():
 def test_resolve_multi_args():
     '''Resolve multiple paths'''
 
-    r = Resolver('testmod', 'testmodb', 'testmodc')
+    r = cpenv.Resolver('testmod', 'testmodb', 'testmodc')
     r.resolve()
     assert len(r.resolved) == 3
 
@@ -167,7 +167,7 @@ def test_redirect_resolver_from_folder():
         data_path('not_home', 'projectd'),
     ]
     for path in resolve_paths:
-        r = Resolver(path)
+        r = cpenv.Resolver(path)
         r.resolve()
 
         assert r.resolved[0].path == expected_paths[0]
@@ -184,7 +184,7 @@ def test_redirect_resolver_from_file():
         data_path('home', 'modules', 'testmodc'),
     ]
 
-    r = Resolver(
+    r = cpenv.Resolver(
         data_path('not_home', 'project', 'sequence', 'shot', 'shot_file.txt')
     )
     r.resolve()
@@ -194,27 +194,19 @@ def test_redirect_resolver_from_file():
     assert r.resolved[2].path == expected_paths[2]
 
 
-@raises(ResolveError)
-def test_nonexistant_virtualenv():
-    '''Raise ResolveError when module does not exist'''
-
-    r = Resolver('does_not_exist')
-    r.resolve()
-
-
-@raises(ResolveError)
+@raises(cpenv.ResolveError)
 def test_nonexistant_module():
-    '''Raise ResolveError when module does not exist'''
+    '''Raise cpenv.ResolveError when module does not exist'''
 
-    r = Resolver('testmod', 'does_not_exist')
+    r = cpenv.Resolver('testmod', 'does_not_exist')
     r.resolve()
 
 
-@raises(ResolveError)
+@raises(cpenv.ResolveError)
 def test_multi_module_does_not_exist():
-    '''Raise ResolveError when a module does not exist'''
+    '''Raise cpenv.ResolveError when a module does not exist'''
 
-    r = Resolver('testmod', 'testmodb', 'does_not_exist')
+    r = cpenv.Resolver('testmod', 'testmodb', 'does_not_exist')
     r.resolve()
 
 
@@ -232,4 +224,4 @@ def test_parse_redirect():
         ('testenv\ntestm\n \ntestmod\n ', ['testenv', 'testm', 'testmod']),
     ]
     for test, expected in tests:
-        assert parse_redirect(test) == expected
+        assert utils.parse_redirect(test) == expected
