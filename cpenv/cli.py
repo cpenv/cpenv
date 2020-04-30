@@ -8,7 +8,10 @@ import os
 import sys
 from itertools import zip_longest
 from textwrap import wrap
-
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 version = sys.version_info[0]
 is_py2 = version == 2
@@ -32,6 +35,10 @@ class CLI(object):
 
     @property
     def description(self):
+        return self.__doc__
+
+    @property
+    def short_description(self):
         return self.__doc__.split('\n')[0].rsplit('.', 1)[0]
 
     @property
@@ -54,7 +61,7 @@ class CLI(object):
         return format_section(
             'COMMAND',
             [
-                (k, v.description)
+                (k, v.short_description)
                 for k, v in self._commands.items()
             ],
         )
@@ -98,6 +105,12 @@ class CLI(object):
     def run(self, args):
         '''Subclasses implement this method.'''
         self.parser.print_help()
+
+
+def echo(message='', end='\n'):
+    print(message, end=end)
+    if not end:
+        sys.stdout.flush()
 
 
 def prompt(message):
@@ -183,6 +196,33 @@ def elide(text, width):
     return text
 
 
+def parse_known_args(parser, unparsed_args):
+    '''Like ArgumentParser.parse_known_args but prints help on error.'''
+
+    tmp_stdout = StringIO()
+    tmp_stderr = StringIO()
+    try:
+        sys.stdout = tmp_stdout
+        sys.stderr = tmp_stderr
+        args, more_args = parser.parse_known_args(unparsed_args)
+    except SystemExit:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        if '-h' in unparsed_args or '--help' in unparsed_args:
+            parser.print_help()
+            sys.exit()
+        print(tmp_stdout.getvalue())
+        print(tmp_stderr.getvalue())
+        raise
+    finally:
+        tmp_stdout.close()
+        tmp_stderr.close()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+
+    return args, more_args
+
+
 def run(cli, unparsed_args=missing):
     '''Execute a CLI command.'''
 
@@ -196,13 +236,7 @@ def run(cli, unparsed_args=missing):
             raise
 
     # First parse used to pass arguments along to subcommands
-    try:
-        args, more_args = cli.parser.parse_known_args(unparsed_args)
-    except SystemExit:
-        if '-h' in unparsed_args or '--help' in unparsed_args:
-            cli.parser.print_help()
-            sys.exit()
-        raise
+    args, more_args = parse_known_args(cli.parser, unparsed_args)
 
     global_options = [('help', '-h'), ('verbose', '-v')]
     options = [f for n, f in global_options if args.__dict__.get(n, False)]
