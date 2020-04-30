@@ -105,15 +105,42 @@ def create(where, name, version, **kwargs):
     return
 
 
-def clone(module, where='.', repo=None):
+def clone(module, where=None, from_repo=None, overwrite=False):
     '''Clone a module.
 
-    Useful for development. One might do something like:
+    A typical development workflow using clone and publish:
         1. clone a module
         2. make changes
         3. test changes
-        3. publish a new version of the module
+        4. increment version in module.yml
+        5. publish a new version of your module
     '''
+
+    if from_repo is None:
+        resolver = resolve(module)
+        module_or_spec = resolver.resolved[0]
+    else:
+        from_repo = get_repo(name=from_repo)
+        module_or_spec = from_repo.find_module(module)
+
+    # Set default clone destination
+    if where == '.' or where is None:
+        where = utils.normpath('.', module_or_spec.real_name)
+
+    if isinstance(module_or_spec, ModuleSpec):
+        from_repo = module_or_spec.from_repo
+        cloned_module = from_repo.clone_module(
+            module_or_spec,
+            where,
+            overwrite,
+        )
+    else:
+        if overwrite:
+            utils.rmtree(where)
+        shutil.copytree(module_or_spec.path, where)
+        cloned_module = Module(where)
+
+    return cloned_module
 
 
 def publish(module, to_repo='home', overwrite=False):

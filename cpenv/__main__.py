@@ -59,6 +59,64 @@ class Version(cli.CLI):
         print(cli.format_section('Dependencies', dependencies), end='\n\n')
 
 
+class Clone(cli.CLI):
+    '''Clone a module for development.
+
+    The following repos are available by default:
+        home - Local repo pointing to a computer-wide cpenv directory
+        user - Local repo pointing to a user-specific cpenv directory
+
+    For a full listing of available repos use the repo cli command:
+        cpenv repo list
+    '''
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'module',
+            help='Module to clone.',
+        )
+        parser.add_argument(
+            'where',
+            help='Destination directory. (./<module_name>)',
+            nargs='?',
+            default=None,
+        )
+        parser.add_argument(
+            '--from_repo',
+            help='Specific repo to clone from.',
+            default=None,
+        )
+        parser.add_argument(
+            '--overwrite',
+            help='Overwrite the destination directory. (False)',
+            action='store_true',
+        )
+
+    def run(self, args):
+
+        cli.echo('- Cloning %s...' % args.module, end='')
+        try:
+            module = api.clone(
+                args.module,
+                args.where,
+                args.from_repo,
+                args.overwrite,
+            )
+        except ResolveError:
+            cli.echo()
+            cli.echo('Error: Could not find module to clone.')
+            sys.exit(1)
+
+        cli.echo('OK!')
+        cli.echo()
+        cli.echo('Navigate to the following folder to make changes:')
+        cli.echo('  ' + module.path)
+        cli.echo()
+        cli.echo("Use one of the following commands to publish your changes:")
+        cli.echo('  cpenv publish .')
+        cli.echo('  cpenv publish . --to_repo="repo_name"')
+
+
 class Create(cli.CLI):
     '''Create a new module.'''
 
