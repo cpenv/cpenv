@@ -89,65 +89,60 @@ def teardown_module():
 def test_resolve_home():
     '''Resolve module in CPENV_HOME'''
 
-    r = cpenv.Resolver('testmod')
-    r.resolve()
-    assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
+    for repo in cpenv.get_repos():
+        print(repo.name, repo.path)
+
+    r = cpenv.Resolver(cpenv.get_repos())
+    resolved = r.resolve(['testmod'])
+    print(resolved)
+    assert resolved[0].path == data_path('home', 'modules', 'testmod')
 
 
 def test_resolve_module_on_path():
     '''Resolve module in CPENV_MODULES path'''
 
-    # Test resolve global module
-    r = cpenv.Resolver('testmodb')
-    r.resolve()
+    r = cpenv.Resolver(cpenv.get_repos())
 
-    assert r.resolved[0].path == data_path('modules', 'testmodb')
+    # Test resolve global module
+    resolved = r.resolve(['testmodb'])
+
+    assert resolved[0].path == data_path('modules', 'testmodb')
 
     # Test resolve module in home, should take precedence over global
     # module of the same name
-    r = cpenv.Resolver('testmod')
-    r.resolve()
+    resolved = r.resolve(['testmod'])
 
-    assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
+    assert resolved[0].path == data_path('home', 'modules', 'testmod')
 
     # Test resoluve module in CPENV_HOME/modules
-    r = cpenv.Resolver('testmodc')
-    r.resolve()
+    resolved = r.resolve(['testmodc'])
 
-    assert r.resolved[0].path == data_path('home', 'modules', 'testmodc')
+    assert resolved[0].path == data_path('home', 'modules', 'testmodc')
 
     # Test global module does not exist
-    r = cpenv.Resolver('testmod', 'does_not_exist')
     with assert_raises(cpenv.ResolveError):
-        r.resolve()
+        r.resolve(['testmod', 'does_not_exist'])
 
 
 def test_resolve_relative():
     '''Resolve module from relative path'''
 
-    with cwd(data_path('not_home')):
-        r = cpenv.Resolver('relmod')
-        r.resolve()
-
-    assert r.resolved[0].path == data_path('not_home', 'relmod')
-
-
-def test_resolve_absolute():
-    '''Resolve module from absolute path'''
+    r = cpenv.Resolver(cpenv.get_repos())
 
     with cwd(data_path('not_home')):
-        r = cpenv.Resolver(data_path('home', 'modules', 'testmod'))
-        r.resolve()
+        resolved = r.resolve(['relmod'])
 
-    assert r.resolved[0].path == data_path('home', 'modules', 'testmod')
+    print(resolved, type(resolved))
+    assert resolved[0].path == data_path('not_home', 'relmod')
 
 
 def test_resolve_multi_args():
     '''Resolve multiple paths'''
 
-    r = cpenv.Resolver('testmod', 'testmodb', 'testmodc')
-    r.resolve()
-    assert len(r.resolved) == 3
+    r = cpenv.Resolver(cpenv.get_repos())
+
+    resolved = r.resolve(['testmod', 'testmodb', 'testmodc'])
+    assert len(resolved) == 3
 
 
 def test_redirect_resolver_from_folder():
@@ -166,13 +161,13 @@ def test_redirect_resolver_from_folder():
         data_path('not_home', 'projectc'),
         data_path('not_home', 'projectd'),
     ]
+    r = cpenv.Resolver(cpenv.get_repos())
     for path in resolve_paths:
-        r = cpenv.Resolver(path)
-        r.resolve()
+        resolved = r.resolve([path])
 
-        assert r.resolved[0].path == expected_paths[0]
-        assert r.resolved[1].path == expected_paths[1]
-        assert r.resolved[2].path == expected_paths[2]
+        assert resolved[0].path == expected_paths[0]
+        assert resolved[1].path == expected_paths[1]
+        assert resolved[2].path == expected_paths[2]
 
 
 def test_redirect_resolver_from_file():
@@ -184,30 +179,30 @@ def test_redirect_resolver_from_file():
         data_path('home', 'modules', 'testmodc'),
     ]
 
-    r = cpenv.Resolver(
+    r = cpenv.Resolver(cpenv.get_repos())
+    resolved = r.resolve([
         data_path('not_home', 'project', 'sequence', 'shot', 'shot_file.txt')
-    )
-    r.resolve()
+    ])
 
-    assert r.resolved[0].path == expected_paths[0]
-    assert r.resolved[1].path == expected_paths[1]
-    assert r.resolved[2].path == expected_paths[2]
+    assert resolved[0].path == expected_paths[0]
+    assert resolved[1].path == expected_paths[1]
+    assert resolved[2].path == expected_paths[2]
 
 
 @raises(cpenv.ResolveError)
 def test_nonexistant_module():
     '''Raise cpenv.ResolveError when module does not exist'''
 
-    r = cpenv.Resolver('testmod', 'does_not_exist')
-    r.resolve()
+    r = cpenv.Resolver(cpenv.get_repos())
+    r.resolve(['testmod', 'does_not_exist'])
 
 
 @raises(cpenv.ResolveError)
 def test_multi_module_does_not_exist():
     '''Raise cpenv.ResolveError when a module does not exist'''
 
-    r = cpenv.Resolver('testmod', 'testmodb', 'does_not_exist')
-    r.resolve()
+    r = cpenv.Resolver(cpenv.get_repos())
+    r.resolve(['testmod', 'testmodb', 'does_not_exist'])
 
 
 def test_parse_redirect():

@@ -3,6 +3,7 @@
 # Standard library imports
 import os
 from contextlib import contextmanager
+import cpenv
 
 
 @contextmanager
@@ -12,11 +13,13 @@ def cwd(new_cwd):
 
     try:
         os.chdir(new_cwd)
+        cpenv.update_repo(cpenv.LocalRepo('cwd', new_cwd))
         yield
     except Exception:
         raise
     finally:
         os.chdir(old_cwd)
+        cpenv.update_repo(cpenv.LocalRepo('cwd', old_cwd))
 
 
 def touch(filepath):

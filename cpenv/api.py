@@ -43,6 +43,7 @@ __all__ = [
     'get_repos',
     'get_repo',
     'add_repo',
+    'update_repo',
     'remove_repo',
     'sort_modules',
 ]
@@ -454,7 +455,7 @@ def sort_modules(modules, reverse=False):
 def update_repo(repo):
     '''Update a registered repo.'''
 
-    _registry.update({repo.name: repo})
+    _registry['repos'].update({repo.name: repo})
 
 
 def add_repo(repo, idx=None):

@@ -50,4 +50,4 @@ def test_local_repo():
     ''''''
 
     local_repo = cpenv.LocalRepo('test_modules', data_path('modules'))
-    spec = local_repo.find_module('testmod-0.1.0')
+    module_specs = local_repo.find('testmod-0.1.0')

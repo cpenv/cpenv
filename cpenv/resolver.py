@@ -231,10 +231,10 @@ def old_resolve_algorithm(resolver, paths):
                 resolved = module_resolver(resolver, path)
                 paths.remove(path)
 
-                if isinstance(resolved, Module):
-                    modules.append(resolved)
-                else:
+                if isinstance(resolved, list):
                     modules.extend(resolved)
+                else:
+                    modules.append(resolved)
 
                 break
             except ResolveError:
@@ -292,7 +292,7 @@ def redirect_resolver(resolver, path):
                 utils.normpath(root, '.cpenv')
             )
             r = Resolver(resolver.repos)
-            return r.resolve(*env_paths)
+            return r.resolve(env_paths)
 
     raise ResolveError
 
