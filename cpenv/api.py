@@ -3,15 +3,20 @@ from __future__ import absolute_import, print_function
 
 # Standard library imports
 import os
-import shutil
-import sys
 from collections import OrderedDict
+import warnings
 
 # Local imports
-from . import hooks, utils
+from . import hooks, utils, compat
 from .module import Module, ModuleSpec, module_header
 from .repos import Repo, LocalRepo
-from .resolver import Resolver, ResolveError
+from .resolver import (
+    ResolveError,
+    Resolver,
+    Activator,
+    Copier,
+    Localizer,
+)
 from .vendor import appdirs, yaml
 
 
@@ -22,7 +27,6 @@ __all__ = [
     'create',
     'localize',
     'publish',
-    'remove',
     'resolve',
     'set_home_path',
     'get_home_path',
@@ -46,6 +50,60 @@ _registry = {
     'repos': OrderedDict(),
 }
 _active_modules = []
+
+
+def resolve(*requirements):
+    '''Resolve a list of module requirements.'''
+
+    resolver = Resolver(get_repos())
+    return resolver.resolve(requirements)
+
+
+def localize(*requirements, to_repo='home', overwrite=False):
+    '''Localize a list of requirements.'''
+
+    to_repo = get_repo(to_repo)
+
+    # Resolve modules
+    resolver = Resolver(get_repos())
+    module_specs = resolver.resolve(requirements)
+
+    localizer = Localizer(to_repo)
+    modules = localizer.localize(module_specs, overwrite)
+    return modules
+
+def activate(*requirements):
+    '''Resolve and active a list of module requirements.
+
+    Usage:
+        >>> cpenv.activate('moduleA', 'moduleB')
+
+    Arguments:
+        requirements (List[str]): List of module requirements
+
+    Returns:
+        list of Module objects that have been activated
+    '''
+
+    # Resolve modules
+    resolver = Resolver(get_repos())
+    module_specs = resolver.resolve(requirements)
+
+    # Activate modules
+    activator = Activator()
+    modules = activator.activate(module_specs)
+    return modules
+
+
+def deactivate():
+    '''Deactivates an environment by restoring all env vars to a clean state
+    stored prior to activating environments
+    '''
+    # TODO:
+    # Probably need to store a clean environment prior to activate.
+    # In practice it's uncommon to activate then deactivate in the same
+    # python session.
+    pass
 
 
 def create(where, name, version, **kwargs):
@@ -104,11 +162,30 @@ def create(where, name, version, **kwargs):
     # Allows users to perform some action after a module is created
     hooks.run_global_hook('post_create', module)
 
-    return
+    return module
 
 
-def clone(module, where=None, from_repo=None, overwrite=False):
-    '''Clone a module.
+def remove(module, from_repo=None):
+    '''Remove a module.'''
+
+    if isinstance(module, Module):
+        return module.remove()
+
+    if isinstance(module, ModuleSpec):
+        return module.repo.remove(module)
+
+    if from_repo is None:
+        raise ValueError('from_repo is required when removing module by name.')
+
+    if isinstance(from_repo, compat.string_types):
+        from_repo = get_repo(from_repo)
+
+    module_spec = from_repo.find(module)[0]
+    return from_repo.remove(module_spec)
+
+
+def clone(module, from_repo=None, where=None, overwrite=False):
+    '''Clone a module for local development.
 
     A typical development workflow using clone and publish:
         1. clone a module
@@ -118,141 +195,55 @@ def clone(module, where=None, from_repo=None, overwrite=False):
         5. publish a new version of your module
     '''
 
-    if from_repo is None:
-        resolver = resolve(module)
-        module_or_spec = resolver.resolved[0]
-    else:
-        from_repo = get_repo(name=from_repo)
-        module_or_spec = from_repo.find_module(module)
+    if not isinstance(module, (Module, ModuleSpec)):
+        if from_repo is None:
+            resolver = Resolver(get_repos())
+            module_spec = resolver.resolve([module])[0]
+        else:
+            from_repo = get_repo(from_repo)
+            module_spec = from_repo.find(module)[0]
 
-    # Set default clone destination
-    if where == '.' or where is None:
-        where = utils.normpath('.', module_or_spec.real_name)
+    module = module_spec.repo.download(
+        module_spec,
+        where=utils.normpath(where or '.', module_spec.real_name),
+        overwrite=overwrite,
+    )
 
-    if isinstance(module_or_spec, ModuleSpec):
-        from_repo = module_or_spec.from_repo
-        cloned_module = from_repo.clone_module(
-            module_or_spec,
-            where,
-            overwrite,
-        )
-    else:
-        if overwrite:
-            utils.rmtree(where)
-        shutil.copytree(module_or_spec.path, where)
-        cloned_module = Module(where)
-
-    return cloned_module
+    return module
 
 
 def publish(module, to_repo='home', overwrite=False):
     '''Publish a module to the specified repository.'''
 
-    if not isinstance(to_repo, Repo):
-        to_repo = get_repo(name=to_repo)
+    to_repo = get_repo(to_repo)
 
-    if not isinstance(module, (Module, ModuleSpec)):
-        module_ = Module(module)
-        if not module_:
-            raise ResolveError(
-                'Failed to resolve %s in %s' % (module, to_repo.name)
-            )
-        module = module_
-
-    published_module = to_repo.publish_module(module, overwrite)
-    return published_module
-
-
-def remove(module, from_repo=None):
-    '''Remove a module from the specified repository.
-
-    Arguments:
-        module (Module, ModuleSpec, or str): Module to remove
-        from_repo (Repo or str): Repository to remove the module from
-    '''
-
-    # A Module is always local and can be removed outright
-    if isinstance(module, Module):
-        module.remove()
-        return
-
-    # A ModuleSpec has a reference to it's repo
-    if isinstance(module, ModuleSpec):
-        module.repo.remove(module)
-        return
-
-    # Typecheck arguments
-    if not isinstance(module, compat.string_types):
-        raise ValueError('module must be a Module, ModuleSpec or string')
-
-    if from_repo is None:
-        raise ValueError(
-            'You must specify from_repo when passing module as a string'
-        )
-
-    if not isinstance(from_repo, Repo):
-        from_repo = get_repo(name=from_repo)
-
-    # Find a Module or ModuleSpec
-    module_ = module
-    module = from_repo.find_module(module)
-
-    if not module:
-        raise ResolveError('Could not find %s in %s' % (module_, from_repo))
-
-    if isinstance(module, Module):
-        module.remove()
-        return
+    if isinstance(module, compat.string_types):
+        resolver = Resolver(get_repos())
+        module = resolver.resolve([module])[0]
 
     if isinstance(module, ModuleSpec):
-        module.repo.remove(module)
-        return
+        if not isinstance(module.repo, LocalRepo):
+            raise ValueError('Can only from modules in local repos.')
+        else:
+            module = Module(module.path)
+
+    published = to_repo.upload(module, overwrite)
+    return published
 
 
-def localize(*modules, to_repo='home', overwrite=False):
-    '''Localize a list of modules.'''
+def copy(module, from_repo, to_repo, overwrite=False):
+    '''Copy a module from one repo to another.'''
 
-    if not isinstance(to_repo, Repo):
-        to_repo = get_repo(name=to_repo)
+    from_repo = get_repo(from_repo)
+    to_repo = get_repo(to_repo)
 
-    resolver = resolve(*modules)
-    resolver.localize(to_repo, overwrite)
-    return resolver.modules
+    # Resolve module
+    resolver = Resolver([from_repo])
+    module_spec = resolver.resolve([module])[0]
 
-
-def resolve(*modules):
-    '''Resolve a list of modules and return a :class:`Resolver` instance.'''
-
-    resolver = Resolver(*modules)
-    resolver.resolve()
-    return resolver
-
-
-def activate(*modules):
-    '''Resolve and active a list of modules.
-
-    Usage:
-        >>> cpenv.activate('moduleA', 'moduleB')
-
-    Arguments:
-        modulues (List[str, Module]): List of string or
-
-    Returns:
-        list of Module objects that have been activated
-    '''
-
-    resolver = resolve(*modules)
-    resolver.activate()
-    return resolver.resolved
-
-
-def deactivate():
-    '''Deactivates an environment by restoring all env vars to a clean state
-    stored prior to activating environments
-    '''
-    # TODO: implement me!
-    # probably need to store a clean environment prior to activate
-    pass
+    copier = Copier(to_repo)
+    copied = copier.copy([module_spec], overwrite)
+    return copied
 
 
 def get_active_modules():
@@ -294,17 +285,13 @@ def remove_active_module(module):
 def set_home_path(path):
     '''Convenient function used to set the CPENV_HOME environment variable.'''
 
-    # Remove old LocalRepo
-    # Store old index
-    idx = remove_repo(LocalRepo('home', get_home_modules_path()))
-
     # Set new home path
     home = utils.normpath(path)
     os.environ['CPENV_HOME'] = home
     _init_home_path(home)
 
     # Add new LocalRepo
-    add_repo(LocalRepo('home', get_home_modules_path()), idx)
+    update_repo(LocalRepo('home', get_home_modules_path()))
 
     return home
 
@@ -441,17 +428,27 @@ def add_module_path(path):
     return module_paths
 
 
-def get_modules(matching=None):
+def get_modules(*requirements):
     '''Returns a list of available modules.'''
+
+    if requirements:
+        resolver = Resolver(get_repos())
+        return sort_modules(resolver.resolve(requirements))
 
     modules = []
 
     for repo in get_repos():
-        modules.extend(repo.list_modules(matching))
+        modules.extend(repo.list())
 
     return sort_modules(list(modules))
 
 
+def sort_modules(modules, reverse=False):
+    return sorted(
+        modules,
+        key=lambda m: (m.real_name, m.version),
+        reverse=reverse
+    )
 
 
 def update_repo(repo):
@@ -498,7 +495,6 @@ def get_repos():
     '''Get a list of all registered Repos.'''
 
     return list(_registry['repos'].values())
-    )
 
 
 def _init():

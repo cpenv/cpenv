@@ -7,8 +7,17 @@ import sys
 
 # Local imports
 import cpenv
-from cpenv import ResolveError, api, cli, shell, utils
-from cpenv.module import parse_module_path
+from cpenv import (
+    LocalRepo,
+    Resolver,
+    Copier,
+    ResolveError,
+    api,
+    cli,
+    shell,
+    utils,
+)
+from cpenv.module import parse_module_path, is_partial_match, best_match
 
 
 class CpenvCLI(cli.CLI):
@@ -21,6 +30,7 @@ class CpenvCLI(cli.CLI):
         return [
             Activate(self),
             Clone(self),
+            Copy(self),
             Create(self),
             List(self),
             Localize(self),
@@ -176,7 +186,7 @@ class List(cli.CLI):
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'matching',
+            'requirement',
             help='Space separated list of modules.',
             nargs='?',
             default=None,
@@ -188,30 +198,49 @@ class List(cli.CLI):
         )
 
     def run(self, args):
+
+        found_modules = False
+
         cli.echo()
         active_modules = api.get_active_modules()
-        if args.matching:
+        if args.requirement:
             active_modules = [
                 m for m in active_modules
-                if args.matching == m.name
+                if is_partial_match(args.requirement, m)
             ]
 
         if active_modules:
+            found_modules = True
             cli.echo(cli.format_columns(
                 '[*] Active',
                 [m.real_name for m in api.sort_modules(active_modules)],
             ))
+            cli.echo()
 
-        cli.echo()
-        all_modules = api.get_modules(matching=args.matching)
-        available_modules = set(all_modules) - set(active_modules)
-        if available_modules:
-            cli.echo(cli.format_columns(
-                '[ ] Available Modules',
-                [m.real_name for m in api.sort_modules(available_modules)],
-            ))
-        else:
-            cli.echo('No modules available.')
+        for repo in api.get_repos():
+            if args.requirement:
+                repo_modules = repo.find(args.requirement)
+            else:
+                repo_modules = repo.list()
+
+            module_names = []
+            for module in api.sort_modules(repo_modules):
+                if module in active_modules:
+                    module_names.append('* ' + module.real_name)
+                else:
+                    module_names.append('  ' + module.real_name)
+
+            if module_names:
+                found_modules = True
+                cli.echo(cli.format_columns(
+                    '[ ] ' + repo.name,
+                    module_names,
+                    indent='  ',
+                ))
+                cli.echo()
+
+        if not found_modules:
+            cli.echo('No modules are available.')
 
 
 class Localize(cli.CLI):
@@ -245,9 +274,9 @@ class Localize(cli.CLI):
         if args.to_repo:
             to_repo = api.get_repo(name=args.to_repo)
         else:
-            repos = [r for r in repos if isinstance(repo, LocalRepo)]
+            repos = [r for r in api.get_repos() if isinstance(r, LocalRepo)]
             to_repo = prompt_for_repo(
-                [r for r in api.get_repos() if isinstance(repo, LocalRepo)],
+                repos,
                 'Choose a repo to localize to',
                 default_repo_name='home',
             )
@@ -257,15 +286,89 @@ class Localize(cli.CLI):
             '- Localizing %s to %s...' % (args.modules, to_repo.name),
             end='',
         )
-        modules = api.localize(*args.modules, to_repo, args.overwrite)
+        modules = api.localize(
+            *args.modules,
+            to_repo=to_repo,
+            overwrite=args.overwrite,
+        )
         cli.echo('OK!')
         cli.echo()
 
         cli.echo()
         cli.echo('Localized the following modules:')
         for module in modules:
-            click.echo('  %s - %s' % (module.real_name, module.path))
+            cli.echo('  %s - %s' % (module.real_name, module.path))
 
+
+class Copy(cli.CLI):
+    '''Copy modules from one repo to another.'''
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'modules',
+            help='Space separated list of modules.',
+            nargs='*',
+        )
+        parser.add_argument(
+            '--from_repo',
+            help='Download from',
+            default=None,
+        )
+        parser.add_argument(
+            '--to_repo',
+            help='Upload to',
+            default=None,
+        )
+        parser.add_argument(
+            '--overwrite',
+            help='Overwrite the destination directory. (False)',
+            action='store_true',
+        )
+
+    def run(self, args):
+
+        cli.echo()
+
+        if args.from_repo:
+            from_repo = api.get_repo(args.from_repo)
+        else:
+            from_repo = prompt_for_repo(
+                api.get_repos(),
+                'Download from',
+                default_repo_name='home',
+            )
+            cli.echo()
+
+        if args.to_repo:
+            to_repo = api.get_repo(args.to_repo)
+        else:
+            to_repo = prompt_for_repo(
+                api.get_repos(),
+                'Upload to',
+                default_repo_name='home',
+            )
+            cli.echo()
+
+        cli.echo('- Resolving modules from %s...' % from_repo.name, end='')
+        resolver = Resolver([from_repo])
+        module_specs = resolver.resolve(args.modules)
+        cli.echo('OK!')
+        cli.echo()
+        for module_spec in module_specs:
+            cli.echo('  %s - %s' % (module_spec.real_name, module_spec.path))
+        cli.echo()
+
+        choice = cli.prompt('Copy these modules to %s?(y/n)' % to_repo.name)
+        if choice.lower() not in ['y', 'yes', 'yup']:
+            cli.echo('Aborted.')
+            sys.exit(1)
+        cli.echo()
+
+        copier = Copier(to_repo)
+        for module_spec in module_specs:
+            cli.echo('- Copying %s...' % module_spec.real_name, end='')
+            copier.copy([module_spec], args.overwrite)
+            cli.echo('OK!')
 
 class Publish(cli.CLI):
     '''Publish a module to a repo.'''
@@ -345,27 +448,29 @@ class Remove(cli.CLI):
                 default_repo_name='home',
             )
 
-        cli.echo()
         cli.echo(
-            '- Finding module %s to %s...' % (args.module, from_repo.name),
+            '- Finding module %s in %s...' % (args.module, from_repo.name),
             end='',
         )
-        module = from_repo.find_module(args.module)
+        module = best_match(args.module, from_repo.find(args.module))
         if not module:
-            click.echo('ER!', end='\n\n')
-            click.echo(
+            cli.echo('ERROR!', end='\n\n')
+            cli.echo(
                 'Error: %s not found in %s' % (args.module, from_repo.name)
             )
             sys.exit(1)
         cli.echo('OK!')
+
         cli.echo()
         cli.echo('%s - %s' % (module.name, module.path))
         cli.echo()
+
         choice = cli.prompt('Delete this module?(y/n)')
         if choice.lower() not in ['y', 'yes', 'yup']:
             cli.echo('Aborted.')
             sys.exit(1)
 
+        cli.echo()
         cli.echo('- Removing module...', end='')
         api.remove(module, from_repo)
         cli.echo('OK!', end='\n\n')
@@ -382,6 +487,7 @@ class Version(cli.CLI):
         cli.echo(cli.format_section(
             'Version Info',
             [
+                ('name', cpenv.__name__),
                 ('version', cpenv.__version__),
                 ('url', cpenv.__url__),
                 ('package', utils.normpath(os.path.dirname(cpenv.__file__))),

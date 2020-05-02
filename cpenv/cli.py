@@ -126,7 +126,7 @@ def format_section(header, rows):
     width = max(len(max(rows, key=lambda x: len(x[0]))), 8) + 2
 
     lines = [header]
-    for key, value in sorted(rows):
+    for key, value in rows:
 
         # Handle lists - one value per line
         additional_lines = []
