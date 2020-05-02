@@ -43,7 +43,7 @@ __all__ = [
     'sort_modules',
 ]
 _registry = {
-    'repos': [],
+    'repos': OrderedDict(),
 }
 _active_modules = []
 
@@ -452,48 +452,52 @@ def get_modules(matching=None):
     return sort_modules(list(modules))
 
 
-def add_repo(repo, idx=None):
-    '''Register a Repo.'''
 
-    if repo not in _registry['repos']:
+
+def update_repo(repo):
+    '''Update a registered repo.'''
+
+    _registry.update({repo.name: repo})
+
+
+def add_repo(repo, idx=None):
+    '''Register a Repo.
+
+    Provide an idx to insert the Repo rather than append.
+    '''
+
+    if repo.name not in _registry['repos']:
         if idx is not None:
-            _registry['repos'].insert(idx, repo)
+            items = list(_registry['repos'].items())
+            items.insert(idx, (repo.name, repo))
+            _registry['repos'] = OrderedDict(items)
         else:
-            _registry['repos'].append(repo)
+            _registry['repos'][repo.name] = repo
 
 
 def remove_repo(repo):
     '''Unregister a Repo.'''
 
-    if repo in _registry['repos']:
-        idx = _registry['repos'].index(repo)
-        _registry['repos'].pop(idx)
-
-        return idx
+    _registry['repos'].pop(repo.name, None)
 
 
-def get_repo(**query):
+def get_repo(name, **query):
     '''Get a repo by specifying an attribute to lookup'''
 
-    if not query:
-        raise ValueError('Expected an attribute lookup.')
+    if isinstance(name, Repo):
+        return name
+
+    query['name'] = name
 
     for repo in get_repos():
-        if all([getattr(repo, k, None) == v for k, v in query.items()]):
+        if all([getattr(repo, k, False) == v for k, v in query.items()]):
             return repo
 
 
 def get_repos():
     '''Get a list of all registered Repos.'''
 
-    return list(_registry['repos'])
-
-
-def sort_modules(modules, reverse=False):
-    return sorted(
-        modules,
-        key=lambda m: (m.real_name, m.version),
-        reverse=reverse
+    return list(_registry['repos'].values())
     )
 
 
@@ -505,7 +509,9 @@ def _init():
 
     # Register all LocalRepos
     for path in get_module_paths():
-        if path == get_home_modules_path():
+        if path == utils.normpath(os.getcwd()):
+            name = 'cwd'
+        elif path == get_home_modules_path():
             name = 'home'
         elif path == get_user_modules_path():
             name = 'user'
@@ -514,8 +520,19 @@ def _init():
         add_repo(LocalRepo(name, path))
 
     # Set _active_modules from CPENV_ACTIVE_MODULES
+    unresolved = []
+    resolver = Resolver(get_repos())
     active_modules = os.getenv('CPENV_ACTIVE_MODULES')
     if active_modules:
         for module in active_modules.split(os.pathsep):
             if module:
-                _active_modules.append(resolve(module).resolved[0])
+                try:
+                    resolved = resolver.resolve([module])[0]
+                    _active_modules.append(resolved)
+                except ResolveError:
+                    unresolved.append(module)
+
+    if unresolved:
+        warnings.warn(
+            'Unable to resolve %s from $CPENV_ACTIVE_MODULES:' % unresolved
+        )
