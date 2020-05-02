@@ -9,7 +9,7 @@ from string import Template
 
 # Local imports
 from . import compat, utils
-from .versions import ParseError, default_version, parse_version
+from .versions import ParseError, Version, default_version, parse_version
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
 
@@ -258,7 +258,66 @@ def parse_module_path(path, default_version=default_version):
     return name, version
 
 
-def is_module(path):
-    '''Returns True if path refers to a module'''
+def parse_module_requirement(requirement, default_version=None):
+    '''Given a requirement, return a name and version.'''
 
-    return os.path.exists(utils.normpath(path, 'module.yml'))
+    if utils.is_system_path(requirement):
+        return parse_module_path(requirement, default_version=default_version)
+
+    try:
+        version = parse_version(requirement)
+    except ParseError:
+        if callable(default_version):
+            default = default_version()
+        else:
+            default = default_version
+        return requirement, default
+
+    name = requirement
+    head = requirement.replace(version.string, '')
+    if head:
+        name = head.rstrip('_v').rstrip('-v').rstrip('-_').rstrip('<>=!')
+
+    return name, version
+
+
+def is_exact_match(requirement, module_spec):
+    '''Is the module_spec an exact match for the provided requirement?'''
+
+    name, version = parse_module_requirement(requirement)
+    return (
+        module_spec.qual_name == requirement or
+        module_spec.real_name == requirement or
+        (
+            version and module_spec.name == name and
+            module_spec.version == version
+        )
+    )
+
+
+def is_partial_match(requirement, module_spec):
+    '''Is the module_spec a partial match for the provided requirement?'''
+
+    name, version = parse_module_requirement(requirement)
+    return module_spec.name == name
+
+
+def best_match(requirement, module_specs):
+
+    name, version = parse_module_requirement(
+        requirement,
+        Version(0, 0, 0, None, None, '*')
+    )
+
+    best_match = None
+    for module_spec in module_specs:
+        if is_exact_match(requirement, module_spec):
+            return module_spec
+        if version < module_spec.version:
+            if not best_match:
+                best_match = module_spec
+                continue
+            if best_match.version < module_spec.version:
+                best_match = module_spec
+
+    return best_match

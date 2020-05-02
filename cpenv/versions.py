@@ -42,6 +42,9 @@ class Version(VersionBase):
         'buildmetadata': None
     }
 
+    def __hash__(self):
+        return super(Version, self).__hash__()
+
     def _comparable(self):
         '''Generate a comparison key for a Version object.
 
