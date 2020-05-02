@@ -34,9 +34,10 @@ ModuleSpec = namedtuple(
 
 class Module(object):
 
-    def __init__(self, path, name=None, version=None):
+    def __init__(self, path, name=None, version=None, repo=None):
 
         self.path = utils.normpath(path)
+        self.repo = repo
 
         # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
@@ -56,6 +57,7 @@ class Module(object):
         self._config = None
         self._environ = None
 
+        # Determine name, version, qual_name, and real_name
         if name and version:
 
             # Use name and version if explicitly passed
@@ -101,6 +103,16 @@ class Module(object):
             self.path,
             self.name,
             self.version,
+        )
+
+    def as_spec(self):
+        return ModuleSpec(
+            name=self.name,
+            real_name=self.real_name,
+            qual_name=self.qual_name,
+            version=self.version,
+            path=self.path,
+            repo=self.repo,
         )
 
     def relative_path(self, *args):
@@ -215,6 +227,12 @@ def read_config(module_file, config_vars=None, data=None):
             data = f.read()
 
     return yaml.safe_load(Template(data).safe_substitute(config_vars))
+
+
+def is_module(path):
+    '''Returns True if path refers to a module'''
+
+    return os.path.exists(utils.normpath(path, 'module.yml'))
 
 
 def parse_module_path(path, default_version=default_version):

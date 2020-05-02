@@ -6,131 +6,90 @@ from glob import glob
 
 # Local imports
 from .. import api, utils
-from ..module import Module, ModuleSpec, parse_module_path
+from ..module import Module, is_exact_match, is_partial_match
 from .base import Repo
 
 
 class LocalRepo(Repo):
     '''Local Filesystem Repo.
 
-    Find's modules in a filesystem directory. Supports a flat and nested
-    hierarchy.
+    Supports two types of hierarchies.
 
-    A flat hierarchy is like:
+    Flat:
         <repo_path>/<name>-<version>/module.yml
 
-    A nested hierarchy is like:
+    Nested:
         <repo_path>/<name>/<version>/module.yml
     '''
 
     def __init__(self, name, path):
         super(LocalRepo, self).__init__(name)
         self.path = utils.normpath(path)
-
-    def __eq__(self, other):
-        return (
-            isinstance(other, self.__class__) and
-            self.path == getattr(other, 'path', None) and
-            self.name == other.name
-        )
-
-    def __hash__(self):
-        return hash((self.__class__.__name__, self.path))
-
-    def __repr__(self):
-        return '<{}>(path="{}")'.format(self.__class__.__name__, self.path)
+        self._cached_modules = None
 
     def relative_path(self, *parts):
         return utils.normpath(self.path, *parts)
 
-    def exact_match(self, module, string, name, version):
-        return (
-            module.qual_name == string or
-            module.real_name == string or
-            version and module.name == name and module.version == version or
-            module.name == string
-        )
-
-    def partial_match(self, module, string, name, version):
-        return module.name == name
-
-    def find_module(self, matching):
-        '''Return a single ModuleSpec.'''
-
-        name, version = parse_module_path(
-            matching,
-            default_version=None,
-        )
-
-        matches = []
-        for module in api.sort_modules(self.list_modules(), reverse=True):
-            if self.exact_match(module, matching, name, version):
-                return module
-            if self.partial_match(module, matching, name, version):
-                matches.append(module)
-
-        # Choose the best match if no version was provided
-        if not version and matches:
-            return matches[0]
-
-    def list_modules(self, matching=None):
-        '''Return a list of ModuleSpec objects.
-
-        Arguments:
-            matching (str) - string used to filter modules
-        '''
-
-        if matching:
-            name, version = parse_module_path(
-                matching,
-                default_version=None,
+    @property
+    def cached_modules(self):
+        if not self._cached_modules:
+            self._cached_modules = api.sort_modules(
+                self.list(),
+                reverse=True
             )
+        return self._cached_modules
 
-        modules = []
+    def find(self, requirement):
+        matches = []
+        for module_spec in self.cached_modules:
+            if is_exact_match(requirement, module_spec):
+                matches.insert(0, module_spec)
+                continue
+            if is_partial_match(requirement, module_spec):
+                matches.append(module_spec)
+
+        return matches
+
+    def list(self):
+        module_specs = []
+
+        # Find flat module_specs
         for module_file in glob(self.relative_path('*', 'module.yml')):
-            module = Module(utils.normpath(os.path.dirname(module_file)))
-            if (
-                not matching or
-                self.match_module(module, matching, name, version)
-            ):
-                modules.append(module)
+            module_path = utils.normpath(os.path.dirname(module_file))
+            module = Module(module_path, repo=self)
+            module_specs.append(module.as_spec())
 
+        # Find nested module_specs
         versions = glob(self.relative_path('*', '*', 'module.yml'))
         for version_file in versions:
-            version_dir = os.path.dirname(version_file)
-            module = Module(version_dir)
-            if (
-                not matching or
-                self.match_module(module, matching, name, version)
-            ):
-                modules.append(module)
+            version_dir = utils.normpath(os.path.dirname(version_file))
+            module = Module(version_dir, repo=self)
+            module_specs.append(module.as_spec())
 
-        return modules
+        return module_specs
 
-    def clone_module(self, module, where, overwrite=False):
-        '''Download a module using a ModuleSpec to the specified directory.'''
-
+    def download(self, module_spec, where, overwrite=False):
         if os.path.isdir(where):
             if not overwrite:
                 raise OSError('%s already exists...' % where)
             else:
                 utils.rmtree(where)
 
-        shutil.copytree(module.path, where)
+        shutil.copytree(module_spec.path, where)
 
         return Module(where)
 
-    def publish_module(self, module, overwrite=False):
-        '''Upload a module'''
-
+    def upload(self, module, overwrite=False):
         if not overwrite and module.path.startswith(self.path):
             raise OSError(
                 'Module already exists in repo...'
             )
 
         if module.version.string in module.real_name:
+            # Use flat hierarchy when version already in module name
             new_module_path = self.relative_path(module.real_name)
         else:
+            # Use nested hierarchy when version is not in module name
             new_module_path = self.relative_path(
                 module.name,
                 module.version.string,
@@ -145,13 +104,14 @@ class LocalRepo(Repo):
         shutil.copytree(module.path, new_module_path)
         return Module(new_module_path)
 
-    def remove_module(self, module):
-        '''Remove a module.'''
+    def remove(self, module_spec):
+        '''Remove a module by module_spec.'''
 
-        if not module.path.startswith(self.path):
+        if not module_spec.path.startswith(self.path):
             raise OSError(
                 'You can only remove modules from a repo that the module is '
                 'actually in!'
             )
 
+        module = Module(module_spec.path)
         module.remove()
