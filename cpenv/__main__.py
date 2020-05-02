@@ -21,7 +21,13 @@ from cpenv.module import parse_module_path, is_partial_match, best_match
 
 
 class CpenvCLI(cli.CLI):
-    '''Cpenv Command Line Interface.'''
+    '''
+    Create, activate and manage Modules.
+
+    A Module is a folder containing a module.yml file describing the Module's
+    name, version, requirements, and environment variables. Module's can also
+    contain a hooks folder with python files that respond to specific events.
+    '''
 
     name = 'cpenv'
     usage = 'cpenv [-h] <command> [<args>...]'
@@ -36,12 +42,13 @@ class CpenvCLI(cli.CLI):
             Localize(self),
             Publish(self),
             Remove(self),
+            Repo(self),
             Version(self),
         ]
 
 
 class Activate(cli.CLI):
-    '''Activate a list of modules.'''
+    '''Activate a list of Modules.'''
 
     usage = 'cpenv [-h] [<modules>...]'
 
@@ -75,7 +82,8 @@ class Activate(cli.CLI):
 
 
 class Clone(cli.CLI):
-    '''Clone a module for development.
+    '''
+    Clone a Module for development.
 
     The following repos are available by default:
         home - Local repo pointing to a computer-wide cpenv directory
@@ -133,7 +141,7 @@ class Clone(cli.CLI):
 
 
 class Create(cli.CLI):
-    '''Create a new module.'''
+    '''Create a new Module.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -171,7 +179,8 @@ class Create(cli.CLI):
         where = utils.normpath(args.where)
         name, version = parse_module_path(where)
 
-        api.create(
+        cli.echo('- Creating a Module...', end='')
+        module = api.create(
             where=where,
             name=args.name or name,
             version=args.version or version.string,
@@ -179,10 +188,26 @@ class Create(cli.CLI):
             author=args.author,
             email=args.email,
         )
+        cli.echo('OK!')
+
+        cli.echo()
+        cli.echo('  name     ' + module.name)
+        cli.echo('  version  ' + module.version.string)
+        cli.echo('  path     ' + module.path)
+        cli.echo()
+
+        cli.echo('Some steps you might take before publishing...')
+        cli.echo()
+        cli.echo('  - Include binaries your module depends on')
+        cli.echo('  - Edit the module.yml file')
+        cli.echo('    - Add variables to the environment section')
+        cli.echo('    - Add other modules to the requires section')
+        cli.echo('  - Add python hooks like post_activate')
+
 
 
 class List(cli.CLI):
-    '''List active and available modules.'''
+    '''List active and available Modules.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -244,7 +269,7 @@ class List(cli.CLI):
 
 
 class Localize(cli.CLI):
-    '''Localize a list of modules.
+    '''Localize a list of Modules.
 
     Downloads modules from a remote Repo and places them in the home LocalRepo
     by default. Use the --to_repo option to specify a LocalRepo.
@@ -301,7 +326,7 @@ class Localize(cli.CLI):
 
 
 class Copy(cli.CLI):
-    '''Copy modules from one repo to another.'''
+    '''Copy Modules from one Repo to another.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -371,7 +396,7 @@ class Copy(cli.CLI):
             cli.echo('OK!')
 
 class Publish(cli.CLI):
-    '''Publish a module to a repo.'''
+    '''Publish a Module to a repo.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -417,7 +442,7 @@ class Publish(cli.CLI):
 
 
 class Remove(cli.CLI):
-    '''Permanently remove a module from a repo.'''
+    '''Permanently remove a Module from a Repo.'''
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -476,6 +501,46 @@ class Remove(cli.CLI):
         cli.echo('OK!', end='\n\n')
 
         cli.echo('Successfully removed module.')
+
+
+class Repo(cli.CLI):
+    '''
+    Manage, Configure and list Repos.
+
+    Repos are sources of Modules. A Repo can be local or remote. Modules
+    stored in remote Repos will be localized to a local repo prior to
+    activation or explicitly by using "cpenv localize".
+    '''
+
+    def commands(self):
+        return [
+            ListRepo(self),
+        ]
+
+
+class ListRepo(cli.CLI):
+    '''List configured repos'''
+
+    name = 'list'
+
+    def run(self, args):
+
+        cli.echo()
+        cli.echo('Repos in order of resolution:')
+        for i, repo in enumerate(api.get_repos()):
+            if repo.path == repo.name:
+                cli.echo('  [{}] {}  {}'.format(
+                    i,
+                    type(repo).__name__,
+                    repo.path,
+                ))
+            else:
+                cli.echo('  [{}] {}  {}  {}'.format(
+                    i,
+                    type(repo).__name__,
+                    repo.name,
+                    repo.path,
+                ))
 
 
 class Version(cli.CLI):

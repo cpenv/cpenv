@@ -39,7 +39,7 @@ class CLI(object):
 
     @property
     def short_description(self):
-        return self.__doc__.split('\n')[0].rsplit('.', 1)[0]
+        return self.__doc__.strip().split('\n')[0].rsplit('.', 1)[0]
 
     @property
     def fullname(self):
@@ -59,7 +59,7 @@ class CLI(object):
             return ''
 
         return format_section(
-            'COMMAND',
+            'commands:',
             [
                 (k, v.short_description)
                 for k, v in self._commands.items()
@@ -85,6 +85,8 @@ class CLI(object):
             action='store_true',
             dest='help'
         )
+        self._parser._positionals.title = 'required'
+        self._parser._optionals.title = 'optional'
         self.setup_parser(self._parser)
 
         argument_names = [a.dest for a in self._parser._actions]
