@@ -395,6 +395,7 @@ class Copy(cli.CLI):
             copier.copy([module_spec], args.overwrite)
             cli.echo('OK!')
 
+
 class Publish(cli.CLI):
     '''Publish a Module to a repo.'''
 
