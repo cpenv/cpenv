@@ -42,6 +42,9 @@ class Version(VersionBase):
         'buildmetadata': None
     }
 
+    def __str__(self):
+        return self.string
+
     def __hash__(self):
         return super(Version, self).__hash__()
 
