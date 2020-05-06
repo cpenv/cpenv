@@ -22,6 +22,8 @@ class LocalRepo(Repo):
         <repo_path>/<name>/<version>/module.yml
     '''
 
+    type_name = 'local'
+
     def __init__(self, name, path):
         super(LocalRepo, self).__init__(name)
         self.path = utils.normpath(path)
