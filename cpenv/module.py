@@ -157,6 +157,18 @@ class Module(object):
         self.run_hook('post_remove')
 
     @property
+    def description(self):
+        return self.config.get('description', '')
+
+    @property
+    def author(self):
+        return self.config.get('author', '')
+
+    @property
+    def email(self):
+        return self.config.get('email', '')
+
+    @property
     def is_active(self):
         from . import api
         return self.real_name in api.get_active_modules()
