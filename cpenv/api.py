@@ -7,9 +7,8 @@ from collections import OrderedDict
 import warnings
 
 # Local imports
-from . import hooks, utils, compat
+from . import hooks, utils, compat, repos
 from .module import Module, ModuleSpec, module_header
-from .repos import Repo, LocalRepo
 from .resolver import (
     ResolveError,
     Resolver,
@@ -43,6 +42,9 @@ __all__ = [
     'get_repos',
     'get_repo',
     'add_repo',
+    'get_config_path',
+    'read_config',
+    'write_config',
     'update_repo',
     'remove_repo',
     'sort_modules',
@@ -51,6 +53,7 @@ _registry = {
     'repos': OrderedDict(),
 }
 _active_modules = []
+missing = object()
 
 
 def resolve(*requirements):
@@ -72,6 +75,7 @@ def localize(*requirements, to_repo='home', overwrite=False):
     localizer = Localizer(to_repo)
     modules = localizer.localize(module_specs, overwrite)
     return modules
+
 
 def activate(*requirements):
     '''Resolve and active a list of module requirements.
@@ -223,7 +227,7 @@ def publish(module, to_repo='home', overwrite=False):
         module = resolver.resolve([module])[0]
 
     if isinstance(module, ModuleSpec):
-        if not isinstance(module.repo, LocalRepo):
+        if not isinstance(module.repo, repos.LocalRepo):
             raise ValueError('Can only from modules in local repos.')
         else:
             module = Module(module.path)
@@ -292,7 +296,7 @@ def set_home_path(path):
     _init_home_path(home)
 
     # Add new LocalRepo
-    update_repo(LocalRepo('home', get_home_modules_path()))
+    update_repo(repos.LocalRepo('home', get_home_modules_path()))
 
     return home
 
@@ -421,7 +425,7 @@ def add_module_path(path):
     # Add new module lookup path
     if path not in module_paths:
         module_paths.append(path)
-        add_repo(LocalRepo(path, path))
+        add_repo(repos.LocalRepo(path, path))
 
     # Persist in CPENV_MODULES
     os.environ['CPENV_MODULES'] = os.pathsep.join(module_paths)
@@ -482,7 +486,7 @@ def remove_repo(repo):
 def get_repo(name, **query):
     '''Get a repo by specifying an attribute to lookup'''
 
-    if isinstance(name, Repo):
+    if isinstance(name, repos.Repo):
         return name
 
     query['name'] = name
@@ -496,6 +500,64 @@ def get_repos():
     '''Get a list of all registered Repos.'''
 
     return list(_registry['repos'].values())
+
+
+def get_config_path():
+    return utils.normpath(get_home_path(), 'config.yml')
+
+
+def read_config(key=None, default=missing):
+    '''Read the whole config or a specific key from disk.
+
+    Examples:
+        # Read whole config
+        config = read_config()
+
+        # Read one key
+        repos = read_config('repos', {})
+    '''
+
+    config_path = get_config_path()
+    if not os.path.isfile(config_path):
+        return {}
+
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f.read()) or {}
+
+    if not key:
+        return config
+
+    config_key = config.get(key, missing)
+    if config_key is missing:
+        if default is missing:
+            raise KeyError('Config has no key: ' + key)
+        else:
+            return default
+
+    return config_key
+
+
+def write_config(*args):
+    '''Write the whole config or a specific key to disk.
+
+    Examples:
+        # Write whole config
+        write_config({'repos': {}})
+
+        # Write one config key
+        write_config('repos', {})
+    '''
+    if len(args) == 1:
+        config = args[0]
+    elif len(args) == 2:
+        config = read_config()
+        config[args[0]] = args[1]
+    else:
+        raise ValueError('Expected 1 or 2 arguments got %s' % len(args))
+
+    config_path = get_config_path()
+    with open(config_path, 'w') as f:
+        f.write(yaml.dump(config))
 
 
 def _init():
@@ -514,7 +576,13 @@ def _init():
             name = 'user'
         else:
             name = path
-        add_repo(LocalRepo(name, path))
+        add_repo(repos.LocalRepo(name, path))
+
+    # Register repos from config
+    configured_repos = read_config('repos', {})
+    for name, config in configured_repos.items():
+        repo_cls = repos.registry[config.pop('type')]
+        add_repo(repo_cls(**config))
 
     # Set _active_modules from CPENV_ACTIVE_MODULES
     unresolved = []
