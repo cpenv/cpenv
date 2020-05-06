@@ -69,6 +69,18 @@ version = "1.3.7"
 
 [[package]]
 category = "dev"
+description = "Shotgun Python API"
+name = "shotgun-api3"
+optional = false
+python-versions = "*"
+version = "3.2.1"
+
+[package.source]
+reference = "42f20a82d774e51134dea8118c73df98637c55dd"
+type = "git"
+url = "https://github.com/shotgunsoftware/python-api"
+[[package]]
+category = "dev"
 description = "Python Library for Tom's Obvious, Minimal Language"
 name = "toml"
 optional = false
@@ -76,7 +88,7 @@ python-versions = "*"
 version = "0.10.0"
 
 [metadata]
-content-hash = "d65ef9f9be46e4aced66e98e71834ca2ad29cc2b509ea52f2f84b342315cd1c6"
+content-hash = "2c14a081eca56e94120e43cb5ad42ba4cfad77b4e272a282ecf2329c8b586147"
 python-versions = "^2.7 || ^3.6"
 
 [metadata.files]
@@ -131,6 +143,7 @@ nose = [
     {file = "nose-1.3.7-py3-none-any.whl", hash = "sha256:9ff7c6cc443f8c51994b34a667bbcf45afd6d945be7477b52e97516fd17c53ac"},
     {file = "nose-1.3.7.tar.gz", hash = "sha256:f1bffef9cbc82628f6e7d7b40d7e255aefaa1adb6a1b1d26c69a8b79e6208a98"},
 ]
+shotgun-api3 = []
 toml = [
     {file = "toml-0.10.0-py2.7.egg", hash = "sha256:f1db651f9657708513243e61e6cc67d101a39bad662eaa9b5546f789338e07a3"},
     {file = "toml-0.10.0-py2.py3-none-any.whl", hash = "sha256:235682dd292d5899d361a811df37e04a8828a5b1da3115886b73cf81ebc9100e"},
