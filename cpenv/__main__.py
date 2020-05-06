@@ -157,13 +157,13 @@ class Clone(cli.CLI):
         try:
             module = api.clone(
                 args.module,
-                args.where,
                 args.from_repo,
+                args.where,
                 args.overwrite,
             )
-        except ResolveError:
+        except Exception as e:
             cli.echo()
-            cli.echo('Error: Could not find module to clone.')
+            cli.echo('Error: ' + str(e))
             sys.exit(1)
 
         cli.echo('OK!')
@@ -241,7 +241,6 @@ class Create(cli.CLI):
         cli.echo('  - Add python hooks like post_activate')
 
 
-
 class List(cli.CLI):
     '''List active and available Modules.'''
 
@@ -293,8 +292,12 @@ class List(cli.CLI):
 
             if module_names:
                 found_modules = True
+                if repo.name != repo.path:
+                    header = repo.name + ' - ' + repo.path
+                else:
+                    header = repo.name
                 cli.echo(cli.format_columns(
-                    '[ ] ' + repo.name,
+                    '[ ] ' + header,
                     module_names,
                     indent='  ',
                 ))
@@ -315,7 +318,7 @@ class Localize(cli.CLI):
         parser.add_argument(
             'modules',
             help='Space separated list of modules.',
-            nargs='*',
+            nargs='+',
         )
         parser.add_argument(
             '--to_repo', '-r',
@@ -368,7 +371,7 @@ class Copy(cli.CLI):
         parser.add_argument(
             'modules',
             help='Space separated list of modules.',
-            nargs='*',
+            nargs='+',
         )
         parser.add_argument(
             '--from_repo',
@@ -516,7 +519,7 @@ class Remove(cli.CLI):
         )
         module = best_match(args.module, from_repo.find(args.module))
         if not module:
-            cli.echo('ERROR!', end='\n\n')
+            cli.echo('OOPS!', end='\n\n')
             cli.echo(
                 'Error: %s not found in %s' % (args.module, from_repo.name)
             )
@@ -552,6 +555,8 @@ class Repo(cli.CLI):
     def commands(self):
         return [
             ListRepo(self),
+            AddRepo(self),
+            RemoveRepo(self),
         ]
 
 
@@ -578,6 +583,116 @@ class ListRepo(cli.CLI):
                     repo.name,
                     repo.path,
                 ))
+
+
+class AddRepo(cli.CLI):
+    '''Add a new repo.
+
+    LocalRepo:
+        cpenv repo add custom --path=~/custom_repo
+
+    ShotgunRepo:
+        cpenv repo add my_shotgun --type=shotgun --base_url=https://my.shotgunstudio.com --script_name=cpenv --api_key=secret
+    '''
+
+    name = 'add'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            '--type',
+            help='Type of repo',
+            choices=['local', 'shotgun'],
+            default='local',
+        )
+        parser.add_argument(
+            'name',
+            help='Name of the repo',
+        )
+        parser.add_argument(
+            'type_args',
+            help='Type specific arguments.',
+            nargs=argparse.REMAINDER,
+        )
+
+    def parse_type_args(self, type_args):
+        pattern = (
+            r'-{1,2}(?P<param>[a-zA-Z0-9_]+)=*\s*'
+            r'"?(?P<value>.+)"?'
+        )
+        kwargs = {}
+        for arg in type_args:
+            match = re.search(pattern, arg)
+            param = match.group('param')
+            raw_value = '"%s"' % match.group('value').strip()
+            value = cli.safe_eval(raw_value)
+            kwargs[param] = value
+        return kwargs
+
+    def run(self, args):
+
+        # Parse type_args or args that are specific to a given Repo type
+        repo_kwargs = self.parse_type_args(args.type_args)
+        repo_type = repo_kwargs.pop('type', args.type)
+
+        cli.echo()
+        if repo_type not in cpenv.repos.registry:
+            cli.echo('Error: %s is not a registered repo type.' % args.type)
+            cli.echo('Choose from: ' + ', '.join(cpenv.repos.registry.keys()))
+            sys.exit(1)
+
+        if cpenv.get_repo(args.name):
+            cli.echo('Error: Repo named %s already exists.' % args.name)
+            sys.exit(1)
+
+        repo_cls = cpenv.repos.registry[repo_type]
+        repo_kwargs['name'] = args.name
+        cli.echo('- Checking %s args...' % repo_cls.__name__, end='')
+        try:
+            repo_cls(**repo_kwargs)
+        except Exception as e:
+            cli.echo('OOPS!')
+            cli.echo()
+            cli.echo('Error: Failed to initialize %s' % repo_cls.__name__)
+            cli.echo(str(e))
+            sys.exit(1)
+        cli.echo('OK!')
+        cli.echo()
+
+        cli.echo('- Adding repo to config...', end='')
+        repo_kwargs['type'] = repo_type
+        repo_config = cpenv.read_config('repos', {})
+        repo_config[args.name] = repo_kwargs
+        cpenv.write_config('repos', repo_config)
+        cli.echo('OK!')
+        cli.echo()
+
+
+class RemoveRepo(cli.CLI):
+    '''Remove repo by name.'''
+
+    name = 'remove'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'name',
+            help='Name of the repo',
+        )
+
+    def run(self, args):
+        cli.echo()
+        if args.name in ['home', 'user', 'cwd']:
+            cli.echo('Error: Can not remove %s repo.' % args.name)
+
+        repo_config = cpenv.read_config('repos', {})
+        if args.name not in repo_config:
+            cli.echo('Error: Repo named %s not found.' % args.name)
+            sys.exit(1)
+
+        cli.echo('- Removing repo from config...', end='')
+        repo_config.pop(args.name)
+        cpenv.write_config('repos', repo_config)
+        cli.echo('OK!')
+        cli.echo()
 
 
 class Version(cli.CLI):
