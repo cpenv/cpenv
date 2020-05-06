@@ -166,7 +166,6 @@ class Localizer(object):
                 'Localizer expected LocalRepo got %s' % type(to_repo)
             )
 
-
     def localize(self, module_specs, overwrite=False):
         '''Given ModuleSpecs, download them to this Localizers repo.'''
 
@@ -192,9 +191,11 @@ class Localizer(object):
 
             # Generate a new module path in to_repo
             if module_spec.version.string in module_spec.real_name:
-                new_module_path = to_repo.relative_path(module_spec.real_name)
+                new_module_path = self.to_repo.relative_path(
+                    module_spec.real_name
+                )
             else:
-                new_module_path = to_repo.relative_path(
+                new_module_path = self.to_repo.relative_path(
                     module_spec.name,
                     module_spec.version.string,
                 )
