@@ -7,6 +7,8 @@ class Repo(object):
     Provides methods for listing, finding, uploading, and downloading modules.
     '''
 
+    type_name = 'repo'
+
     def __init__(self, name):
         self.name = name
 
