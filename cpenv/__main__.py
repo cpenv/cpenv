@@ -2,7 +2,9 @@
 from __future__ import absolute_import, print_function
 
 # Standard library imports
+import argparse
 import os
+import re
 import sys
 
 # Local imports
@@ -38,6 +40,7 @@ class CpenvCLI(cli.CLI):
             Clone(self),
             Copy(self),
             Create(self),
+            Info(self),
             List(self),
             Localize(self),
             Publish(self),
@@ -47,16 +50,49 @@ class CpenvCLI(cli.CLI):
         ]
 
 
-class Activate(cli.CLI):
-    '''Activate a list of Modules.'''
+class Info(cli.CLI):
+    '''Show Module info'''
 
-    usage = 'cpenv [-h] [<modules>...]'
+    usage = 'cpenv info [-h] [<modules>...]'
 
     def setup_parser(self, parser):
         parser.add_argument(
             'modules',
             help='Space separated list of modules.',
-            nargs='*',
+            nargs='+',
+        )
+
+    def run(self, args):
+        cli.echo()
+        cli.echo('- Resolving modules...', end='')
+        try:
+            module_specs = api.resolve(*args.modules)
+        except ResolveError:
+            cli.echo('OOPS!')
+            cli.echo()
+            cli.echo('Error: failed to resolve %s' % args.modules)
+            sys.exit(1)
+        cli.echo('OK!')
+
+        cli.echo()
+        for spec in module_specs:
+            cli.echo(cli.format_section(
+                spec.real_name,
+                [(k, str(v)) for k, v in sorted(spec._asdict().items())]
+            ))
+            cli.echo()
+
+
+class Activate(cli.CLI):
+    '''Activate a list of Modules.'''
+
+    usage = 'cpenv activate [-h] [<modules>...]'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'modules',
+            help='Space separated list of modules.',
+            nargs='+',
         )
 
     def run(self, args):
