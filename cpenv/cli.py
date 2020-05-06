@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function
 
 # Standard library imports
 import argparse
+import ast
 import os
 import sys
 from itertools import zip_longest
@@ -196,6 +197,39 @@ def elide(text, width):
     if len(text) > width:
         return text[:width - 3] + '...'
     return text
+
+
+class NameToString(ast.NodeTransformer):
+    '''Visits Name nodes and transforms them to Str nodes'''
+
+    def visit_Name(self, node):
+        if node.id in ('True', 'False', 'None'):
+            return node
+        return ast.copy_location(ast.Str(node.id), node)
+
+
+def safe_eval(string):
+    '''Safely evaluates "string", converting it to a valid python object.
+    This is the same technique used by Python Fire to evaluate arguments. This
+    method is intended to be used for cli argument conversion and therefore
+    converts all ast.Name nodes to ast.Str nodes to reduce the need for
+    nested quotes. Note in the *Conversions* section, "{a: 1.0}" and
+    "{'a': 1.0}" both evaluate to {'a': 1.0}.
+    Arguments:
+        string (str): String to convert to a python object
+    Conversions:
+        "1"            =>  1
+        "1.0"          =>  1.0
+        "(1,)"         =>  (1,)
+        "string"       =>  'string'
+        "{a: 1.0}"     =>  {'a': 1.0}
+        "{'a': 1.0}"   =>  {'a': 1.0}
+        "[a, 1, 2.0]"  =>  ['a', 1, 2.0]
+    '''
+
+    tree = NameToString().visit(ast.parse(string, mode='eval'))
+    value = ast.literal_eval(tree)
+    return value
 
 
 def parse_known_args(parser, unparsed_args):
