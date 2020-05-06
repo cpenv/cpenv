@@ -5,7 +5,7 @@ import os
 
 # Local imports
 from . import utils
-from .repos import Repo, LocalRepo
+from .repos import LocalRepo
 from .module import Module, is_module, is_exact_match, best_match
 
 
@@ -104,13 +104,7 @@ class Copier(object):
 
     def __init__(self, to_repo):
         from .api import get_repo
-
         self.to_repo = get_repo(to_repo)
-
-        if not isinstance(self.to_repo, LocalRepo):
-            raise ValueError(
-                'Copier expected LocalRepo got %s' % type(to_repo)
-            )
 
     def copy(self, module_specs, overwrite=False):
         '''Given ModuleSpecs, copy them to this copiers to_repo.'''
