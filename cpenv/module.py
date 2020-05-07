@@ -125,7 +125,7 @@ class Module(object):
 
         hook = self.hook_finder(hook_name)
         if hook:
-            hook.run(self)
+            return hook.run(self)
 
     def spec(self, **kwargs):
         '''Return a ModuleSpec object for this Module.'''
