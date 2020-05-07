@@ -13,19 +13,11 @@ class Repo(object):
         self.name = name
 
     def __repr__(self):
-        name = self.name
-        path = getattr(self, 'path', '')
-        if name == path:
-            return '<{}>(name="{}")'.format(
-                    self.__class__.__name__,
-                    name,
-                )
-        else:
-            return '<{}>(name="{}", path="{}")'.format(
-                self.__class__.__name__,
-                name,
-                path,
-            )
+        args = []
+        for attr in ['name', 'path']:
+            if hasattr(self, attr):
+                args.append('{}={!r}'.format(attr, getattr(self, attr)))
+        return '<{}>({})'.format(type(self).__name__, ', '.join(args))
 
     def find(self, requirement):
         '''Given a requirement, return a list of ModuleSpecs that match.

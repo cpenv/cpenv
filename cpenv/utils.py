@@ -138,9 +138,7 @@ def touch(filepath):
 
 
 def _pre_dict(d):
-
-    value = d.get(platform)
-    value = PREPROCESSORS[type(value)](value)
+    value = d.get(platform, '')
     return value
 
 
@@ -190,9 +188,14 @@ def preprocess_dict(d):
 
 
 def _join_dict(d, k, v):
-    '''Add a dict value to an env dict'''
+    '''Add a dict value to an env dict.
 
-    d[k] = v[platform]
+    Assumes that a dict value contains system platform keys (win, mac, linux).
+    If a key is missing - we do not add this key to the result dict.
+    '''
+
+    if platform in v:
+        d[k] = v[platform]
 
 
 def _join_str(d, k, v):
