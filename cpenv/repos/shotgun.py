@@ -7,8 +7,8 @@ import warnings
 import zipfile
 
 # Local imports
-from .. import api, utils
-from ..module import Module, ModuleSpec, parse_module_requirement
+from .. import utils
+from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
 from ..versions import parse_version
 from .base import Repo
 
@@ -114,7 +114,7 @@ class ShotgunRepo(Repo):
         for entity in entities:
             module_specs.append(entity_to_module_spec(entity, self))
 
-        return api.sort_modules(module_specs, reverse=True)
+        return sort_modules(module_specs, reverse=True)
 
     def list(self):
         entities = self.shotgun.find(
@@ -126,7 +126,7 @@ class ShotgunRepo(Repo):
         for entity in entities:
             module_specs.append(entity_to_module_spec(entity, self))
 
-        return api.sort_modules(module_specs, reverse=True)
+        return sort_modules(module_specs, reverse=True)
 
     def download(self, module_spec, where, overwrite=False):
         entity = self.shotgun.find_one(

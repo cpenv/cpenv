@@ -1,8 +1,7 @@
-
 import sys
 
 try:
-    from . import yaml2 as yaml_
+    import yaml2 as yaml_
 except ImportError:
     from . import yaml3 as yaml_
 

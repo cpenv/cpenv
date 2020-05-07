@@ -241,6 +241,16 @@ def read_config(module_file, config_vars=None, data=None):
     return yaml.safe_load(Template(data).safe_substitute(config_vars))
 
 
+def sort_modules(modules, reverse=False):
+    '''Sort a list of Modules or ModuleSpecs by version.'''
+
+    return sorted(
+        modules,
+        key=lambda m: (m.real_name, m.version),
+        reverse=reverse
+    )
+
+
 def is_module(path):
     '''Returns True if path refers to a module'''
 

@@ -5,8 +5,8 @@ import shutil
 from glob import glob
 
 # Local imports
-from .. import api, utils
-from ..module import Module, is_exact_match, is_partial_match
+from .. import utils
+from ..module import Module, is_exact_match, is_partial_match, sort_modules
 from .base import Repo
 
 
@@ -35,7 +35,7 @@ class LocalRepo(Repo):
     @property
     def cached_modules(self):
         if not self._cached_modules:
-            self._cached_modules = api.sort_modules(
+            self._cached_modules = sort_modules(
                 self.list(),
                 reverse=True
             )

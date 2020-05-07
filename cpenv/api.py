@@ -8,7 +8,7 @@ import warnings
 
 # Local imports
 from . import hooks, utils, compat, repos
-from .module import Module, ModuleSpec, module_header
+from .module import Module, ModuleSpec, module_header, sort_modules
 from .resolver import (
     ResolveError,
     Resolver,
@@ -47,7 +47,6 @@ __all__ = [
     'write_config',
     'update_repo',
     'remove_repo',
-    'sort_modules',
 ]
 _registry = {
     'repos': OrderedDict(),
@@ -56,14 +55,14 @@ _active_modules = []
 missing = object()
 
 
-def resolve(*requirements):
+def resolve(requirements):
     '''Resolve a list of module requirements.'''
 
     resolver = Resolver(get_repos())
     return resolver.resolve(requirements)
 
 
-def localize(*requirements, to_repo='home', overwrite=False):
+def localize(requirements, to_repo='home', overwrite=False):
     '''Localize a list of requirements.'''
 
     to_repo = get_repo(to_repo)
@@ -77,7 +76,7 @@ def localize(*requirements, to_repo='home', overwrite=False):
     return modules
 
 
-def activate(*requirements):
+def activate(requirements):
     '''Resolve and active a list of module requirements.
 
     Usage:
@@ -446,14 +445,6 @@ def get_modules(*requirements):
         modules.extend(repo.list())
 
     return sort_modules(list(modules))
-
-
-def sort_modules(modules, reverse=False):
-    return sorted(
-        modules,
-        key=lambda m: (m.real_name, m.version),
-        reverse=reverse
-    )
 
 
 def update_repo(repo):

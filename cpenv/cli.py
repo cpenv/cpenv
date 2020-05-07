@@ -7,12 +7,19 @@ import argparse
 import ast
 import os
 import sys
-from itertools import zip_longest
 from textwrap import wrap
 try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
+try:
+    from itertools import zip_longest
+except ImportError:
+    from itertools import izip_longest as zip_longest
+try:
+    from os import get_terminal_size
+except ImportError:
+    from .vendor.terminalsize import get_terminal_size
 
 version = sys.version_info[0]
 is_py2 = version == 2
@@ -177,7 +184,7 @@ def columns_to_rows(items, columns, width):
 
 def format_columns(header, items, indent='    '):
 
-    size = os.get_terminal_size()
+    size = get_terminal_size()
     width = max(len(max(items, key=len)), 18) + 4
     columns = int((size.columns) / (width + 4))
 
@@ -186,8 +193,7 @@ def format_columns(header, items, indent='    '):
         if len(row) < columns:
             row += [''] * (columns - len(row))
         lines.append((
-            indent +
-            '{:<{width}} ' * columns
+            indent + '{:<{width}} ' * columns
         ).format(*row, width=width))
 
     return '\n'.join(lines)

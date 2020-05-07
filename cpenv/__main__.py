@@ -19,7 +19,12 @@ from cpenv import (
     shell,
     utils,
 )
-from cpenv.module import parse_module_path, is_partial_match, best_match
+from cpenv.module import (
+    parse_module_path,
+    is_partial_match,
+    best_match,
+    sort_modules,
+)
 
 
 class CpenvCLI(cli.CLI):
@@ -66,7 +71,7 @@ class Info(cli.CLI):
         cli.echo()
         cli.echo('- Resolving modules...', end='')
         try:
-            module_specs = api.resolve(*args.modules)
+            module_specs = api.resolve(args.modules)
         except ResolveError:
             cli.echo('OOPS!')
             cli.echo()
@@ -99,7 +104,7 @@ class Activate(cli.CLI):
         cli.echo()
         cli.echo('- Resolving modules...', end='')
         try:
-            activated_modules = api.activate(*args.modules)
+            activated_modules = api.activate(args.modules)
         except ResolveError:
             cli.echo('OOPS!')
             cli.echo()
@@ -273,7 +278,7 @@ class List(cli.CLI):
             found_modules = True
             cli.echo(cli.format_columns(
                 '[*] Active',
-                [m.real_name for m in api.sort_modules(active_modules)],
+                [m.real_name for m in sort_modules(active_modules)],
             ))
             cli.echo()
 
@@ -284,7 +289,7 @@ class List(cli.CLI):
                 repo_modules = repo.list()
 
             module_names = []
-            for module in api.sort_modules(repo_modules):
+            for module in sort_modules(repo_modules):
                 if module in active_modules:
                     module_names.append('* ' + module.real_name)
                 else:
@@ -351,7 +356,7 @@ class Localize(cli.CLI):
             end='',
         )
         modules = api.localize(
-            *args.modules,
+            args.modules,
             to_repo=to_repo,
             overwrite=args.overwrite,
         )
