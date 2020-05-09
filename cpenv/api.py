@@ -573,7 +573,14 @@ def _init():
     configured_repos = read_config('repos', {})
     for name, config in configured_repos.items():
         repo_cls = repos.registry[config.pop('type')]
-        add_repo(repo_cls(**config))
+        try:
+            add_repo(repo_cls(**config))
+        except Exception as e:
+            warnings.warn('Failed to create %s named %s\nError: %s' % (
+                type(repo_cls).__name__,
+                config['name'],
+                str(e),
+            ))
 
     # Set _active_modules from CPENV_ACTIVE_MODULES
     unresolved = []
