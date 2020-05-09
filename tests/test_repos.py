@@ -117,3 +117,17 @@ def test_LocalRepo_upload():
     assert spec.name == 'upload_module'
     assert spec.version.string == '2090.1.0'
     assert os.path.isdir(data_path('modules', 'upload_module', '2090.1.0'))
+
+
+def test_LocalRepo_get_data():
+    '''Get module data from LocalRepo'''
+
+    # Create module to upload
+    local_repo = cpenv.LocalRepo('test_modules', data_path('modules'))
+    spec = local_repo.find('testmod-0.2.0')[0]
+
+    data = local_repo.get_data(spec)
+
+    assert data['name'] == 'testmod'
+    assert data['version'] == '0.2.0'
+    assert data['description'] == 'A test module'

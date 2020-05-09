@@ -52,3 +52,13 @@ class Repo(object):
         '''Given a module_spec, remove it from this repo.'''
 
         return NotImplemented
+
+    def get_data(self, module_spec):
+        '''Given a module_spec, return a Module's config(module.yml) dict.
+
+        If possible this should be implemented for all Repos, however, it
+        is not used during module resolution. It is only used to provide
+        a richer view of Modules in Repos by UI implementations.
+        '''
+
+        return {}

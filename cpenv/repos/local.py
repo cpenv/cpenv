@@ -6,7 +6,13 @@ from glob import glob
 
 # Local imports
 from .. import utils
-from ..module import Module, is_exact_match, is_partial_match, sort_modules
+from ..module import (
+    Module,
+    is_exact_match,
+    is_partial_match,
+    sort_modules,
+)
+from ..vendor import yaml
 from .base import Repo
 
 
@@ -109,7 +115,7 @@ class LocalRepo(Repo):
     def remove(self, module_spec):
         '''Remove a module by module_spec.'''
 
-        if not module_spec.path.startswith(self.path):
+        if module_spec.repo is not self:
             raise OSError(
                 'You can only remove modules from a repo that the module is '
                 'actually in!'
@@ -117,3 +123,12 @@ class LocalRepo(Repo):
 
         module = Module(module_spec.path)
         module.remove()
+
+    def get_data(self, module_spec):
+        '''Read a modules config data.'''
+
+        if not os.path.isdir(module_spec.path):
+            raise OSError('module_spec.path does not appare to exist.')
+
+        module = Module(module_spec.path)
+        return yaml.safe_load(module.raw_config)

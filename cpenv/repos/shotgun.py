@@ -9,6 +9,7 @@ import zipfile
 # Local imports
 from .. import utils
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
+from ..vendor import yaml
 from ..versions import parse_version
 from .base import Repo
 
@@ -81,7 +82,16 @@ class ShotgunRepo(Repo):
         self.base_url = self._api.base_url
         self.path = self._api.base_url
         self.module_entity = module_entity
-        self.data_fields = ['code', 'sg_version']
+        self.resolve_fields = ['code', 'sg_version']
+        self.data_fields = [
+            'code',
+            'sg_version',
+            'description',
+            'sg_author',
+            'sg_email',
+            'sg_data',
+        ]
+        self.archive_fields = ['sg_archive', 'sg_archive_size']
 
     @property
     def shotgun(self):
@@ -100,14 +110,14 @@ class ShotgunRepo(Repo):
         entities = self.shotgun.find(
             self.module_entity,
             filters=exact_filters,
-            fields=self.data_fields,
+            fields=self.resolve_fields,
         )
         if not entities:
             # Fall back to simple name match
             entities = self.shotgun.find(
                 self.module_entity,
                 filters=filters,
-                fields=self.data_fields,
+                fields=self.resolve_fields,
             )
 
         module_specs = []
@@ -120,7 +130,7 @@ class ShotgunRepo(Repo):
         entities = self.shotgun.find(
             self.module_entity,
             filters=[],
-            fields=self.data_fields,
+            fields=self.resolve_fields,
         )
         module_specs = []
         for entity in entities:
@@ -132,7 +142,7 @@ class ShotgunRepo(Repo):
         entity = self.shotgun.find_one(
             self.module_entity,
             filters=module_spec_to_filters(module_spec),
-            fields=['sg_archive_size', 'sg_archive'],
+            fields=self.archive_fields,
         )
         archive = entity['sg_archive']
 
@@ -157,10 +167,12 @@ class ShotgunRepo(Repo):
         return Module(where)
 
     def upload(self, module, overwrite=False):
+        from .. import api
+
         entity = self.shotgun.find_one(
             self.module_entity,
             filters=module_spec_to_filters(module),
-            fields=['sg_archive_size', 'sg_archive'],
+            fields=self.archive_fields,
         )
         if entity:
             if overwrite:
@@ -186,10 +198,34 @@ class ShotgunRepo(Repo):
         entity = self.shotgun.find_one(
             self.module_entity,
             filters=module_spec_to_filters(module_spec),
-            fields=['sg_archive_size', 'sg_archive'],
+            fields=[],
         )
         if entity:
             self.shotgun.delete(self.module_entity, entity['id'])
+
+    def get_data(self, module_spec):
+        entity = self.shotgun.find_one(
+            self.module_entity,
+            filters=module_spec_to_filters(module_spec),
+            fields=self.data_fields,
+        )
+        if not entity:
+            raise Exception('Failed to locate %s in %s' % (
+                module_spec.qual_name,
+                module_spec.repo,
+            ))
+
+        # Load module.yml data from sg_data field
+        data = yaml.safe_load(entity['sg_data'])
+
+        # Fill missing data with entity level data
+        data.setdefault('name', entity['name'])
+        data.setdefault('version', entity['sg_version'])
+        data.setdefault('author', entity['sg_author'])
+        data.setdefault('email', entity['sg_email'])
+        data.setdefault('description', entity['description'])
+
+        return data
 
 
 def entity_to_module_spec(entity, repo):
@@ -197,12 +233,17 @@ def entity_to_module_spec(entity, repo):
 
     qual_name = '{code}-{sg_version}'.format(**entity)
     version = parse_version(entity['sg_version'])
+    url = "{base_url}/detail/{module_entity}/{id}".format(
+        base_url=repo.base_url,
+        module_entity=repo.module_entity,
+        id=entity['id'],
+    )
     return ModuleSpec(
         name=entity['code'],
         real_name=qual_name,
         qual_name=qual_name,
         version=version,
-        path=repo.path,
+        path=url,
         repo=repo,
     )
 
@@ -224,6 +265,12 @@ def module_to_entity(module, **fields):
     fields.setdefault('description', getattr(module, 'description', ''))
     fields.setdefault('sg_author', getattr(module, 'author', ''))
     fields.setdefault('sg_email', getattr(module, 'email', ''))
+    data = yaml.dump(
+        module.raw_config,
+        default_flow_style=False,
+        sort_keys=False,
+    )
+    fields.setdefault('sg_data', data)
     return fields
 
 
