@@ -14,6 +14,13 @@ __all__ = [
 ]
 
 
+# Strange nuke version pattern
+nuke_version_pattern = (
+    r'(?P<major>\d+)'
+    r'\.(?P<minor>\d+)'
+    r'(?:v)'
+    r'(?P<patch>\d+)$'
+)
 # Modified regex from semver.org
 semver_version_pattern = (
     r'(?:v)?'
@@ -95,6 +102,17 @@ def parse_version(string):
     Raises:
         ParseError when a version can not be parsed.
     '''
+    # Parse weird nuke versioning
+    match = re.search(nuke_version_pattern, string)
+    if match:
+        return Version(
+            major=int(match.group('major')),
+            minor=int(match.group('minor')),
+            patch=int(match.group('patch')),
+            prerelease=None,
+            buildmetadata=None,
+            string=match.group(0)
+        )
 
     # Parse Semver / Calver
     match = re.search(semver_version_pattern, string)
