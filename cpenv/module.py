@@ -157,6 +157,13 @@ class Module(object):
         self.run_hook('post_remove')
 
     @property
+    def icon(self):
+        return self.relative_path('icon.png')
+
+    def has_icon(self):
+        return os.path.isfile(self.icon)
+
+    @property
     def description(self):
         return self.config.get('description', '')
 

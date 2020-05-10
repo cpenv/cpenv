@@ -192,6 +192,15 @@ class ShotgunRepo(Repo):
             path=archive,
             field_name='sg_archive',
         )
+
+        # Upload icon as thumbnail
+        if module.has_icon():
+            self.shotgun.upload_thumbnail(
+                self.module_entity,
+                entity['id'],
+                module.icon,
+            )
+
         return entity_to_module_spec(entity, self)
 
     def remove(self, module_spec):
