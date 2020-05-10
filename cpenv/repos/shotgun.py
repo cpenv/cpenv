@@ -180,10 +180,12 @@ class ShotgunRepo(Repo):
             else:
                 raise Exception('Module already uploaded.')
 
+        # Create archive
         archive = api.get_cache_path('tmp', module.qual_name + '.zip')
         zip_folder(module.path, archive)
         archive_size = os.path.getsize(archive)
 
+        # Upload archive
         data = module_to_entity(module, sg_archive_size=archive_size)
         entity = self.shotgun.create(self.module_entity, data)
         self.shotgun.upload(
@@ -192,6 +194,14 @@ class ShotgunRepo(Repo):
             path=archive,
             field_name='sg_archive',
         )
+
+        # Delete local archive
+        try:
+            os.unlink(archive)
+        except OSError as e:
+            print('Error: failed to remove tmp archive')
+            print(archive)
+            print(e.message)
 
         # Upload icon as thumbnail
         if module.has_icon():
@@ -225,14 +235,21 @@ class ShotgunRepo(Repo):
             ))
 
         # Load module.yml data from sg_data field
-        data = yaml.safe_load(entity['sg_data'])
+        try:
+            data = yaml.safe_load(entity['sg_data'])
+        except Exception as e:
+            print('Error: ' + e.message)
+            print('Failed to load data from sg_data field.')
+            data = {}
 
         # Fill missing data with entity level data
-        data.setdefault('name', entity['name'])
+        data.setdefault('name', entity['code'])
         data.setdefault('version', entity['sg_version'])
         data.setdefault('author', entity['sg_author'])
         data.setdefault('email', entity['sg_email'])
         data.setdefault('description', entity['description'])
+        data.setdefault('requires', [])
+        data.setdefault('environment', {})
 
         return data
 
@@ -274,11 +291,7 @@ def module_to_entity(module, **fields):
     fields.setdefault('description', getattr(module, 'description', ''))
     fields.setdefault('sg_author', getattr(module, 'author', ''))
     fields.setdefault('sg_email', getattr(module, 'email', ''))
-    data = yaml.dump(
-        module.raw_config,
-        default_flow_style=False,
-        sort_keys=False,
-    )
+    data = module.raw_config.strip('\n')
     fields.setdefault('sg_data', data)
     return fields
 
