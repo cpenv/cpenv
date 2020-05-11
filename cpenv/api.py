@@ -572,12 +572,13 @@ def _init():
     # Register repos from config
     configured_repos = read_config('repos', {})
     for name, config in configured_repos.items():
-        repo_cls = repos.registry[config.pop('type')]
+        repo_type = config.pop('type')
+        repo_cls = repos.registry[repo_type]
         try:
             add_repo(repo_cls(**config))
         except Exception as e:
-            warnings.warn('Failed to create %s named %s\nError: %s' % (
-                type(repo_cls).__name__,
+            warnings.warn('Failed to create %s repo named %s\nError: %s' % (
+                repo_type,
                 config['name'],
                 str(e),
             ))
