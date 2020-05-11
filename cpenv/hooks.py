@@ -9,13 +9,6 @@ from types import ModuleType
 from . import api, paths
 
 
-'''
-cpenv.hooks
-===========
-Defines the :class:`HookFinder` object used to find and execute hooks.
-'''
-
-
 class HookFinder(object):
     '''Find python hooks by name in the provided path.
 
