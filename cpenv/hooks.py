@@ -6,7 +6,7 @@ import os
 from types import ModuleType
 
 # Local imports
-from . import api, paths
+from . import paths
 
 
 class HookFinder(object):
@@ -58,7 +58,8 @@ class HookFinder(object):
 def get_global_hook_path():
     '''Returns the global hook path'''
 
-    return paths.normalize(api.get_home_path(), 'hooks')
+    from .api import get_home_path
+    return paths.normalize(get_home_path(), 'hooks')
 
 
 def run_global_hook(hook_name, *args):

@@ -335,7 +335,7 @@ def get_home_modules_path():
     return paths.normalize(get_home_path(), 'modules')
 
 
-def get_cache_path(*paths):
+def get_cache_path(*parts):
     '''Return the cpenv cache directory within the cpenv home directory.
 
     Default cache paths:
@@ -344,10 +344,10 @@ def get_cache_path(*paths):
         linux - /usr/local/share/cpenv OR /usr/share/cpenv/cache
 
     Arguments:
-        *paths (str) - List of paths to join with cache path
+        *parts (str) - List of path parts to join with cache path
     '''
 
-    return paths.normalize(get_home_path(), 'cache', *paths)
+    return paths.normalize(get_home_path(), 'cache', *parts)
 
 
 def _init_user_path(user):
