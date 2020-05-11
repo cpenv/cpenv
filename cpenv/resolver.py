@@ -2,11 +2,25 @@
 
 # Standard library imports
 import os
+import shlex
 
 # Local imports
-from . import utils
+from . import mappings, paths
 from .repos import LocalRepo
 from .module import Module, is_module, is_exact_match, best_match
+
+
+__all__ = [
+    'ResolveError',
+    'Resolver',
+    'Activator',
+    'Copier',
+    'Localizer',
+    'module_resolvers',
+    'is_redirecting',
+    'redirect_to_modules',
+    'parse_redirect',
+]
 
 
 class ResolveError(Exception):
@@ -84,14 +98,14 @@ class Activator(object):
     def combine_modules(self, modules):
         '''Combine a list of module's environments.'''
 
-        return utils.join_dicts(*[obj.environment for obj in modules])
+        return mappings.join_dicts(*[obj.environment for obj in modules])
 
     def activate(self, module_specs):
         '''Activate a list of module specs.'''
 
         modules = self.localizer.localize(module_specs)
         env = self.combine_modules(modules)
-        utils.set_env(env)
+        mappings.set_env(env)
 
         for module in modules:
             module.activate()
@@ -143,7 +157,7 @@ class Copier(object):
 
         temp_downloads = get_cache_path('temp_downloads')
         if os.path.isdir(temp_downloads):
-            utils.rmtree(temp_downloads)
+            paths.rmtree(temp_downloads)
 
         return copied
 
@@ -250,7 +264,7 @@ def path_is_module_resolver(resolver, path):
 def cwd_resolver(resolver, path):
     '''Checks if path is already a :class:`Module` object'''
 
-    mod_path = utils.normpath(os.getcwd(), path)
+    mod_path = paths.normalize(os.getcwd(), path)
     if is_module(mod_path):
         return Module(mod_path).as_spec()
 
@@ -263,7 +277,7 @@ def modules_path_resolver(resolver, path):
     from .api import get_module_paths
 
     for module_dir in get_module_paths():
-        mod_path = utils.normpath(module_dir, path)
+        mod_path = paths.normalize(module_dir, path)
 
         if is_module(mod_path):
             return Module(mod_path).as_spec()
@@ -281,10 +295,10 @@ def redirect_resolver(resolver, path):
     if os.path.isfile(path):
         path = os.path.dirname(path)
 
-    for root, _, _ in utils.walk_up(path):
-        if utils.is_redirecting(root):
-            env_paths = utils.redirect_to_modules(
-                utils.normpath(root, '.cpenv')
+    for root, _, _ in paths.walk_up(path):
+        if is_redirecting(root):
+            env_paths = redirect_to_modules(
+                paths.normalize(root, '.cpenv')
             )
             r = Resolver(resolver.repos)
             return r.resolve(env_paths)
@@ -298,3 +312,29 @@ module_resolvers = [
     path_is_module_resolver,
     modules_path_resolver,
 ]
+
+
+def is_redirecting(path):
+    '''Returns True if path contains a .cpenv file'''
+
+    candidate = paths.normalize(path, '.cpenv')
+    return os.path.exists(candidate) and os.path.isfile(candidate)
+
+
+def redirect_to_modules(path):
+    '''Get environment path from redirect file'''
+
+    with open(path, 'r') as f:
+        data = f.read()
+
+    return parse_redirect(data)
+
+
+def parse_redirect(data):
+    '''Parses a redirect string - data of a .cpenv file'''
+
+    lines = [line for line in data.split('\n') if line.strip()]
+    if len(lines) == 1:
+        return shlex.split(lines[0])
+    else:
+        return lines

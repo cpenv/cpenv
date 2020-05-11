@@ -6,7 +6,7 @@ import os
 from types import ModuleType
 
 # Local imports
-from .utils import normpath
+from . import api, paths
 
 
 '''
@@ -31,7 +31,7 @@ class HookFinder(object):
 
     def _find_pyfile(self, hook_name):
         for path in self.hook_paths:
-            hook_path = normpath(path, hook_name + '.py')
+            hook_path = paths.normalize(path, hook_name + '.py')
             if os.path.exists(hook_path):
                 return hook_path
 
@@ -65,7 +65,7 @@ class HookFinder(object):
 def get_global_hook_path():
     '''Returns the global hook path'''
 
-    return normpath(os.environ.get('CPENV_HOME', '~/.cpenv'), 'hooks')
+    return paths.normalize(api.get_home_path(), 'hooks')
 
 
 def run_global_hook(hook_name, *args):

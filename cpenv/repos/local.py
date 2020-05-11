@@ -5,7 +5,7 @@ import shutil
 from glob import glob
 
 # Local imports
-from .. import utils
+from .. import paths
 from ..module import (
     Module,
     is_exact_match,
@@ -32,11 +32,11 @@ class LocalRepo(Repo):
 
     def __init__(self, name, path):
         super(LocalRepo, self).__init__(name)
-        self.path = utils.normpath(path)
+        self.path = paths.normalize(path)
         self._cached_modules = None
 
     def relative_path(self, *parts):
-        return utils.normpath(self.path, *parts)
+        return paths.normalize(self.path, *parts)
 
     @property
     def cached_modules(self):
@@ -63,14 +63,14 @@ class LocalRepo(Repo):
 
         # Find flat module_specs
         for module_file in glob(self.relative_path('*', 'module.yml')):
-            module_path = utils.normpath(os.path.dirname(module_file))
+            module_path = paths.normalize(os.path.dirname(module_file))
             module = Module(module_path, repo=self)
             module_specs.append(module.as_spec())
 
         # Find nested module_specs
         versions = glob(self.relative_path('*', '*', 'module.yml'))
         for version_file in versions:
-            version_dir = utils.normpath(os.path.dirname(version_file))
+            version_dir = paths.normalize(os.path.dirname(version_file))
             module = Module(version_dir, repo=self)
             module_specs.append(module.as_spec())
 
@@ -81,7 +81,7 @@ class LocalRepo(Repo):
             if not overwrite:
                 raise OSError('%s already exists...' % where)
             else:
-                utils.rmtree(where)
+                paths.rmtree(where)
 
         shutil.copytree(module_spec.path, where)
 
@@ -105,7 +105,7 @@ class LocalRepo(Repo):
 
         if os.path.isdir(new_module_path):
             if overwrite:
-                utils.rmtree(new_module_path)
+                paths.rmtree(new_module_path)
             else:
                 raise OSError('Module already exists in repo...')
 

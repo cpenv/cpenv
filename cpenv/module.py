@@ -8,7 +8,7 @@ from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import compat, utils
+from . import compat, mappings, paths
 from .versions import ParseError, Version, default_version, parse_version
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
@@ -36,7 +36,7 @@ class Module(object):
 
     def __init__(self, path, name=None, version=None, repo=None):
 
-        self.path = utils.normpath(path)
+        self.path = paths.normalize(path)
         self.repo = repo
 
         # Create HookFinder for this module
@@ -118,7 +118,7 @@ class Module(object):
     def relative_path(self, *args):
         '''Get a path relative to this module'''
 
-        return utils.normpath(self.path, *args)
+        return paths.normalize(self.path, *args)
 
     def run_hook(self, hook_name):
         '''Run a module hook by name, fallback to global hook location.'''
@@ -152,7 +152,7 @@ class Module(object):
 
         from . import api
         self.run_hook('pre_remove')
-        utils.rmtree(self.path)
+        paths.rmtree(self.path)
         api.remove_active_module(self)
         self.run_hook('post_remove')
 
@@ -218,8 +218,8 @@ class Module(object):
             additional = {
                 'CPENV_ACTIVE_MODULES': [self.real_name],
             }
-            env = utils.join_dicts(additional, env)
-            self._environ = utils.preprocess_dict(env)
+            env = mappings.join_dicts(additional, env)
+            self._environ = mappings.preprocess_dict(env)
 
         return self._environ
 
@@ -236,7 +236,7 @@ def read_config(module_file, config_vars=None, data=None):
 
     if config_vars is None:
         config_vars = {
-            'MODULE': utils.normpath(os.path.dirname(module_file)),
+            'MODULE': paths.normalize(os.path.dirname(module_file)),
             'PLATFORM': compat.platform,
             'PYVER': sys.version[:3],
         }
@@ -261,7 +261,7 @@ def sort_modules(modules, reverse=False):
 def is_module(path):
     '''Returns True if path refers to a module'''
 
-    return os.path.exists(utils.normpath(path, 'module.yml'))
+    return os.path.exists(paths.normalize(path, 'module.yml'))
 
 
 def parse_module_path(path, default_version=default_version):
@@ -290,7 +290,8 @@ def parse_module_path(path, default_version=default_version):
 def parse_module_requirement(requirement, default_version=None):
     '''Given a requirement, return a name and version.'''
 
-    if utils.is_system_path(requirement):
+    if '\\' in requirement or '/' in requirement:
+        # Probably a system path - lets parse it.
         return parse_module_path(requirement, default_version=default_version)
 
     try:

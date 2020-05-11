@@ -17,7 +17,7 @@ from cpenv import (
     api,
     cli,
     shell,
-    utils,
+    paths,
 )
 from cpenv.module import (
     parse_module_path,
@@ -217,7 +217,7 @@ class Create(cli.CLI):
 
     def run(self, args):
         cli.echo()
-        where = utils.normpath(args.where)
+        where = paths.normalize(args.where)
         name, version = parse_module_path(where)
 
         cli.echo('- Creating a Module...', end='')
@@ -712,7 +712,7 @@ class Version(cli.CLI):
                 ('name', cpenv.__name__),
                 ('version', cpenv.__version__),
                 ('url', cpenv.__url__),
-                ('package', utils.normpath(os.path.dirname(cpenv.__file__))),
+                ('package', paths.normalize(os.path.dirname(cpenv.__file__))),
                 ('path', api.get_module_paths()),
             ]
         ), end='\n\n')

@@ -7,9 +7,9 @@ import unittest
 from nose.tools import raises
 
 # Local imports
+from cpenv import paths
 from cpenv.hooks import HookFinder
 from cpenv.module import Module
-from cpenv.utils import rmtree
 
 # Local imports
 from . import data_path
@@ -47,7 +47,7 @@ def setup_module():
 
 
 def teardown_module():
-    rmtree(data_path('home'))
+    paths.rmtree(data_path('home'))
 
 
 class TestHookFinder(unittest.TestCase):

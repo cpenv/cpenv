@@ -7,7 +7,7 @@ import warnings
 import zipfile
 
 # Local imports
-from .. import utils
+from .. import paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
 from ..vendor import yaml
 from ..versions import parse_version
@@ -152,7 +152,7 @@ class ShotgunRepo(Repo):
 
         if os.path.isdir(where):
             if overwrite:
-                utils.rmtree(where)
+                paths.rmtree(where)
             else:
                 raise Exception('Module already exists in download location.')
 

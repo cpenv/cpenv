@@ -8,7 +8,7 @@ from nose.tools import assert_raises, raises
 
 # Local imports
 import cpenv
-from cpenv import utils
+from cpenv import paths
 
 # Local imports
 from . import data_path
@@ -82,8 +82,8 @@ def setup_module():
 
 
 def teardown_module():
-    utils.rmtree(data_path('home'))
-    utils.rmtree(data_path('not_home'))
+    paths.rmtree(data_path('home'))
+    paths.rmtree(data_path('not_home'))
 
 
 def test_resolve_home():
@@ -219,4 +219,4 @@ def test_parse_redirect():
         ('testenv\ntestm\n \ntestmod\n ', ['testenv', 'testm', 'testmod']),
     ]
     for test, expected in tests:
-        assert utils.parse_redirect(test) == expected
+        assert cpenv.parse_redirect(test) == expected

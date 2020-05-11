@@ -7,7 +7,7 @@ from collections import OrderedDict
 import warnings
 
 # Local imports
-from . import hooks, utils, compat, repos
+from . import hooks, paths, compat, repos
 from .module import Module, ModuleSpec, module_header, sort_modules
 from .resolver import (
     ResolveError,
@@ -139,7 +139,7 @@ def create(where, name, version, **kwargs):
     ])
 
     # Check if module already exists
-    where = utils.normpath(where)
+    where = paths.normalize(where)
     if os.path.isdir(where):
         raise OSError('Module already exists at "%s"' % where)
 
@@ -151,15 +151,15 @@ def create(where, name, version, **kwargs):
     hooks.run_global_hook('pre_create', module, config)
 
     # Create module folder structure
-    utils.ensure_path_exists(where)
-    utils.ensure_path_exists(where + '/hooks')
+    paths.ensure_path_exists(where)
+    paths.ensure_path_exists(where + '/hooks')
 
     data = module_header + yaml.dump(
         dict(config),
         default_flow_style=False,
         sort_keys=False,
     )
-    with open(utils.normpath(where, 'module.yml'), 'w') as f:
+    with open(paths.normalize(where, 'module.yml'), 'w') as f:
         f.write(data)
 
     # Run global postcreate hook
@@ -209,7 +209,7 @@ def clone(module, from_repo=None, where=None, overwrite=False):
 
     module = module_spec.repo.download(
         module_spec,
-        where=utils.normpath(where or '.', module_spec.real_name),
+        where=paths.normalize(where or '.', module_spec.real_name),
         overwrite=overwrite,
     )
 
@@ -290,7 +290,7 @@ def set_home_path(path):
     '''Convenient function used to set the CPENV_HOME environment variable.'''
 
     # Set new home path
-    home = utils.normpath(path)
+    home = paths.normalize(path)
     os.environ['CPENV_HOME'] = home
     _init_home_path(home)
 
@@ -301,12 +301,12 @@ def set_home_path(path):
 
 
 def _init_home_path(home):
-    home_modules = utils.normpath(home, 'modules')
-    home_cache = utils.normpath(home, 'cache')
+    home_modules = paths.normalize(home, 'modules')
+    home_cache = paths.normalize(home, 'cache')
 
-    utils.ensure_path_exists(home)
-    utils.ensure_path_exists(home_modules)
-    utils.ensure_path_exists(home_cache)
+    paths.ensure_path_exists(home)
+    paths.ensure_path_exists(home_modules)
+    paths.ensure_path_exists(home_cache)
 
 
 def get_home_path():
@@ -319,7 +319,7 @@ def get_home_path():
     '''
 
     home_default = appdirs.site_data_dir('cpenv', appauthor=False)
-    home = utils.normpath(os.getenv('CPENV_HOME', home_default))
+    home = paths.normalize(os.getenv('CPENV_HOME', home_default))
     return home
 
 
@@ -332,7 +332,7 @@ def get_home_modules_path():
         linux - /usr/local/share/cpenv OR /usr/share/cpenv/modules
     '''
 
-    return utils.normpath(get_home_path(), 'modules')
+    return paths.normalize(get_home_path(), 'modules')
 
 
 def get_cache_path(*paths):
@@ -347,15 +347,15 @@ def get_cache_path(*paths):
         *paths (str) - List of paths to join with cache path
     '''
 
-    return utils.normpath(get_home_path(), 'cache', *paths)
+    return paths.normalize(get_home_path(), 'cache', *paths)
 
 
 def _init_user_path(user):
     '''Initialize user path.'''
 
-    user_modules = utils.normpath(user, 'modules')
-    utils.ensure_path_exists(user)
-    utils.ensure_path_exists(user_modules)
+    user_modules = paths.normalize(user, 'modules')
+    paths.ensure_path_exists(user)
+    paths.ensure_path_exists(user_modules)
 
 
 def get_user_path():
@@ -368,7 +368,7 @@ def get_user_path():
     '''
 
     user_default = appdirs.user_data_dir('cpenv', appauthor=False)
-    user = utils.normpath(user_default)
+    user = paths.normalize(user_default)
 
     return user
 
@@ -382,7 +382,7 @@ def get_user_modules_path():
         linux - ~/.local/share/cpenv/modules
     '''
 
-    return utils.normpath(get_user_path(), 'modules')
+    return paths.normalize(get_user_path(), 'modules')
 
 
 def get_module_paths():
@@ -394,7 +394,7 @@ def get_module_paths():
         3. paths in CPENV_MODULES environment variable
     '''
 
-    module_paths = [utils.normpath(os.getcwd()), get_user_modules_path()]
+    module_paths = [paths.normalize(os.getcwd()), get_user_modules_path()]
 
     cpenv_home_modules = get_home_modules_path()
     if cpenv_home_modules not in module_paths:
@@ -404,7 +404,7 @@ def get_module_paths():
     if cpenv_modules_path:
         for module_path in cpenv_modules_path.split(os.pathsep):
             if module_path not in module_paths:
-                module_paths.append(utils.normpath(module_path))
+                module_paths.append(paths.normalize(module_path))
 
     return module_paths
 
@@ -412,7 +412,7 @@ def get_module_paths():
 def add_module_path(path):
     '''Add an additional lookup path for local modules.'''
 
-    path = utils.normpath(path)
+    path = paths.normalize(path)
     module_paths = []
 
     # Get existing module lookup paths
@@ -494,7 +494,7 @@ def get_repos():
 
 
 def get_config_path():
-    return utils.normpath(get_home_path(), 'config.yml')
+    return paths.normalize(get_home_path(), 'config.yml')
 
 
 def read_config(key=None, default=missing):
@@ -559,7 +559,7 @@ def _init():
 
     # Register all LocalRepos
     for path in get_module_paths():
-        if path == utils.normpath(os.getcwd()):
+        if path == paths.normalize(os.getcwd()):
             name = 'cwd'
         elif path == get_home_modules_path():
             name = 'home'

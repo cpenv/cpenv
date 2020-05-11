@@ -5,7 +5,7 @@ from nose.tools import assert_raises
 
 # Local imports
 import cpenv
-from cpenv.utils import rmtree
+from cpenv import paths
 
 # Local imports
 from . import data_path
@@ -16,7 +16,7 @@ def setup_module():
 
 
 def teardown_module():
-    rmtree(data_path('home'))
+    paths.rmtree(data_path('home'))
 
 
 def test_create():
