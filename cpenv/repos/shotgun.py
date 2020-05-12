@@ -253,6 +253,49 @@ class ShotgunRepo(Repo):
 
         return data
 
+    def get_thumbnail(self, module_spec):
+        from .. import api
+
+        # We need to construct a url since the shotgun api only
+        # returns a url for a low res thumbnail.
+        base_url = self.base_url
+        name_and_id = module_spec.path.split('/')[-2:]
+        thumbnail_url = base_url + '/thumbnail/full/' + '/'.join(name_and_id)
+
+        # Ensure icons cache dir exists
+        icons_root = api.get_cache_path('icons')
+        if not os.path.isdir(icons_root):
+            os.makedirs(icons_root)
+
+        # Cache thumbnail locally
+        icon_path = api.get_cache_path(
+            'icons',
+            module_spec.qual_name + '_icon.png'
+        )
+        if not os.path.isfile(icon_path):
+            try:
+                data = self.shotgun.download_attachment(
+                    {'url': thumbnail_url}
+                )
+                with open(icon_path, 'wb') as f:
+                    f.write(data)
+            except Exception:
+                return
+
+        return icon_path
+
+    def get_size(self, spec):
+        '''Query Shotgun for archive size.'''
+
+        return int(self.shotgun.find_one(
+            self.module_entity,
+            filters=[
+                ['code', 'is', spec.name],
+                ['sg_version', 'is', spec.version.string]
+            ],
+            fields=['sg_archive_size'],
+        )['sg_archive_size'] or 0)
+
 
 def entity_to_module_spec(entity, repo):
     '''Convert entity data to a ModuleSpec.'''

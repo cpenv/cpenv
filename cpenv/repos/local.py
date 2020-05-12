@@ -132,3 +132,23 @@ class LocalRepo(Repo):
 
         module = Module(module_spec.path)
         return yaml.safe_load(module.raw_config)
+
+    def get_size(self, module_spec):
+        '''Sums the size of all files in the modules directory.'''
+
+        if not os.path.isdir(module_spec.path):
+            return -1
+
+        return paths.get_folder_size(module_spec.path)
+
+    def get_thumbnail(self, module_spec):
+        '''Returns the path to a modules icon.png file'''
+
+        if not os.path.isdir(module_spec.path):
+            return
+
+        icon_path = paths.normalize(module_spec.path, 'icon.png')
+        if not os.path.isfile(icon_path):
+            return
+
+        return icon_path

@@ -139,7 +139,7 @@ class Copier(object):
 
             # Generate a new module path in to_repo
             download_path = get_cache_path(
-                'temp_downloads',
+                'tmp',
                 str(hash(module_spec.repo.name)),
                 module_spec.name,
                 module_spec.version.string,
@@ -155,9 +155,9 @@ class Copier(object):
             )
             copied.append(new_module_spec)
 
-        temp_downloads = get_cache_path('temp_downloads')
-        if os.path.isdir(temp_downloads):
-            paths.rmtree(temp_downloads)
+        tmp = get_cache_path('tmp')
+        if os.path.isdir(tmp):
+            paths.rmtree(tmp)
 
         return copied
 
@@ -224,7 +224,7 @@ class Localizer(object):
         return localized
 
 
-# Deprecated!!
+# Deprecated
 # The following functions represet the old resolution algorithm
 # this is called by Resolver.resolve only when no Repos are able to resolve
 # a requirement.

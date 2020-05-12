@@ -62,3 +62,27 @@ class Repo(object):
         '''
 
         return {}
+
+    def get_size(self, module_spec):
+        '''Given a module_spec, return the size of a module in the repo.
+
+        For remote repositories this may mean reading a field in a databse.
+        For the LocalRepo it means getting the combined size of the module
+        folder's contents.
+
+        Repos should implement this method to full support progress bars
+        while publishing and localizing modules.
+
+        Return -1 when size if the size is unavailable.
+        '''
+        return -1
+
+    def get_thumbnail(self, module_spec):
+        '''Given a module_spec, return the path to a thumbnail.
+
+        Remote repos should download a thumbnail to the cache/icons:
+            cache_path = cpenv.get_cache_path('icons', 'cached-0.1.0.png')
+
+        Return None when no thumbnail is available.
+        '''
+        return
