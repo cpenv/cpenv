@@ -7,12 +7,17 @@ import os
 import re
 import sys
 
+# Third party imports
+import tqdm
+
 # Local imports
 import cpenv
 from cpenv import (
-    LocalRepo,
-    Resolver,
     Copier,
+    LocalRepo,
+    Localizer,
+    Reporter,
+    Resolver,
     ResolveError,
     api,
     cli,
@@ -20,9 +25,9 @@ from cpenv import (
     paths,
 )
 from cpenv.module import (
-    parse_module_path,
-    is_partial_match,
     best_match,
+    is_partial_match,
+    parse_module_path,
     sort_modules,
 )
 
@@ -69,15 +74,10 @@ class Info(cli.CLI):
 
     def run(self, args):
         cli.echo()
-        cli.echo('- Resolving modules...', end='')
         try:
             module_specs = api.resolve(args.modules)
         except ResolveError:
-            cli.echo('OOPS!')
-            cli.echo()
-            cli.echo('Error: failed to resolve %s' % args.modules)
             sys.exit(1)
-        cli.echo('OK!')
 
         cli.echo()
         for spec in module_specs:
@@ -102,22 +102,14 @@ class Activate(cli.CLI):
 
     def run(self, args):
         cli.echo()
-        cli.echo('- Resolving modules...', end='')
         try:
-            activated_modules = api.activate(args.modules)
+            api.activate(args.modules)
         except ResolveError:
-            cli.echo('OOPS!')
-            cli.echo()
-            cli.echo('Error: failed to resolve %s' % args.modules)
             sys.exit(1)
-        cli.echo('OK!')
-
-        cli.echo()
-        for module in activated_modules:
-            cli.echo('  ' + module.real_name)
-        cli.echo()
 
         cli.echo('- Launching subshell...')
+        cli.echo()
+        cli.echo('  Type "exit" to deactivate.')
         cli.echo()
         shell.launch('[*]')
 
@@ -158,20 +150,35 @@ class Clone(cli.CLI):
 
     def run(self, args):
 
-        cli.echo('- Cloning %s...' % args.module, end='')
         try:
-            module = api.clone(
-                args.module,
-                args.from_repo,
-                args.where,
-                args.overwrite,
+            if not args.from_repo:
+                module_spec = api.resolve([args.module])[0]
+            else:
+                from_repo = api.get_repo(args.from_repo)
+                module_spec = from_repo.find(args.module)[0]
+        except Exception:
+            cli.echo()
+            cli.echo('Error: Failed to resolve ' + args.module)
+            sys.exit(1)
+
+        where = paths.normalize(args.where or '.', module_spec.real_name)
+        if os.path.isdir(where):
+            cli.echo('Error: Directory already exists - ' + where)
+            sys.exit(1)
+
+        cli.echo('- Cloning %s...' % module_spec.real_name)
+        cli.echo()
+        try:
+            module = module_spec.repo.download(
+                module_spec,
+                where=where,
+                overwrite=args.overwrite,
             )
         except Exception as e:
             cli.echo()
             cli.echo('Error: ' + str(e))
             sys.exit(1)
 
-        cli.echo('OK!')
         cli.echo()
         cli.echo('Navigate to the following folder to make changes:')
         cli.echo('  ' + module.path)
@@ -189,61 +196,49 @@ class Create(cli.CLI):
             'where',
             help='Path to new module',
         )
-        parser.add_argument(
-            '--name',
-            help='Name of new module',
-            default='',
-        )
-        parser.add_argument(
-            '--version',
-            help='Version of the new module',
-            default='',
-        )
-        parser.add_argument(
-            '--description',
-            help='Details about the module',
-            default='',
-        )
-        parser.add_argument(
-            '--author',
-            help='Author of the module',
-            default='',
-        )
-        parser.add_argument(
-            '--email',
-            help="Author's email address",
-            default='',
-        )
 
     def run(self, args):
-        cli.echo()
         where = paths.normalize(args.where)
-        name, version = parse_module_path(where)
+        if os.path.isdir(where):
+            cli.echo()
+            cli.echo('Error: Can not create module in existing directory.')
+            sys.exit(1)
 
-        cli.echo('- Creating a Module...', end='')
+        default_name, default_version = parse_module_path(where)
+
+        cli.echo()
+        cli.echo('This command will guide you through creating a new module.')
+        cli.echo()
+        name = cli.prompt('  Module Name [%s]: ' % default_name)
+        version = cli.prompt('  Version [%s]: ' % default_version.string)
+        description = cli.prompt('  Description []: ')
+        author = cli.prompt('  Author []: ')
+        email = cli.prompt('  Email []: ')
+
+        cli.echo()
+        cli.echo('- Creating your new Module...', end='')
         module = api.create(
             where=where,
-            name=args.name or name,
-            version=args.version or version.string,
-            description=args.description,
-            author=args.author,
-            email=args.email,
+            name=name or default_name,
+            version=version or default_version.string,
+            description=description,
+            author=author,
+            email=email,
         )
         cli.echo('OK!')
 
         cli.echo()
-        cli.echo('  name     ' + module.name)
-        cli.echo('  version  ' + module.version.string)
-        cli.echo('  path     ' + module.path)
-        cli.echo()
+        cli.echo('  ' + module.path)
 
-        cli.echo('Some steps you might take before publishing...')
+        cli.echo()
+        cli.echo('Steps you might take before publishing...')
         cli.echo()
         cli.echo('  - Include binaries your module depends on')
         cli.echo('  - Edit the module.yml file')
         cli.echo('    - Add variables to the environment section')
         cli.echo('    - Add other modules to the requires section')
         cli.echo('  - Add python hooks like post_activate')
+        cli.echo()
 
 
 class List(cli.CLI):
@@ -350,23 +345,31 @@ class Localize(cli.CLI):
                 default_repo_name='home',
             )
 
-        cli.echo()
-        cli.echo(
-            '- Localizing %s to %s...' % (args.modules, to_repo.name),
-            end='',
-        )
-        modules = api.localize(
-            args.modules,
-            to_repo=to_repo,
-            overwrite=args.overwrite,
-        )
-        cli.echo('OK!')
-        cli.echo()
+        # Resolve modules
+        try:
+            resolved = api.resolve(args.modules)
+        except ResolveError:
+            sys.exit(1)
 
-        cli.echo()
-        cli.echo('Localized the following modules:')
-        for module in modules:
-            cli.echo('  %s - %s' % (module.real_name, module.path))
+        # Localize modules from remote repos
+        remote_modules = [
+            spec for spec in resolved
+            if not isinstance(spec.repo, LocalRepo)
+        ]
+
+        if not len(remote_modules):
+            cli.echo('All modules are already local...')
+            sys.exit()
+
+        try:
+            localizer = Localizer(to_repo)
+            localizer.localize(
+                remote_modules,
+                overwrite=args.overwrite,
+            )
+        except Exception as e:
+            cli.echo('Error: ' + str(e))
+            sys.exit(1)
 
 
 class Copy(cli.CLI):
@@ -406,28 +409,23 @@ class Copy(cli.CLI):
                 'Download from',
                 default_repo_name='home',
             )
-            cli.echo()
 
         if args.to_repo:
             to_repo = api.get_repo(args.to_repo)
         else:
+            repos = api.get_repos()
+            repos.remove(from_repo)
             to_repo = prompt_for_repo(
-                api.get_repos(),
+                repos,
                 'Upload to',
                 default_repo_name='home',
             )
-            cli.echo()
 
-        cli.echo('- Resolving modules from %s...' % from_repo.name, end='')
         resolver = Resolver([from_repo])
         module_specs = resolver.resolve(args.modules)
-        cli.echo('OK!')
-        cli.echo()
-        for module_spec in module_specs:
-            cli.echo('  %s - %s' % (module_spec.real_name, module_spec.path))
         cli.echo()
 
-        choice = cli.prompt('Copy these modules to %s?(y/n)' % to_repo.name)
+        choice = cli.prompt('Copy these modules to %s?[y/n] ' % to_repo.name)
         if choice.lower() not in ['y', 'yes', 'yup']:
             cli.echo('Aborted.')
             sys.exit(1)
@@ -435,9 +433,7 @@ class Copy(cli.CLI):
 
         copier = Copier(to_repo)
         for module_spec in module_specs:
-            cli.echo('- Copying %s...' % module_spec.real_name, end='')
             copier.copy([module_spec], args.overwrite)
-            cli.echo('OK!')
 
 
 class Publish(cli.CLI):
@@ -491,8 +487,9 @@ class Remove(cli.CLI):
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'module',
-            help='Module to remove.',
+            'modules',
+            help='Space separated list of modules.',
+            nargs='+',
         )
         parser.add_argument(
             '--from_repo',
@@ -518,34 +515,32 @@ class Remove(cli.CLI):
                 default_repo_name='home',
             )
 
-        cli.echo(
-            '- Finding module %s in %s...' % (args.module, from_repo.name),
-            end='',
-        )
-        module = best_match(args.module, from_repo.find(args.module))
-        if not module:
-            cli.echo('OOPS!', end='\n\n')
-            cli.echo(
-                'Error: %s not found in %s' % (args.module, from_repo.name)
-            )
-            sys.exit(1)
-        cli.echo('OK!')
+        cli.echo('- Finding modules in %s...' % from_repo.name)
+        cli.echo()
+        modules_to_remove = []
+        for requirement in args.modules:
+            module = best_match(requirement, from_repo.find(requirement))
+            if not module:
+                cli.echo('Error: %s not found...' % requirement)
+                sys.exit(1)
+            cli.echo('  %s - %s' % (module.real_name, module.path))
+            modules_to_remove.append(module)
 
         cli.echo()
-        cli.echo('%s - %s' % (module.name, module.path))
-        cli.echo()
-
-        choice = cli.prompt('Delete this module?(y/n)')
+        choice = cli.prompt('Delete these modules?[y/n] ')
         if choice.lower() not in ['y', 'yes', 'yup']:
             cli.echo('Aborted.')
             sys.exit(1)
 
         cli.echo()
-        cli.echo('- Removing module...', end='')
-        api.remove(module, from_repo)
-        cli.echo('OK!', end='\n\n')
+        cli.echo('- Removing modules...')
+        cli.echo()
+        for module in modules_to_remove:
+            cli.echo('  ' + module.real_name)
+            api.remove(module, from_repo)
 
-        cli.echo('Successfully removed module.')
+        cli.echo()
+        cli.echo('Successfully removed modules.')
 
 
 class Repo(cli.CLI):
@@ -715,7 +710,8 @@ class Version(cli.CLI):
                 ('package', paths.normalize(os.path.dirname(cpenv.__file__))),
                 ('path', api.get_module_paths()),
             ]
-        ), end='\n\n')
+        ))
+        cli.echo()
 
         # List package versions
         dependencies = []
@@ -737,6 +733,7 @@ class Version(cli.CLI):
 def prompt_for_repo(repos, message, default_repo_name='home'):
     '''Prompt a user to select a repository'''
 
+    default = 0
     for i, from_repo in enumerate(repos):
         if from_repo.name == default_repo_name:
             default = i
@@ -752,22 +749,102 @@ def prompt_for_repo(repos, message, default_repo_name='home'):
 
     # Prompt user to choose a repo defaults to home
     cli.echo()
-    choice = cli.prompt('{}: [{}]'.format(message, default))
+    choice = cli.prompt('{} [{}]: '.format(message, default))
 
     if not choice:
         choice = default
-    else:
+        cli.echo()
+        return repos[choice]
+
+    try:
         choice = int(choice)
-        if choice > len(repos) - 1:
-            cli.echo()
-            cli.echo('Error: {} is not a valid choice'.format(choice))
-            sys.exit(1)
+        value_error = False
+    except ValueError:
+        value_error = True
+
+    if value_error or choice > len(repos) - 1:
+        cli.echo()
+        cli.echo('Error: {!r} is not a valid choice'.format(choice))
+        sys.exit(1)
+
+    cli.echo()
 
     # Get the repo the user chose
     return repos[choice]
 
 
+class CliReporter(Reporter):
+
+    def __init__(self):
+        self._bars = {}
+
+    def get_bar_style(self, desc, total, unit=None):
+        return {
+            'desc': desc,
+            'total': total,
+            'bar_format': '  {desc} {bar} {n_fmt}/{total_fmt}',
+            'unit': unit or 'iB',
+            'unit_scale': True,
+        }
+
+    def start_resolve(self, requirements):
+        cli.echo('- Resolving requirements...')
+        cli.echo()
+
+    def resolve_requirement(self, requirement, module_spec):
+        cli.echo('  %s - %s' % (module_spec.real_name, module_spec.path))
+
+    def end_resolve(self, resolved, unresolved):
+        cli.echo()
+        if unresolved:
+            cli.echo('Error: Failed to resolve %s' % ', '.join(unresolved))
+
+    def start_localize(self, module_specs):
+        for spec in module_specs:
+            if not isinstance(spec.repo, LocalRepo):
+                cli.echo('- Localizing modules...')
+                cli.echo()
+                return
+
+    def end_localize(self, modules):
+        cli.echo()
+
+    def start_progress(self, label, max_size, data):
+
+        if 'download' in label.lower():
+            spec = data['module_spec']
+            cli.echo(
+                '  Downloading %s from %s...' %
+                (spec.qual_name, spec.repo.name)
+            )
+            desc = spec.real_name
+        elif 'upload' in label.lower():
+            module = data['module']
+            to_repo = data['to_repo']
+            cli.echo(
+                '  Uploading %s to %s...' %
+                (module.qual_name, to_repo.name)
+            )
+            desc = module.real_name
+        else:
+            desc = label
+
+        style = self.get_bar_style(desc, max_size, data.get('unit', None))
+        self._bars[label] = tqdm.tqdm(**style)
+
+    def update_progress(self, label, chunk_size, data):
+        bar = self._bars.get(label, None)
+        if bar:
+            bar.update(chunk_size)
+
+    def end_progress(self, label, data):
+        bar = self._bars.pop(label, None)
+        if bar:
+            bar.close()
+
+
 def main():
+    cpenv.set_reporter(CliReporter)
     cli.run(CpenvCLI, sys.argv[1:])
 
 

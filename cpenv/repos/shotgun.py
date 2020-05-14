@@ -7,8 +7,9 @@ import warnings
 import zipfile
 
 # Local imports
-from .. import paths
+from .. import http, paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
+from ..reporter import get_reporter
 from ..vendor import yaml
 from ..versions import parse_version
 from .base import Repo
@@ -139,6 +140,7 @@ class ShotgunRepo(Repo):
         return sort_modules(module_specs, reverse=True)
 
     def download(self, module_spec, where, overwrite=False):
+
         entity = self.shotgun.find_one(
             self.module_entity,
             filters=module_spec_to_filters(module_spec),
@@ -156,15 +158,39 @@ class ShotgunRepo(Repo):
             else:
                 raise Exception('Module already exists in download location.')
 
-        # Download archive data
-        data = self.shotgun.download_attachment(archive)
+        # Download archive data - we add a chunk to download_size for zip
+        # progress reporting.
+        reporter = get_reporter()
+        chunk_size = 8192
+        download_size = self.get_size(module_spec)
+        zip_chunk_size = (download_size / chunk_size) * 10
+        progress_bar = reporter.progress_bar(
+            label='Download %s' % module_spec.name,
+            max_size=download_size + zip_chunk_size,
+            data={'module_spec': module_spec},
+        )
+        with progress_bar as progress_bar:
+            response = http.get(archive['url'])
+            data = io.BytesIO()
+            while True:
+                chunk = response.read(chunk_size)
+                if not chunk:
+                    break
+                progress_bar.update(len(chunk))
+                data.write(chunk)
 
-        # Construct zip_file from in-memory data
-        zip_file = zipfile.ZipFile(io.BytesIO(data))
+            # Construct and extract in-memory zip archive
+            zip_file = zipfile.ZipFile(data)
+            zip_file.extractall(where)
+            progress_bar.update(zip_chunk_size)
 
-        # Extract to where
-        zip_file.extractall(where)
-        return Module(where)
+            module = Module(where)
+            progress_bar.update(data={
+                'module_spec': module_spec,
+                'module': module,
+            })
+
+        return module
 
     def upload(self, module, overwrite=False):
         from .. import api
@@ -180,38 +206,53 @@ class ShotgunRepo(Repo):
             else:
                 raise Exception('Module already uploaded.')
 
-        # Create archive
-        archive = api.get_cache_path('tmp', module.qual_name + '.zip')
-        zip_folder(module.path, archive)
-        archive_size = os.path.getsize(archive)
-
-        # Upload archive
-        data = module_to_entity(module, sg_archive_size=archive_size)
-        entity = self.shotgun.create(self.module_entity, data)
-        self.shotgun.upload(
-            self.module_entity,
-            entity['id'],
-            path=archive,
-            field_name='sg_archive',
+        reporter = get_reporter()
+        progress_bar = reporter.progress_bar(
+            label='Upload %s' % module.name,
+            max_size=3,
+            data={'module': module, 'unit': 'iT', 'to_repo': self},
         )
+
+        with progress_bar as progress_bar:
+            # 1. Create archive
+            archive = api.get_cache_path('tmp', module.qual_name + '.zip')
+            zip_folder(module.path, archive)
+            archive_size = os.path.getsize(archive)
+            progress_bar.update(1)
+
+            # 2. Upload archive
+            data = module_to_entity(module, sg_archive_size=archive_size)
+            entity = self.shotgun.create(self.module_entity, data)
+            self.shotgun.upload(
+                self.module_entity,
+                entity['id'],
+                path=archive,
+                field_name='sg_archive',
+            )
+            progress_bar.update(1)
+
+            # 3. Upload icon as thumbnail
+            if module.has_icon():
+                self.shotgun.upload_thumbnail(
+                    self.module_entity,
+                    entity['id'],
+                    module.icon,
+                )
+            progress_bar.update(1)
+
+            module_spec = entity_to_module_spec(entity, self)
+            progress_bar.update(data={
+                'module_spec': module_spec,
+            })
 
         # Delete local archive
         try:
             os.unlink(archive)
         except OSError as e:
-            print('Error: failed to remove tmp archive')
-            print(archive)
-            print(e.message)
+            print('Warning: failed to remove %s' % archive)
+            print('         ' + str(e))
 
-        # Upload icon as thumbnail
-        if module.has_icon():
-            self.shotgun.upload_thumbnail(
-                self.module_entity,
-                entity['id'],
-                module.icon,
-            )
-
-        return entity_to_module_spec(entity, self)
+        return module_spec
 
     def remove(self, module_spec):
         entity = self.shotgun.find_one(
@@ -252,6 +293,49 @@ class ShotgunRepo(Repo):
         data.setdefault('environment', {})
 
         return data
+
+    def get_thumbnail(self, module_spec):
+        from .. import api
+
+        # We need to construct a url since the shotgun api only
+        # returns a url for a low res thumbnail.
+        base_url = self.base_url
+        name_and_id = module_spec.path.split('/')[-2:]
+        thumbnail_url = base_url + '/thumbnail/full/' + '/'.join(name_and_id)
+
+        # Ensure icons cache dir exists
+        icons_root = api.get_cache_path('icons')
+        if not os.path.isdir(icons_root):
+            os.makedirs(icons_root)
+
+        # Cache thumbnail locally
+        icon_path = api.get_cache_path(
+            'icons',
+            module_spec.qual_name + '_icon.png'
+        )
+        if not os.path.isfile(icon_path):
+            try:
+                data = self.shotgun.download_attachment(
+                    {'url': thumbnail_url}
+                )
+                with open(icon_path, 'wb') as f:
+                    f.write(data)
+            except Exception:
+                return
+
+        return icon_path
+
+    def get_size(self, spec):
+        '''Query Shotgun for archive size.'''
+
+        return int(self.shotgun.find_one(
+            self.module_entity,
+            filters=[
+                ['code', 'is', spec.name],
+                ['sg_version', 'is', spec.version.string]
+            ],
+            fields=['sg_archive_size'],
+        )['sg_archive_size'] or 0)
 
 
 def entity_to_module_spec(entity, repo):

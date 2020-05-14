@@ -71,8 +71,10 @@ def localize(requirements, to_repo='home', overwrite=False):
     resolver = Resolver(get_repos())
     module_specs = resolver.resolve(requirements)
 
+    # Localize modules from remote repos
     localizer = Localizer(to_repo)
     modules = localizer.localize(module_specs, overwrite)
+
     return modules
 
 
@@ -96,6 +98,7 @@ def activate(requirements):
     # Activate modules
     activator = Activator()
     modules = activator.activate(module_specs)
+
     return modules
 
 

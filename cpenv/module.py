@@ -58,6 +58,7 @@ class Module(object):
         self._environ = None
 
         # Determine name, version, qual_name, and real_name
+
         if name and version:
 
             # Use name and version if explicitly passed
@@ -113,6 +114,15 @@ class Module(object):
             version=self.version,
             path=self.path,
             repo=self.repo,
+        )
+
+    @classmethod
+    def from_spec(cls, module_spec):
+        return cls(
+            name=module_spec.name,
+            version=module_spec.version.string,
+            path=module_spec.path,
+            repo=module_spec.repo,
         )
 
     def relative_path(self, *args):
