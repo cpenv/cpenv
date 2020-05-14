@@ -7,6 +7,7 @@ import shlex
 # Local imports
 from . import mappings, paths
 from .repos import LocalRepo
+from .reporter import get_reporter
 from .module import Module, is_module, is_exact_match, best_match
 
 
@@ -45,6 +46,7 @@ class Resolver(object):
 
     def __init__(self, repos):
         self.repos = repos
+        self.reporter = get_reporter()
 
     def resolve(self, requirements):
         '''Given a list of requirement strings, resolve ModuleSpecs.
@@ -56,11 +58,12 @@ class Resolver(object):
             ResolveError when a requirement can not be resolved.
         '''
 
+        self.reporter.start_resolve(requirements)
         unresolved = list(requirements)
         resolved = []
 
         for requirement in requirements:
-
+            self.reporter.find_requirement(requirement)
             # TODO: handle more complex requirements.
             #       possibly use the new resolvelib being developed by pypa
 
@@ -71,15 +74,22 @@ class Resolver(object):
 
             # best_match returns the first ModuleSpec that matches
             # both name and version or the ModuleSpec with the
-            # highest version > the requirement
+            # highest version > the required version
             match = best_match(requirement, match_gen)
             if match:
+                self.reporter.resolve_requirement(requirement, match)
                 unresolved.remove(requirement)
                 resolved.append(match)
+            else:
+                # TODO: once old resolve algorithm is removed
+                # report a module resolution failure here.
+                pass
 
         if unresolved:
             # Try the old resolution alogirthm for backwards compatability
             resolved.extend(old_resolve_algorithm(self, unresolved))
+
+        self.reporter.end_resolve(resolved, unresolved)
 
         if unresolved:
             raise ResolveError(
@@ -137,21 +147,26 @@ class Copier(object):
             if already_exists and not overwrite:
                 continue
 
-            # Generate a new module path in to_repo
-            download_path = get_cache_path(
-                'tmp',
-                str(hash(module_spec.repo.name)),
-                module_spec.name,
-                module_spec.version.string,
-            )
-            module = module_spec.repo.download(
-                module_spec,
-                where=download_path,
-                overwrite=overwrite,
-            )
+            # Get local module or download module from repo
+            if isinstance(module_spec.repo, LocalRepo):
+                module = Module.from_spec(module_spec)
+            else:
+                download_path = get_cache_path(
+                    'tmp',
+                    str(hash(module_spec.repo.name)),
+                    module_spec.name,
+                    module_spec.version.string,
+                )
+                module = module_spec.repo.download(
+                    module_spec,
+                    where=download_path,
+                    overwrite=overwrite,
+                )
+
+            # Upload module to_repo
             new_module_spec = self.to_repo.upload(
                 module,
-                overwrite=overwrite
+                overwrite=overwrite,
             )
             copied.append(new_module_spec)
 
@@ -174,6 +189,7 @@ class Localizer(object):
         from .api import get_repo
 
         self.to_repo = get_repo(to_repo)
+        self.reporter = get_reporter()
 
         if not isinstance(self.to_repo, LocalRepo):
             raise ValueError(
@@ -183,12 +199,14 @@ class Localizer(object):
     def localize(self, module_specs, overwrite=False):
         '''Given ModuleSpecs, download them to this Localizers repo.'''
 
+        self.reporter.start_localize(module_specs)
         localized = []
         for module_spec in module_specs:
 
             # Module is already local
             if isinstance(module_spec.repo, LocalRepo):
                 localized.append(Module(module_spec.path))
+                self.reporter.localize_module(module_spec, localized[-1])
                 continue
 
             # Module already exists in to_repo
@@ -198,9 +216,11 @@ class Localizer(object):
                 if is_exact_match(module_spec.qual_name, match):
                     already_exists = True
                     localized.append(Module(match.path))
+                    self.reporter.localize_module(module_spec, localized[-1])
                     break
 
             if already_exists and not overwrite:
+                self.reporter.localize_module(module_spec, localized[-1])
                 continue
 
             # Generate a new module path in to_repo
@@ -220,7 +240,9 @@ class Localizer(object):
                 overwrite=overwrite,
             )
             localized.append(module)
+            self.reporter.localize_module(module_spec, localized[-1])
 
+        self.reporter.end_localize(localized)
         return localized
 
 
@@ -266,7 +288,9 @@ def cwd_resolver(resolver, path):
 
     mod_path = paths.normalize(os.getcwd(), path)
     if is_module(mod_path):
-        return Module(mod_path).as_spec()
+        resolved = Module(mod_path).as_spec()
+        resolver.reporter.resolve_requirement(path, resolved)
+        return resolved
 
     raise ResolveError
 
@@ -280,7 +304,9 @@ def modules_path_resolver(resolver, path):
         mod_path = paths.normalize(module_dir, path)
 
         if is_module(mod_path):
-            return Module(mod_path).as_spec()
+            resolved = Module(mod_path).as_spec()
+            resolver.reporter.resolve_requirement(path, resolved)
+            return resolved
 
     raise ResolveError
 
