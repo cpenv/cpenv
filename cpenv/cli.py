@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-'''Minimal and standalone CLI framework.'''
+'''A minimal CLI framework.'''
 from __future__ import absolute_import, print_function
 
 # Standard library imports
 import argparse
 import ast
-import os
 import sys
 from textwrap import wrap
 try:
@@ -118,6 +117,8 @@ class CLI(object):
 
 
 def echo(message='', end='\n'):
+    '''Write a message to stdout.'''
+
     print(message, end=end)
     if not end:
         sys.stdout.flush()
@@ -125,6 +126,7 @@ def echo(message='', end='\n'):
 
 def prompt(message):
     '''Prompt a user for input'''
+
     if is_py2:
         return raw_input(message)
 
