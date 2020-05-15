@@ -25,6 +25,7 @@ from cpenv import (
     paths,
 )
 from cpenv.module import (
+    Module,
     best_match,
     is_partial_match,
     parse_module_path,
@@ -51,6 +52,7 @@ class CpenvCLI(cli.CLI):
             Copy(self),
             Create(self),
             Info(self),
+            Edit(self),
             List(self),
             Localize(self),
             Publish(self),
@@ -86,6 +88,40 @@ class Info(cli.CLI):
                 [(k, str(v)) for k, v in sorted(spec._asdict().items())]
             ))
             cli.echo()
+
+
+class Edit(cli.CLI):
+    '''Open a module in a text editor.
+
+    Editor Lookup:
+        1. CPENV_EDITOR environment variable
+        2. EDITOR environment variable
+        3. subl (default editor)
+    '''
+
+    usage = 'cpenv edit [-h] <module>'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'module',
+            help='Module to clone.',
+        )
+
+    def run(self, args):
+        cli.echo()
+        try:
+            module_spec = api.resolve([args.module])[0]
+        except ResolveError:
+            sys.exit(1)
+
+        if not isinstance(module_spec.repo, LocalRepo):
+            cli.echo('%s - %s' % (module_spec.qual_name, module_spec.path))
+            cli.echo('Error: Can only edit modules in local repositories.')
+            sys.exit(1)
+
+        editor = os.getenv('CPENV_EDITOR', os.getenv('EDITOR', 'subl'))
+        cli.echo('Opening %s in %s.' % (module_spec.path, editor))
+        shell.run(editor, module_spec.path)
 
 
 class Activate(cli.CLI):
@@ -432,8 +468,7 @@ class Copy(cli.CLI):
         cli.echo()
 
         copier = Copier(to_repo)
-        for module_spec in module_specs:
-            copier.copy([module_spec], args.overwrite)
+        copier.copy(module_specs, args.overwrite)
 
 
 class Publish(cli.CLI):
@@ -461,6 +496,7 @@ class Publish(cli.CLI):
 
         cli.echo()
 
+        # Get repo
         if args.to_repo:
             to_repo = api.get_repo(name=args.to_repo)
         else:
@@ -470,16 +506,24 @@ class Publish(cli.CLI):
                 default_repo_name='home',
             )
 
+        # Resolve module
+        resolver = Resolver(api.get_repos())
+        module_spec = resolver.resolve([args.module])[0]
         cli.echo()
-        cli.echo(
-            '- Publishing %s to %s...' % (args.module, to_repo.name),
-            end='',
-        )
-        module = api.publish(args.module, to_repo, args.overwrite)
-        cli.echo('OK!', end='\n\n')
 
-        cli.echo('Activate it using the following command:')
-        cli.echo('  cpenv activate %s' % module.real_name)
+        # Confirm publication
+        choice = cli.prompt('Publish module to %s?[y/n] ' % to_repo.name)
+        if choice.lower() not in ['y', 'yes', 'yup']:
+            cli.echo('Aborted.')
+            sys.exit(1)
+
+        # Publish
+        module = Module(module_spec.path)
+        published = to_repo.upload(module, args.overwrite)
+        cli.echo()
+
+        cli.echo('Activate your published:')
+        cli.echo('  cpenv activate %s' % published.real_name)
 
 
 class Remove(cli.CLI):
