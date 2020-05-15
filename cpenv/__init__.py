@@ -11,6 +11,7 @@ __description__ = 'Cross-platform Python environment management.'
 
 # Local imports
 from .api import *
+from .module import *
 from .repos import *
 from .reporter import *
 from .resolver import *

@@ -13,7 +13,11 @@ from .versions import ParseError, Version, default_version, parse_version
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
 
-
+__all__ = [
+    'ModuleSpec',
+    'Module',
+    'sort_modules',
+]
 module_header = '''
 # Variables
 # $MODULE - path to this module

@@ -2,11 +2,13 @@
 from .base import Repo
 from .local import LocalRepo
 from .shotgun import ShotgunRepo
+from .github import GithubRepo
 
 
 registry = {
     LocalRepo.type_name: LocalRepo,
     ShotgunRepo.type_name: ShotgunRepo,
+    GithubRepo.type_name: GithubRepo,
 }
 
 

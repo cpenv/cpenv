@@ -38,6 +38,7 @@ class ShotgunRepo(Repo):
           - description   Text
           - email         Text
           - version       Text
+          - data          Text
 
     Arguments:
         name (str): Name of this Repo
@@ -160,11 +161,10 @@ class ShotgunRepo(Repo):
 
         # Download archive data - we add a chunk to download_size for zip
         # progress reporting.
-        reporter = get_reporter()
         chunk_size = 8192
         download_size = self.get_size(module_spec)
         zip_chunk_size = (download_size / chunk_size) * 10
-        progress_bar = reporter.progress_bar(
+        progress_bar = get_reporter().progress_bar(
             label='Download %s' % module_spec.name,
             max_size=download_size + zip_chunk_size,
             data={'module_spec': module_spec},

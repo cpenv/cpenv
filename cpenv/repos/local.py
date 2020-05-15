@@ -87,8 +87,7 @@ class LocalRepo(Repo):
         src = module_spec.path
         dst = where
 
-        reporter = get_reporter()
-        progress_bar = reporter.progress_bar(
+        progress_bar = get_reporter().progress_bar(
             label='Download %s' % module_spec.name,
             max_size=self.get_size(module_spec),
             data={'module_spec': module_spec},
@@ -141,8 +140,7 @@ class LocalRepo(Repo):
         src = module.path
         dst = new_module_path
 
-        reporter = get_reporter()
-        progress_bar = reporter.progress_bar(
+        progress_bar = get_reporter().progress_bar(
             label='Upload %s' % module.name,
             max_size=self.get_size(module),
             data={'module': module, 'to_repo': self},
