@@ -34,8 +34,8 @@ class Resolver(object):
     Modules will be looked up sequentially in all registered Repos. By default
     this order is:
         1. LocalRepo pointing to current working directory
-        2. LocalRepo pointing to cpenv_home_modules_path ($CPENV_HOME/modules)
-        3. LocalRepo pointing to cpenv_user_modules_path
+        2. LocalRepo pointing to cpenv_user_modules_path
+        3. LocalRepo pointing to cpenv_home_modules_path ($CPENV_HOME/modules)
         4. LocalRepos pointing to the paths in $CPENV_MODULES
         5. Custom Repos registered via cpenv.add_repo
 
