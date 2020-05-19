@@ -522,8 +522,9 @@ class Publish(cli.CLI):
         published = to_repo.upload(module, args.overwrite)
         cli.echo()
 
-        cli.echo('Activate your published:')
+        cli.echo('Activate your module:')
         cli.echo('  cpenv activate %s' % published.real_name)
+        cli.echo()
 
 
 class Remove(cli.CLI):
@@ -585,6 +586,7 @@ class Remove(cli.CLI):
 
         cli.echo()
         cli.echo('Successfully removed modules.')
+        cli.echo()
 
 
 class Repo(cli.CLI):

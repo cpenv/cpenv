@@ -1,58 +1,33 @@
+.. image:: https://raw.github.com/cpenv/cpenv/master/res/icon_dark.png
+    :target: https://github.com/cpenv/cpenv
+    :align: center
+
 cpenv
 =====
-Cross-platform Python environment management.
+.. image:: https://raw.github.com/cpenv/cpenv/master/res/icon_dark.png
+    :align: center
 
-cpenv makes it easy to manage dependencies, environment variables, and applications through the use
-of python virtualenvs and modules. Configurations can be shared between windows, linux, or mac and deployed
-directly from git.
+Manage software plugins, project dependencies and environment
+variables through the use of Modules.
 
-How it looks
-============
+A Module is a folder containing a dependency like Arnold for Maya and a
+module.yml file that configures it. Modules can be as simple or as complex as
+needed.
 
-From a terminal
-::
 
-    >cpenv create my_env
-    Creating new environment my_env
-    ...
-    Activating my_env
-
-    [my_env]> cpenv create --module my_module https://github.com/cpenv/template_module.git
-    Installing https://github.com/cpenv/template_module.git
-    ...
-
-From python
-::
-
-    import cpenv
-    my_env = cpenv.create('my_env)
-    my_env.add_module('my_module', 'https://github.com/cpenv/template_module.git')
-    cpenv.activate(my_env, my_module)
-
-From an environment config
-::
-
-    environment:
-        PATH:
-            - '$ENVIRON/relative/path'
-    dependencies:
-        modules:
-            - name: template_module
-            repo: https://github.com/cpenv/template_module.git
-            branch: master
-        pip:
-            - requests
-        git: []
 
 Installation
 ============
-cpenv is available on pypi
+The recommended method of installing cpenv is via `pipx <https://pipxproject.github.io/pipx>`. Pipx is used to install python cli applications in isolation.
+
 ::
 
-    pip install cpenv
+    pipx install cpenv
 
-Make sure you've got `Git <https://git-scm.com>`_ installed and accessible from your command prompt/terminal and you're ready to go. Set $CPENV_HOME where you'd like environments to be created (defaults to ~/.cpenv).
+::
 
-Documentation
-=============
-To learn more visit http://cpenv.rtfd.io/.
+    pipx upgrade cpenv
+
+::
+
+    pipx uninstall cpenv

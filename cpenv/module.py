@@ -17,10 +17,10 @@ from .vendor import yaml
 module_header = '''
 # Variables
 # $MODULE - path to this module
-# $PLATFORM - path to platform
-# $PYVER - path to python version
+# $PLATFORM - platform name (win, mac, linux)
+# $PYVER - python version (2.7, 3.6...)
 
-# Wrap variables in brackets when they are nested within a string. For example:
+# Wrap variables in brackets when they are nested within a string.
 #     DO 'this${variable}isnested/' NOT 'this$variableisnested'
 
 '''
