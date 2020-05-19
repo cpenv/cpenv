@@ -17,16 +17,14 @@ needed.
 
 # Installation
 
-The recommended method of installing cpenv is via `pipx <https://pipxproject.github.io/pipx>`. Pipx is used to install python cli applications in isolation.
+The recommended method of installing cpenv is via [pipx](https://pipxproject.github.io/pipx). Pipx is used to install python cli applications in isolation.
 
-::
-
-    pipx install cpenv
-
-::
-
-    pipx upgrade cpenv
-
-::
-
-    pipx uninstall cpenv
+```
+pipx install cpenv
+```
+```
+pipx upgrade cpenv
+```
+```
+pipx uninstall cpenv
+```
