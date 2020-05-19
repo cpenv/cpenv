@@ -67,7 +67,7 @@ of your choosing.
 
 ## Repos
 Repos are storage locations for Modules that support finding, listing, uploading, and downloading Modules via *requirements* like 
-`my_module-0.1.0`. Cpenv is configured has the following LocalRepos by default:
+`my_module-0.1.0`. Cpenv is configured with the following LocalRepos by default:
 
 - **cwd** - Your current working directory
 - **user** - A user specific repo
