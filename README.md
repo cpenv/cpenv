@@ -4,7 +4,7 @@
 
 # cpenv
 Manage software plugins, project dependencies and environment
-variables through the use of Modules.
+variables using Modules.
 
 <p align="center">
     <img src="https://raw.github.com/cpenv/cpenv/master/res/demo.gif"/>
