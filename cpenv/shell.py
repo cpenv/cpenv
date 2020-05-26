@@ -2,6 +2,7 @@
 from __future__ import absolute_import, print_function
 
 # Standard library imports
+import fnmatch
 import os
 import subprocess
 
@@ -30,54 +31,115 @@ def run(*args, **kwargs):
         return False
 
 
-def get_subshell_command():
-    '''Return a command to launch a subshell'''
+def get_shell():
+    '''Get an approriate shell to use for a subshell.
 
-    if compat.platform == 'win':
-        return ['cmd.exe', '/K']
+    1. Use value of CPENV_SUBSHELL env var
+    2. Attempt to walk up process tree using psutil
+    3. Use a default shell (May not match with parent shell)
 
-    elif compat.platform == 'linux':
-        ppid = os.getppid()
-        ppid_cmdline_file = '/proc/{0}/cmdline'.format(ppid)
-        try:
-            with open(ppid_cmdline_file) as f:
-                command = f.read()
-            if command.endswith('\x00'):
-                command = command[:-1]
-            command = command.split('\x00')
-            return command + [binpath('subshell.sh')]
-        except Exception:
-            command = 'bash'
+    Default Shells:
+        win: powershell.exe
+        mac: bash
+        linux: bash
+    '''
 
-    else:
-        command = 'bash'
+    # Get preferred shell from
+    preferred_shell = os.getenv('CPENV_SUBSHELL')
+    if preferred_shell:
+        return preferred_shell
 
-    return [command, binpath('subshell.sh')]
+    # Attempt to find parent shell using psutil
+    try:
+        import psutil
+        supported_shells = [
+            'powershell.exe',
+            'cmd.exe',
+            'powershell',
+            'cmd',
+            'bash',
+            'sh',
+            'fish',
+            'xonsh',
+            'zsh',
+            'csh',
+        ]
+
+        if compat.platform == 'win':
+            py_proc = 'py*.exe'
+        else:
+            py_proc = 'python*'
+
+        proc = psutil.Process()
+        while True:
+            exe = proc.exe()
+            exe_name = os.path.basename(exe)
+            if fnmatch.fnmatch(exe_name, py_proc):
+                proc = proc.parent()
+                continue
+            if exe_name in supported_shells:
+                return exe
+            break
+    except ImportError:
+        pass
+
+    # Fallback to a default shell
+    return {
+        'win': 'powershell.exe',
+        'linux': 'bash',
+        'mac': 'bash',
+    }[compat.platform]
 
 
-def prompt(prefix='', colored=True):
+def get_prompt(shell, prefix, colored=True):
     '''Generate a prompt with a given prefix
 
     linux/osx: [prefix] user@host cwd $
           win: [prefix] cwd:
     '''
 
-    if compat.platform == 'win':
-        return '{0} $P$G'.format(prefix)
-    else:
+    if shell.endswith('cmd.exe'):
+        return '{} $P$G'.format(prefix)
+
+    if shell.endswith('powershell.exe'):
+        return "'{} PS ' + $(get-location) + '> '".format(prefix)
+
+    if shell.endswith('bash'):
         if colored:
             return (
-                '{0} '  # White prefix
+                '{} '  # White prefix
                 '\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\] '  # Green user@host
                 '\\[\\033[01;34m\\]\\w $ \\[\\033[00m\\]'  # Blue cwd $
             ).format(prefix)
-        return '{0} \\u@\\h \\w $ '.format(prefix)
+        return '{} \\u@\\h \\w $ '.format(prefix)
 
 
-def launch(prompt_prefix=None):
+def get_subshell_command(prefix):
+    '''Return a command to launch a subshell'''
+
+    shell = get_shell()
+    prompt = get_prompt(shell, prefix)
+
+    if shell.endswith('cmd.exe'):
+        os.environ['PROMPT'] = prompt
+        return [shell, '/K']
+
+    if shell.endswith('powershell.exe'):
+        return [
+            shell,
+            '-NoExit',
+            '-Command',
+            "function Prompt {%s}" % prompt
+        ]
+
+    if shell.endswith('bash'):
+        return [shell, binpath('subshell.sh')]
+
+    return [shell]
+
+
+def launch(prefix='[*]'):
     '''Launch a subshell'''
 
-    if prompt_prefix is not None:
-        os.environ['PROMPT'] = prompt(prompt_prefix)
-
-    subprocess.call(get_subshell_command(), env=dict(os.environ))
+    shell_cmd = get_subshell_command(prefix)
+    subprocess.call(shell_cmd, env=dict(os.environ))
