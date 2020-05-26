@@ -7,6 +7,9 @@ import warnings
 import zipfile
 from functools import partial
 
+# Third party imports
+import certifi
+
 # Local imports
 from .. import http, paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
@@ -80,6 +83,7 @@ class ShotgunRepo(Repo):
                 base_url=base_url,
                 script_name=script_name,
                 api_key=api_key,
+                ca_certs=certifi.where(),
             )
 
         self.base_url = self._api.base_url

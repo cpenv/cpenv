@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Standard library imports
-import json
+from json import dumps as json_dump
 
 try:
     from urllib2 import urlopen, HTTPError, URLError
@@ -10,15 +10,19 @@ except ImportError:
     from urllib.error import HTTPError, URLError
     from http.client import HTTPException
 
+import certifi
+import ssl
+
 
 def get(url):
     '''Make a get request.'''
 
-    response = urlopen(url)
+    context = ssl.create_default_context(cafile=certifi.where())
+    response = urlopen(url, context=context)
     return response
 
 
 def json(response):
     '''Get dict from json response.'''
 
-    return json.dumps(response.read())
+    return json_dump(response.read())
