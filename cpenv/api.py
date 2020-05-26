@@ -226,13 +226,12 @@ def publish(module, to_repo='home', overwrite=False):
 
     if isinstance(module, compat.string_types):
         resolver = Resolver(get_repos())
-        module = resolver.resolve([module])[0]
+        module_spec = resolver.resolve([module])[0]
 
-    if isinstance(module, ModuleSpec):
-        if not isinstance(module.repo, repos.LocalRepo):
-            raise ValueError('Can only from modules in local repos.')
-        else:
-            module = Module(module.path)
+    if not isinstance(module_spec.repo, repos.LocalRepo):
+        raise ValueError('Can only from modules in local repos.')
+    else:
+        module = Module(module_spec.path)
 
     published = to_repo.upload(module, overwrite)
     return published
