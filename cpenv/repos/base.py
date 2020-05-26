@@ -19,6 +19,13 @@ class Repo(object):
                 args.append('{}={!r}'.format(attr, getattr(self, attr)))
         return '<{}>({})'.format(type(self).__name__, ', '.join(args))
 
+    def clear_cache(self):
+        '''Subclasses that implement caching should implement this method
+        so that cpenv can clear the cache when necessary. Like after copying
+        or localizing modules.
+        '''
+        return NotImplemented
+
     def find(self, requirement):
         '''Given a requirement, return a list of ModuleSpecs that match.
 

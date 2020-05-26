@@ -39,7 +39,7 @@ class Resolver(object):
         4. LocalRepos pointing to the paths in $CPENV_MODULES
         5. Custom Repos registered via cpenv.add_repo
 
-    If there are still unresolved modules, we fallback to the old algorithm
+    If there are still unresolved modules, fallback to the old algorithm
     for module lookups using the resolve functions in the
     cpenv.resolver.module_resolvers list.
     '''
@@ -174,6 +174,9 @@ class Copier(object):
         if os.path.isdir(tmp):
             paths.rmtree(tmp)
 
+        # Clear to_repo's cache as it doesn't include the localized modules
+        self.to_repo.clear_cache()
+
         return copied
 
 
@@ -243,11 +246,15 @@ class Localizer(object):
             self.reporter.localize_module(module_spec, localized[-1])
 
         self.reporter.end_localize(localized)
+
+        # Clear to_repo's cache as it doesn't include the localized modules
+        self.to_repo.clear_cache()
+
         return localized
 
 
 # Deprecated
-# The following functions represet the old resolution algorithm
+# The following functions implement the old resolution algorithm
 # this is called by Resolver.resolve only when no Repos are able to resolve
 # a requirement.
 

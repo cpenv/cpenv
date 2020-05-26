@@ -3,6 +3,7 @@
 import os
 import shutil
 from glob import glob
+from functools import partial
 
 # Local imports
 from .. import paths
@@ -14,6 +15,7 @@ from ..module import (
 )
 from ..reporter import get_reporter
 from ..vendor import yaml
+from ..vendor.cachetools import TTLCache, cachedmethod, keys
 from .base import Repo
 
 
@@ -34,23 +36,18 @@ class LocalRepo(Repo):
     def __init__(self, name, path):
         super(LocalRepo, self).__init__(name)
         self.path = paths.normalize(path)
-        self._cached_modules = None
+        self.cache = TTLCache(maxsize=10, ttl=60)
 
     def relative_path(self, *parts):
         return paths.normalize(self.path, *parts)
 
-    @property
-    def cached_modules(self):
-        if not self._cached_modules:
-            self._cached_modules = sort_modules(
-                self.list(),
-                reverse=True
-            )
-        return self._cached_modules
+    def clear_cache(self):
+        self.cache.clear()
 
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'find'))
     def find(self, requirement):
         matches = []
-        for module_spec in self.cached_modules:
+        for module_spec in self.list():
             if is_exact_match(requirement, module_spec):
                 matches.insert(0, module_spec)
                 continue
@@ -59,6 +56,7 @@ class LocalRepo(Repo):
 
         return matches
 
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'list'))
     def list(self):
         module_specs = []
 
@@ -75,7 +73,7 @@ class LocalRepo(Repo):
             module = Module(version_dir, repo=self)
             module_specs.append(module.as_spec())
 
-        return module_specs
+        return sort_modules(module_specs, reverse=True)
 
     def download(self, module_spec, where, overwrite=False):
         if os.path.isdir(where):

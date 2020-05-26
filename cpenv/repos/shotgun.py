@@ -5,12 +5,14 @@ import fnmatch
 import os
 import warnings
 import zipfile
+from functools import partial
 
 # Local imports
 from .. import http, paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
 from ..reporter import get_reporter
 from ..vendor import yaml
+from ..vendor.cachetools import TTLCache, cachedmethod, keys
 from ..versions import parse_version
 from .base import Repo
 
@@ -93,11 +95,16 @@ class ShotgunRepo(Repo):
             'sg_data',
         ]
         self.archive_fields = ['sg_archive', 'sg_archive_size']
+        self.cache = TTLCache(maxsize=10, ttl=60)
 
     @property
     def shotgun(self):
         return self._api
 
+    def clear_cache(self):
+        self.cache.clear()
+
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'find'))
     def find(self, requirement):
         name, version = parse_module_requirement(requirement)
 
@@ -127,6 +134,7 @@ class ShotgunRepo(Repo):
 
         return sort_modules(module_specs, reverse=True)
 
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'list'))
     def list(self):
         entities = self.shotgun.find(
             self.module_entity,
