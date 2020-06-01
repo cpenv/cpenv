@@ -10,7 +10,11 @@ except ImportError:
     from urllib.error import HTTPError, URLError
     from http.client import HTTPException
 
-import certifi
+try:
+    import certifi
+except ImportError:
+    from .vendor import certifi
+
 import ssl
 
 

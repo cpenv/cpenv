@@ -8,7 +8,10 @@ import zipfile
 from functools import partial
 
 # Third party imports
-import certifi
+try:
+    import certifi
+except ImportError:
+    from ..vendor import certifi
 
 # Local imports
 from .. import http, paths

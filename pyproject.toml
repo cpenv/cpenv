@@ -10,7 +10,6 @@ cpenv = "cpenv.__main__:main"
 
 [tool.poetry.dependencies]
 python = "^2.7 || ^3.6"
-requests = "^2.23.0"
 tqdm = "^4.46.0"
 colorama = "^0.4.3"
 psutil = "^5.7.0"
