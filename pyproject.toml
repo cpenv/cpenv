@@ -18,7 +18,6 @@ psutil = "^5.7.0"
 nose = "^1.3.7"
 coverage = {extras = ["toml"], version = "^5.1"}
 isort = "^4.3.21"
-shotgun-api3 = {git = "https://github.com/shotgunsoftware/python-api", rev = "v3.2.1"}
 
 [tool.coverage.report]
 omit = [

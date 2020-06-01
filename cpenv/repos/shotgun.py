@@ -3,7 +3,6 @@
 import io
 import fnmatch
 import os
-import warnings
 import zipfile
 from functools import partial
 
@@ -18,18 +17,10 @@ from .. import http, paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
 from ..reporter import get_reporter
 from ..vendor import yaml
+from ..vendor.shotgun_api3 import Shotgun
 from ..vendor.cachetools import TTLCache, cachedmethod, keys
 from ..versions import parse_version
 from .base import Repo
-
-try:
-    from shotgun_api3 import Shotgun
-except ImportError:
-    warnings.warn(
-        'ShotgunRepo is unavailable.\n'
-        'Install the Shotgun API using pip:\n'
-        '    pip install git+git://github.com/shotgunsoftware/python-api.git'
-    )
 
 
 class ShotgunRepo(Repo):
@@ -37,7 +28,7 @@ class ShotgunRepo(Repo):
 
     Requirements:
         A CustomNonProjectEntity named "Module" to be enabled via
-        Shotgun site-preferences.
+        Shotgun site-preferences with the following fields enabled:
 
         The following fields must be added to the "Module" entity.
           - archive       File/Link
@@ -46,6 +37,11 @@ class ShotgunRepo(Repo):
           - description   Text
           - email         Text
           - version       Text
+
+        A CustomEntity named "Environment" to be enabled via
+        Shotgun site-preferences with the following fields enabled:
+          - engine        Text
+          - requires      Text
 
     Arguments:
         name (str): Name of this Repo
