@@ -62,7 +62,10 @@ class Resolver(object):
         unresolved = list(requirements)
         resolved = []
 
-        for requirement in requirements:
+        # Try the old resolution alogirthm for backwards compatability
+        resolved.extend(old_resolve_algorithm(self, unresolved))
+
+        for requirement in list(unresolved):
             self.reporter.find_requirement(requirement)
             # TODO: handle more complex requirements.
             #       possibly use the new resolvelib being developed by pypa
@@ -84,10 +87,6 @@ class Resolver(object):
                 # TODO: once old resolve algorithm is removed
                 # report a module resolution failure here.
                 pass
-
-        if unresolved:
-            # Try the old resolution alogirthm for backwards compatability
-            resolved.extend(old_resolve_algorithm(self, unresolved))
 
         self.reporter.end_resolve(resolved, unresolved)
 
@@ -281,19 +280,10 @@ def old_resolve_algorithm(resolver, paths):
     return modules
 
 
-def path_is_module_resolver(resolver, path):
+def system_path_resolver(resolver, path):
     '''Checks if path is already a :class:`Module` object'''
 
-    if isinstance(path, Module):
-        return path
-
-    raise ResolveError
-
-
-def cwd_resolver(resolver, path):
-    '''Checks if path is already a :class:`Module` object'''
-
-    mod_path = paths.normalize(os.getcwd(), path)
+    mod_path = paths.normalize(path)
     if is_module(mod_path):
         resolved = Module(mod_path).as_spec()
         resolver.reporter.resolve_requirement(path, resolved)
@@ -302,25 +292,13 @@ def cwd_resolver(resolver, path):
     raise ResolveError
 
 
-def modules_path_resolver(resolver, path):
-    '''Resolves modules in CPENV_MODULES path and CPENV_HOME/modules'''
-
-    from .api import get_module_paths
-
-    for module_dir in get_module_paths():
-        mod_path = paths.normalize(module_dir, path)
-
-        if is_module(mod_path):
-            resolved = Module(mod_path).as_spec()
-            resolver.reporter.resolve_requirement(path, resolved)
-            return resolved
-
-    raise ResolveError
-
-
 def redirect_resolver(resolver, path):
     '''Resolves environment from .cpenv file...recursively walks up the tree
-    in attempt to find a .cpenv file'''
+    in attempt to find a .cpenv file
+    '''
+
+    # TODO: Create special DirectRepo to handle resolving modules via
+    #       full file path
 
     if not os.path.exists(path):
         raise ResolveError
@@ -341,9 +319,7 @@ def redirect_resolver(resolver, path):
 
 module_resolvers = [
     redirect_resolver,
-    cwd_resolver,
-    path_is_module_resolver,
-    modules_path_resolver,
+    system_path_resolver,
 ]
 
 
