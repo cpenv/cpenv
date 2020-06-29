@@ -15,14 +15,15 @@ from .vendor import yaml
 
 
 def _preprocess_dict(d):
-    if platform in d:
-        return d[platform]
+    return d.get(platform, None)
 
 
 def _preprocess_seq(seq):
     value = []
     for item in seq:
         item_value = PREPROCESSORS[type(item)](item)
+        if item_value is None:
+            continue
         if isinstance(item_value, (list, tuple, set)):
             value.extend(item_value)
         else:
@@ -59,7 +60,9 @@ def preprocess_dict(d):
         if not type(v) in PREPROCESSORS:
             raise KeyError('Invalid type in dict: {}'.format(type(v)))
 
-        out_env[k] = PREPROCESSORS[type(v)](v)
+        value = PREPROCESSORS[type(v)](v)
+        if value is not None:
+            out_env[k] = value
 
     return out_env
 
