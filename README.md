@@ -57,6 +57,51 @@ environment:
     MY_MODULE_VAR: 'Test'
 ```
 
+#### Environment key
+Setting a value will create or overwrite it's existing value.
+```
+SOME_VAR: 'SOME_VALUE'
+```
+
+Use the $MODULE variable for module relative paths.
+```
+RELATIVE_VAR: $MODULE/bin
+```
+
+Use lists to prepend values to an environment variable.
+```
+PATH:
+    - $MODULE/bin
+```
+
+Use win, linux and osx keys to declar platform specific values. If you leave out a platform, the variable will not be included on that specific platform.
+```
+PLATFORM_VAR:
+    win: 'C:/some/path'
+    linux: '/some/path'
+    osx: '/some/path'
+```
+
+You can also use win, linux and osx keys when prepending values to a variable.
+```
+PATH:
+    - win: $MODULE/squares
+      linux: $MODULE/penguin
+      osx: $MODULE/macattack
+```
+
+Declare and use environment variables to simplify things.
+```
+BASE: $MODULE/$PLATFORM/base
+PATH:
+    - $BASE/bin
+PYTHONPATH:
+    - $BASE/python
+```
+
+#### Requires key
+The requires key is a list of dependencies that a module needs to function. Currently this is only used for reference, these modules will not be activated automatically.
+
 ### Test a Module
 When you're working on a module navigate into it's root directory. Then you can activate it using `cpenv activate .`. This is
 the best way to validate your module prior to publishing.
@@ -80,7 +125,7 @@ When you activate a module using a requirement, all configured Repos are searche
 module is not in a LocalRepo it will be downloaded to your home Repo then activated. This is one of the key features of cpenv 
 and allows for strong distributed workflows. For example, you can configure a remote repo like the GithubRepo to store modules 
 in a Github organization or you can configure a ShotgunRepo and store your modules directly in a 
-[Shotgun studio](https://www.shotgunsoftware.com/) database.
+[Shotgun studio](https://www.shotgunsoftware.com/) database. [Visit the tk-cpenv repository for more info on using cpenv with Shotgun](https://github.com/cpenv/tk-cpenv)
 
 ## Requirements
 Requirements are strings used to resolve and activate modules in Repos. They can be versionless like `my_module` or require a 
