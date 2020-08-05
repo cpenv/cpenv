@@ -16,6 +16,11 @@ def normalize(*parts):
     return os.path.abspath(path).replace('\\', '/')
 
 
+def parent(path):
+    '''Get a file paths parent directory'''
+    return normalize(os.path.dirname(path))
+
+
 def ensure_path_exists(path, *args):
     '''Like os.makedirs but keeps quiet if path already exists'''
 
@@ -100,8 +105,8 @@ def is_excluded(value, exclude, exclude_patterns):
     '''Check if a string value matches exclude values and glob patterns'''
 
     return (
-        value in exclude or
-        any([fnmatch(value, p) for p in exclude_patterns])
+        value in exclude
+        or any([fnmatch(value, p) for p in exclude_patterns])
     )
 
 

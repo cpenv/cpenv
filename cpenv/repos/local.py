@@ -62,14 +62,14 @@ class LocalRepo(Repo):
 
         # Find flat module_specs
         for module_file in glob(self.relative_path('*', 'module.yml')):
-            module_path = paths.normalize(os.path.dirname(module_file))
+            module_path = paths.parent(module_file)
             module = Module(module_path, repo=self)
             module_specs.append(module.as_spec())
 
         # Find nested module_specs
         versions = glob(self.relative_path('*', '*', 'module.yml'))
         for version_file in versions:
-            version_dir = paths.normalize(os.path.dirname(version_file))
+            version_dir = paths.parent(version_file)
             module = Module(version_dir, repo=self)
             module_specs.append(module.as_spec())
 

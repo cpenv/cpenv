@@ -283,11 +283,13 @@ def old_resolve_algorithm(resolver, paths):
 def system_path_resolver(resolver, path):
     '''Checks if path is already a :class:`Module` object'''
 
-    mod_path = paths.normalize(path)
-    if is_module(mod_path):
-        resolved = Module(mod_path).as_spec()
-        resolver.reporter.resolve_requirement(path, resolved)
-        return resolved
+    is_system_path = ('/' in path or '\\' in path)
+    if is_system_path:
+        mod_path = paths.normalize(path)
+        if is_module(mod_path):
+            resolved = Module(mod_path).as_spec()
+            resolver.reporter.resolve_requirement(path, resolved)
+            return resolved
 
     raise ResolveError
 
@@ -297,14 +299,11 @@ def redirect_resolver(resolver, path):
     in attempt to find a .cpenv file
     '''
 
-    # TODO: Create special DirectRepo to handle resolving modules via
-    #       full file path
-
     if not os.path.exists(path):
         raise ResolveError
 
     if os.path.isfile(path):
-        path = os.path.dirname(path)
+        path = paths.parent(path)
 
     for root, _, _ in paths.walk_up(path):
         if is_redirecting(root):

@@ -8,7 +8,7 @@ from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import compat, mappings, paths
+from . import compat, mappings, paths, repos
 from .versions import ParseError, Version, default_version, parse_version
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
@@ -37,7 +37,10 @@ class Module(object):
     def __init__(self, path, name=None, version=None, repo=None):
 
         self.path = paths.normalize(path)
-        self.repo = repo
+        if repo is None:
+            self.repo = repos.LocalRepo('tmp', paths.parent(self.path))
+        else:
+            self.repo = repo
 
         # Create HookFinder for this module
         self.hook_path = self.relative_path('hooks')
@@ -246,7 +249,7 @@ def read_config(module_file, config_vars=None, data=None):
 
     if config_vars is None:
         config_vars = {
-            'MODULE': paths.normalize(os.path.dirname(module_file)),
+            'MODULE': paths.parent(module_file),
             'PLATFORM': compat.platform,
             'PYVER': sys.version[:3],
         }

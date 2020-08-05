@@ -753,7 +753,7 @@ class Version(cli.CLI):
                 ('name', cpenv.__name__),
                 ('version', cpenv.__version__),
                 ('url', cpenv.__url__),
-                ('package', paths.normalize(os.path.dirname(cpenv.__file__))),
+                ('package', paths.parent(cpenv.__file__)),
                 ('path', api.get_module_paths()),
             ]
         ))

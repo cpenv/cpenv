@@ -89,12 +89,8 @@ def teardown_module():
 def test_resolve_home():
     '''Resolve module in CPENV_HOME'''
 
-    for repo in cpenv.get_repos():
-        print(repo.name, repo.path)
-
     r = cpenv.Resolver(cpenv.get_repos())
     resolved = r.resolve(['testmod'])
-    print(resolved)
     assert resolved[0].path == data_path('home', 'modules', 'testmod')
 
 
@@ -127,12 +123,10 @@ def test_resolve_module_on_path():
 def test_resolve_relative():
     '''Resolve module from relative path'''
 
-    r = cpenv.Resolver(cpenv.get_repos())
-
     with cwd(data_path('not_home')):
+        r = cpenv.Resolver(cpenv.get_repos())
         resolved = r.resolve(['relmod'])
 
-    print(resolved, type(resolved))
     assert resolved[0].path == data_path('not_home', 'relmod')
 
 
