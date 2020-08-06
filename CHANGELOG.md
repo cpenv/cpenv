@@ -4,9 +4,128 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.5.0](https://github.com/cpenv/cpenv/releases/tag/0.5.0) ([compare](https://github.com/cpenv/cpenv/compare/0.4.4...0.5.0))
+## [0.5.9](https://github.com/cpenv/cpenv/releases/tag/0.5.9) - 2020-08-06
+
+<small>[Compare with 0.5.8](https://github.com/cpenv/cpenv/compare/0.5.8...0.5.9)</small>
+
+### Changed
+- Change: bump version to 0.5.8 ([3d56640](https://github.com/cpenv/cpenv/commit/3d566401c47e04d0ae6e2761ab6e07c9ab32187d) by Dan Bradham).
+
+
+## [0.5.8](https://github.com/cpenv/cpenv/releases/tag/0.5.8) - 2020-08-05
+
+<small>[Compare with 0.5.7](https://github.com/cpenv/cpenv/compare/0.5.7...0.5.8)</small>
+
+### Changed
+- Change: update readme.md ([916fccf](https://github.com/cpenv/cpenv/commit/916fccf6ccfd2ea6f8d95f9317336d3302983472) by Dan Bradham).
+
+### Fixed
+- Fix: module constructed without a repo could not be activated ([f72fe1d](https://github.com/cpenv/cpenv/commit/f72fe1da90364438636ca89b09de504746c16e70) by Dan Bradham).
+
+
+## [0.5.7](https://github.com/cpenv/cpenv/releases/tag/0.5.7) - 2020-06-29
+
+<small>[Compare with 0.5.6](https://github.com/cpenv/cpenv/compare/0.5.6...0.5.7)</small>
+
+### Changed
+- Change: bump version to 0.5.7 ([7593718](https://github.com/cpenv/cpenv/commit/7593718d44a1ae46c3333bc69b8e2a09163070a0) by Dan Bradham).
+
+### Fixed
+- Fix: error when missing platform key for environment variable ([7e2aa03](https://github.com/cpenv/cpenv/commit/7e2aa03b214b319076e599ccc88b109f0a47e2fc) by Dan Bradham).
+
+
+## [0.5.6](https://github.com/cpenv/cpenv/releases/tag/0.5.6) - 2020-06-03
+
+<small>[Compare with 0.5.5](https://github.com/cpenv/cpenv/compare/0.5.5...0.5.6)</small>
+
+### Changed
+- Change: bump version to 0.5.6 ([0196bde](https://github.com/cpenv/cpenv/commit/0196bde5fbbc0bd2c902bb89cbd6ef3572c78b7a) by Dan Bradham).
+
+### Fixed
+- Fix: ensure redirect resolver is called first ([d6d7dbc](https://github.com/cpenv/cpenv/commit/d6d7dbc4a44edef70f4f1b66256623941eb47390) by Dan Bradham).
+
+
+## [0.5.5](https://github.com/cpenv/cpenv/releases/tag/0.5.5) - 2020-06-01
+
+<small>[Compare with 0.5.4](https://github.com/cpenv/cpenv/compare/0.5.4...0.5.5)</small>
 
 ### Added
+- Add: vendor readme ([8d4f64d](https://github.com/cpenv/cpenv/commit/8d4f64dd723064df98a4737203792ca2f3216b62) by Dan Bradham).
+- Add: vendor shotgun_api3 ([c310f68](https://github.com/cpenv/cpenv/commit/c310f68100a86f4a441b83ecf08b8b15d4241b8a) by Dan Bradham).
+- Add: vendor certifi ([0b9c955](https://github.com/cpenv/cpenv/commit/0b9c9557b108ffc9a518a09f34c055c90d3fa8ee) by Dan Bradham).
+
+### Changed
+- Change: bump version to 0.5.5 ([b7744b6](https://github.com/cpenv/cpenv/commit/b7744b628e7675f4a6aa9b7b6973f03d3e26d6ba) by Dan Bradham).
+
+
+## [0.5.4](https://github.com/cpenv/cpenv/releases/tag/0.5.4) - 2020-05-26
+
+<small>[Compare with 0.5.3](https://github.com/cpenv/cpenv/compare/0.5.3...0.5.4)</small>
+
+### Changed
+- Change: bump version to 0.5.4 ([7a8235f](https://github.com/cpenv/cpenv/commit/7a8235f24eefbef31f590df3e6a4a9bac6c7f1c8) by Dan Bradham).
+
+### Fixed
+- Fix: explicitly set ssl certfile ([6758e90](https://github.com/cpenv/cpenv/commit/6758e903f15d3bcc5c8625d2d6779164f07b537b) by Dan Bradham).
+
+
+## [0.5.3](https://github.com/cpenv/cpenv/releases/tag/0.5.3) - 2020-05-26
+
+<small>[Compare with 0.5.2](https://github.com/cpenv/cpenv/compare/0.5.2...0.5.3)</small>
+
+### Changed
+- Change: bump version to 0.5.3 ([3fa6d4c](https://github.com/cpenv/cpenv/commit/3fa6d4cde0dcad66e566e270906ebf8e16a16c44) by Dan Bradham).
+- Change: order of lookup in resolver docstrin ([0d33ec8](https://github.com/cpenv/cpenv/commit/0d33ec889a5ee6118282d7833dcf9e30a4dc12d6) by Dan Bradham).
+- Change: switch to markdown for readme ([e318df0](https://github.com/cpenv/cpenv/commit/e318df050d0ad4c25b10dc46e14b6da114b8c65d) by Dan Bradham).
+- Change: start rewriting readme ([7b639cd](https://github.com/cpenv/cpenv/commit/7b639cd6785f7da196f55f903407ad32da777093) by Dan Bradham).
+
+### Fixed
+- Fix: repo cache not cleared after localize/copy add: vendor cachetools ([127708d](https://github.com/cpenv/cpenv/commit/127708d87ed07303c5aaf0e17846400453846010) by Dan Bradham).
+- Fix subshells ([26e7a5b](https://github.com/cpenv/cpenv/commit/26e7a5be7d1f7757879c28e99463fc1f9598561e) by Dan Bradham).
+
+
+## [0.5.2](https://github.com/cpenv/cpenv/releases/tag/0.5.2) - 2020-05-18
+
+<small>[Compare with 0.5.1](https://github.com/cpenv/cpenv/compare/0.5.1...0.5.2)</small>
+
+### Added
+- Add: edit command - to open a module in a text editor ([baea3de](https://github.com/cpenv/cpenv/commit/baea3deaa89a51100cdfb763176f89331e88b379) by Dan Bradham).
+- Add: clireporter with progress bars via tqdm ([abe8489](https://github.com/cpenv/cpenv/commit/abe848976f4e2587bdc016efd4ef3985c583e706) by Dan Bradham).
+- Add: reporter module to provide an interface to progress reporting ([a2af264](https://github.com/cpenv/cpenv/commit/a2af264edb7f8bcea743ba96519395c9483e3b35) by Dan Bradham).
+- Add: repo.get_size and get_thumbnail methods ([99cfb1b](https://github.com/cpenv/cpenv/commit/99cfb1b34592e790779dd1b8dbaf91c9d377603d) by Dan Bradham).
+
+### Changed
+- Change: bump version to 0.5.2 ([028023a](https://github.com/cpenv/cpenv/commit/028023aa7540a0c8e38ae55accb6292e7d29187e) by Dan Bradham).
+- Change: report download and upload progress in localrepo ([d3581e1](https://github.com/cpenv/cpenv/commit/d3581e1e5ea770336e23a9f47b67c005357dd7c0) by Dan Bradham).
+- Change: report download and upload progress in shotgunrepo ([82525dd](https://github.com/cpenv/cpenv/commit/82525ddedfd2ce9dde6ca820c2c737ea06c94987) by Dan Bradham).
+- Change: report progress of resolver and localizer ([a3d56de](https://github.com/cpenv/cpenv/commit/a3d56de51ce5a90a33b040572f2ad832e7bed625) by Dan Bradham).
+
+
+## [0.5.1](https://github.com/cpenv/cpenv/releases/tag/0.5.1) - 2020-05-11
+
+<small>[Compare with 0.5.0](https://github.com/cpenv/cpenv/compare/0.5.0...0.5.1)</small>
+
+### Changed
+- Change: bump version to 0.5.1 ([3d697d9](https://github.com/cpenv/cpenv/commit/3d697d90961e53434395ae19b8a665695827cf12) by Dan Bradham).
+
+### Fixed
+- Fix: cli entry point ([3835536](https://github.com/cpenv/cpenv/commit/3835536456b303ef146a4c4f20238fbd980a0399) by Dan Bradham).
+
+### Removed
+- Remove: shotgun-api3 from dependencies ([858d927](https://github.com/cpenv/cpenv/commit/858d92746879a02444ffaf1e0b51bbb34f12bbbc) by Dan Bradham).
+
+
+## [0.5.0](https://github.com/cpenv/cpenv/releases/tag/0.5.0) - 2020-05-11
+
+<small>[Compare with 0.4.4](https://github.com/cpenv/cpenv/compare/0.4.4...0.5.0)</small>
+
+### Added
+- Add: vendor.requests - imports requests from local site or pip._vendor ([17a6d16](https://github.com/cpenv/cpenv/commit/17a6d16f5700783d8ccd0386019e15cc74f2933f) by Dan Bradham).
+- Add: support for nuke style versioning (yuck) ([69271db](https://github.com/cpenv/cpenv/commit/69271db320410b038730900ae716ecd19fe737ed) by Dan Bradham).
+- Add: icon support ([a0fb55d](https://github.com/cpenv/cpenv/commit/a0fb55d6dc330ad377427f6b85bb78fa1e716bda) by Dan Bradham).
+- Add: method repo.get_data ([c9e068a](https://github.com/cpenv/cpenv/commit/c9e068ab73954b4eaef566aa52cdedadec6ef474) by Dan Bradham).
+- Add: changelog ([3d02bd0](https://github.com/cpenv/cpenv/commit/3d02bd023f498a551ae5f6c0d4a64a370742a0a1) by Dan Bradham).
+- Add: more tests for localrepo ([17659c3](https://github.com/cpenv/cpenv/commit/17659c3f8b922502c1c653821ae7063a6950678a) by Dan Bradham).
 - Add: shotgun_api3 to dev dependencies ([df4fe08](https://github.com/cpenv/cpenv/commit/df4fe08ea34536a8a690ce63d7b34a82e04c16bb) by Dan Bradham).
 - Add: shotgunrepo - supports storing modules directly in the sg database ([53f5cfc](https://github.com/cpenv/cpenv/commit/53f5cfcf8bbeed368eb72587b68d107bb6433c4e) by Dan Bradham).
 - Add: properties to module ([4ff9cb4](https://github.com/cpenv/cpenv/commit/4ff9cb49de9986dcfda025d0ce602c330479b953) by Dan Bradham).
@@ -38,6 +157,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add mock dev dep ([8b67c8c](https://github.com/cpenv/cpenv/commit/8b67c8cb7bdcb0c351d7e23b02cb2aa1f09fddde) by Dan Bradham).
 
 ### Changed
+- Change: split utils into paths and mappings modules ([aeeb4fd](https://github.com/cpenv/cpenv/commit/aeeb4fd1a8d0af983b2626c89e9eb543a40aaa08) by Dan Bradham).
+- Change: shotgunrepo uploads full config to a new sg_data field. ([7666c22](https://github.com/cpenv/cpenv/commit/7666c2239253183630f7ff3590575b574adeb224) by Dan Bradham).
 - Change: update api and cli to use refined resolver ([a0d28cc](https://github.com/cpenv/cpenv/commit/a0d28cc196672b90e25a64d1d4862a024f1745c8) by Dan Bradham).
 - Change: break up resolver into multiple classes - resolver: resolves requirements - activator: activates modules - localizer: downloads modules to local repos - copier: copies modules from one repo to another ([10b4259](https://github.com/cpenv/cpenv/commit/10b42595a4d93d31fb7d3356eeab97032e86d072) by Dan Bradham).
 - Change: make repos registry an ordereddict rather than list ([9bc2f87](https://github.com/cpenv/cpenv/commit/9bc2f874cdc00759d4ab29f3ae5d93d5e50b30cb) by Dan Bradham).
@@ -64,6 +185,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Change: vendor pyyaml ([f138973](https://github.com/cpenv/cpenv/commit/f138973443876e40c4d7064ecacf9570ec1f522f) by Dan Bradham).
 
 ### Fixed
+- Fix: get_cache_path redeclared "paths" module ([5abf6e2](https://github.com/cpenv/cpenv/commit/5abf6e227866ef6aa2180d07b2ed71c767baa9d0) by Dan Bradham).
+- Fix: import deps in __init__ ([3b39117](https://github.com/cpenv/cpenv/commit/3b39117c2b4de466c314230dda0fbc8657bd7444) by Dan Bradham).
+- Fix: _init failed when repo construction raised ([c81dd34](https://github.com/cpenv/cpenv/commit/c81dd349bebef31ace1b9cc8b55b8709af582e9a) by Dan Bradham).
+- Fix: py27 compatability issues ([15d68b1](https://github.com/cpenv/cpenv/commit/15d68b1808b6e840729dfcf80956b37d7129928e) by Dan Bradham).
+- Fix: module.run_hook did not return hooks result ([f24dd26](https://github.com/cpenv/cpenv/commit/f24dd26bf7ba51d45791ea7904b368cde7ee8250) by Dan Bradham).
 - Fix: nameerror in localizer ([327cb39](https://github.com/cpenv/cpenv/commit/327cb390c711a8aea883c0a00a3feb21001f8c2b) by Dan Bradham).
 - Fix: copier failed when to_repo was not a localrepo ([5dad1fc](https://github.com/cpenv/cpenv/commit/5dad1fc09434b5ac99b39ca1fa231688b17fb459) by Dan Bradham).
 - Fix: spacing in __main__ ([d058c1d](https://github.com/cpenv/cpenv/commit/d058c1da2e057c044fb0750e16a82ddcbf85ec58) by Dan Bradham).
@@ -73,24 +199,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix multiline resolver ([83f522e](https://github.com/cpenv/cpenv/commit/83f522ebd3045507be8ea589d8ec048ea3ac0ca0) by Dan Bradham).
 
 ### Removed
+- Remove: hooks docstring ([5690105](https://github.com/cpenv/cpenv/commit/56901053503a3fb7e6c8dcaa4af9f06c9508c02a) by Dan Bradham).
+- Remove: deps package ([76f26fb](https://github.com/cpenv/cpenv/commit/76f26fb63084c8b759a9951abbc2a1d41dc5ac01) by Dan Bradham).
 - Remove: defaults.py ([f703f7c](https://github.com/cpenv/cpenv/commit/f703f7c5850e55f652d8baba2dd7bc741bf319ce) by Dan Bradham).
 - Remove: log module remove: logging from deps ([91f8465](https://github.com/cpenv/cpenv/commit/91f8465653efb9a1d0d901f948fefd66283c935c) by Dan Bradham).
 - Remove: setuptools files ([1fe45f5](https://github.com/cpenv/cpenv/commit/1fe45f5e47bb2e11d1b2590bbe0185f96690406e) by Dan Bradham).
 - Remove environmentcache ([86f85c1](https://github.com/cpenv/cpenv/commit/86f85c16d839e97820ec34074a66c03a82290072) by Dan Bradham).
 
-### Misc
-- Update: .gitignore ([2b745eb](https://github.com/cpenv/cpenv/commit/2b745eb9c26c5b03f2402c52c6df0223eb438e77) by Dan Bradham).
-- Clarify get_module_paths ([417e716](https://github.com/cpenv/cpenv/commit/417e71650e3ea21945bcfc88ed63700010f83850) by Dan Bradham).
-- Cli cosmetics ([bf2f075](https://github.com/cpenv/cpenv/commit/bf2f07540a22322bc986e26f8027fa2a72234663) by Dan Bradham).
+
+## [0.4.4](https://github.com/cpenv/cpenv/releases/tag/0.4.4) - 2019-10-30
+
+<small>[Compare with 0.4.3](https://github.com/cpenv/cpenv/compare/0.4.3...0.4.4)</small>
 
 
-## [0.4.4](https://github.com/cpenv/cpenv/releases/tag/0.4.4) ([compare](https://github.com/cpenv/cpenv/compare/0.4.3...0.4.4)) - 2019-10-30
+## [0.4.3](https://github.com/cpenv/cpenv/releases/tag/0.4.3) - 2019-09-18
 
-### Misc
-- Support multiline redirects ([ac4c607](https://github.com/cpenv/cpenv/commit/ac4c60711c27bcd5e1e1bbc850493af79ba7346a) by Dan Bradham).
-
-
-## [0.4.3](https://github.com/cpenv/cpenv/releases/tag/0.4.3) ([compare](https://github.com/cpenv/cpenv/compare/0.4.2...0.4.3)) - 2019-09-18
+<small>[Compare with 0.4.2](https://github.com/cpenv/cpenv/compare/0.4.2...0.4.3)</small>
 
 ### Added
 - Add wheel dev dep ([160e371](https://github.com/cpenv/cpenv/commit/160e371186c213693175163337d7317a924f2030) by Dan Bradham).
@@ -99,23 +223,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Remove vendor packages ([f8640dc](https://github.com/cpenv/cpenv/commit/f8640dc771dd45d641dbad7ba316b1a1e0681c70) by Dan Bradham).
 
 
-## [0.4.2](https://github.com/cpenv/cpenv/releases/tag/0.4.2) ([compare](https://github.com/cpenv/cpenv/compare/0.4.1...0.4.2)) - 2019-07-25
+## [0.4.2](https://github.com/cpenv/cpenv/releases/tag/0.4.2) - 2019-07-25
+
+<small>[Compare with 0.4.1](https://github.com/cpenv/cpenv/compare/0.4.1...0.4.2)</small>
 
 ### Fixed
 - Fix mockgit ([afbb569](https://github.com/cpenv/cpenv/commit/afbb569ae04002743db041d3629a5be8c290bd89) by Dan Bradham).
 
-### Misc
-- Update readme.rst and setup.py ([5dc74c6](https://github.com/cpenv/cpenv/commit/5dc74c68105cdb042eb2fc3abb3307eab5fe24c3) by Dan Bradham).
-- Switch to yaml.safe_load ([d5b6f97](https://github.com/cpenv/cpenv/commit/d5b6f9720355809584b70fff598a922140d2bd66) by Dan Bradham).
+
+## [0.4.1](https://github.com/cpenv/cpenv/releases/tag/0.4.1) - 2017-10-12
+
+<small>[Compare with 0.4.0](https://github.com/cpenv/cpenv/compare/0.4.0...0.4.1)</small>
 
 
-## [0.4.1](https://github.com/cpenv/cpenv/releases/tag/0.4.1) ([compare](https://github.com/cpenv/cpenv/compare/0.4.0...0.4.1)) - 2017-10-12
+## [0.4.0](https://github.com/cpenv/cpenv/releases/tag/0.4.0) - 2017-08-23
 
-### Misc
-- Improved cli formatting ([8076d57](https://github.com/cpenv/cpenv/commit/8076d57fd7793e881d1fc86955a47ac7a86ffd64) by Dan Bradham).
-
-
-## [0.4.0](https://github.com/cpenv/cpenv/releases/tag/0.4.0) ([compare](https://github.com/cpenv/cpenv/compare/817088dd9695b74593ecf3a89d84fc7f29aea0c8...0.4.0)) - 2017-08-23
+<small>[Compare with first commit](https://github.com/cpenv/cpenv/compare/817088dd9695b74593ecf3a89d84fc7f29aea0c8...0.4.0)</small>
 
 ### Added
 - Add git requirement ([1dcbe8e](https://github.com/cpenv/cpenv/commit/1dcbe8e80f4c7219beeede2b7ba55421ab8445a8) by Dan Bradham).
@@ -148,57 +271,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - Remove navigation depth ([b1c03f6](https://github.com/cpenv/cpenv/commit/b1c03f6ae72e78c0de4c544f600f04f86cfeeec6) by Dan Bradham).
 - Remove quickinstall scripts, add bdist_wheel support to setup.py ([77a5c69](https://github.com/cpenv/cpenv/commit/77a5c69fd56965fe532fc2b9522de89d021e374d) by Dan Bradham).
-
-### Misc
-- Couple of fixes to docs and tests ([1d0fec8](https://github.com/cpenv/cpenv/commit/1d0fec823f797701e9011e62ccf0b7778fab46ce) by Dan Bradham).
-- Rewrite of cli ([22d5b4b](https://github.com/cpenv/cpenv/commit/22d5b4b556ad4d429120ab062016b0afb2491761) by Dan Bradham).
-- Support modules outside python virtual envs ([fc9616b](https://github.com/cpenv/cpenv/commit/fc9616b08f70b27b7054e5113e666d798fe72de3) by Dan Bradham).
-- Remcheese ([741ff4a](https://github.com/cpenv/cpenv/commit/741ff4aa6fd32efd40fb7d894379eac92e369481) by Dan Bradham).
-- Version typo ([7df3051](https://github.com/cpenv/cpenv/commit/7df3051a77c06ed217862ed8099d33dd7ee11c43) by Dan Bradham).
-- More next ([f15085a](https://github.com/cpenv/cpenv/commit/f15085a11f47002126411e01d246284af62f8223) by Dan Bradham).
-- Whats next ([7c56897](https://github.com/cpenv/cpenv/commit/7c56897687f9a0a29cbdd9d8d55713dd2d3a1fc2) by Dan Bradham).
-- Don't collapse nav ([79b173d](https://github.com/cpenv/cpenv/commit/79b173d5dc19828e4cf9086016778885fe1c4b34) by Dan Bradham).
-- Mock virtualenv ([ecd0995](https://github.com/cpenv/cpenv/commit/ecd09952a1c0ce7233c1a35e1b012c7f43df0187) by Dan Bradham).
-- Mock virtualenv in docs ([2e33be2](https://github.com/cpenv/cpenv/commit/2e33be281159cae82a53d75bb914109cedc652f2) by Dan Bradham).
-- Moar documentation ([c571c34](https://github.com/cpenv/cpenv/commit/c571c341aa5d43220d23954012b6a738622fcbb0) by Dan Bradham).
-- Explicitly set repo for python setup.py cheeseit! ([627d5d8](https://github.com/cpenv/cpenv/commit/627d5d8ea94bc3bdaa71330724d7ef668da2f8be) by Dan Bradham).
-- No need to update pip or wheel after creating env ([333e2a3](https://github.com/cpenv/cpenv/commit/333e2a3902069bb80f5e33bcda9e9de771eb3cec) by Dan Bradham).
-- Update readme.rst ([ef9dc3f](https://github.com/cpenv/cpenv/commit/ef9dc3fa0fcfa9d6135ca6b1367fc2a8e673f77e) by Dan Bradham).
-- 0.2.35 ([4eac186](https://github.com/cpenv/cpenv/commit/4eac1869ffeb1852ca47ea04165241a3f775905a) by Dan Bradham).
-- 0.2.24 ([7584991](https://github.com/cpenv/cpenv/commit/7584991a8dc1964f6454717b21ea46ca6fb4268e) by Dan Bradham).
-- Pip 8.0 broken on windows ([3c05b1a](https://github.com/cpenv/cpenv/commit/3c05b1a445a461b2c1b395b8fbe265c3706c3e55) by Dan Bradham).
-- Ensure cpenv_active_modules is bytes ([60d862b](https://github.com/cpenv/cpenv/commit/60d862b761676e90115efd8262e4c616cd0f114c) by Dan Bradham).
-- 0.2.3 ([3cecabb](https://github.com/cpenv/cpenv/commit/3cecabbd9b7431f4d8bbf4299bbfa2f732ee696f) by Dan Bradham).
-- 0.2.2 ([6fea02a](https://github.com/cpenv/cpenv/commit/6fea02ac70eb29f0c3cb6a39a714b284df22065f) by Dan Bradham).
-- Update readme to reflect new terminology ([cfdf753](https://github.com/cpenv/cpenv/commit/cfdf753e42358420558695c470e0a289d1030241) by Dan Bradham).
-- Hooks implementation ([b7e6332](https://github.com/cpenv/cpenv/commit/b7e633262e9c3eac28f07cbc231f0afcb1966990) by Dan Bradham).
-- Fill out add_module method of virtualenvironment ([a0112c2](https://github.com/cpenv/cpenv/commit/a0112c2595537374903821ffdf66b8563f3406e1) by Dan Bradham).
-- Overhauled api. better code organization. added compat, deps, and cache modules. moved envutils to utils ([2e6ee42](https://github.com/cpenv/cpenv/commit/2e6ee42cfbe5337dad50d582be25e657569b1411) by Dan Bradham).
-- Resolver ([e1189c4](https://github.com/cpenv/cpenv/commit/e1189c4207737221665216b3310530472b5bc86d) by Dan Bradham).
-- Resolved issue with pythonpath being overwritten on activation ([828b786](https://github.com/cpenv/cpenv/commit/828b786819b88002a64c5ec15dcf62b02134f21f) by Dan Bradham).
-- Replacing os.environ.data doesn't actually set the env vars ([11fe8ef](https://github.com/cpenv/cpenv/commit/11fe8effdc6387bb0f93ba8f93a676a20cc62ce0) by Dan Bradham).
-- Defer wheel management to pip.conf and user environment variables ([1c6803c](https://github.com/cpenv/cpenv/commit/1c6803cc355a1561fa0374015aae5065eb3de369) by Dan Bradham).
-- Moved clear_cache flag to activate ([4dcb336](https://github.com/cpenv/cpenv/commit/4dcb3369d3c840f3d33e307b9864ab96e02cb842) by Dan Bradham).
-- 0.1.10 ([c5556f6](https://github.com/cpenv/cpenv/commit/c5556f69982525eb3634d6a10614770083c548e1) by Dan Bradham).
-- 0.1.9 ([1feacec](https://github.com/cpenv/cpenv/commit/1feacec39c364b9904f2f3fb70835b107719a27c) by Dan Bradham).
-- 0.1.8 ([385bfd2](https://github.com/cpenv/cpenv/commit/385bfd26e771837bf487ceebf09fffa27efb23cd) by Dan Bradham).
-- Improved wheel support: ([05a187d](https://github.com/cpenv/cpenv/commit/05a187d7ee1fdb9030cafcda2bae4654ec131287) by Dan Bradham).
-- 0.1.6 fix: reversed args when installing an appmodule on create ([9ba6e66](https://github.com/cpenv/cpenv/commit/9ba6e66559d9a84b7c77f1dff84b070717ee3994) by unknown).
-- Ensure unicode strings don't make their way into os.environ dict ([9e3fc26](https://github.com/cpenv/cpenv/commit/9e3fc265e54af08c26665defb6d0d65a1f45397d) by Dan Bradham).
-- Import os ([7eaba85](https://github.com/cpenv/cpenv/commit/7eaba854764bd55bcdd3b03fbbdd74450a68c5be) by Dan Bradham).
-- Updated readme and setup.py to support deployment to the cheeseshop ([e007983](https://github.com/cpenv/cpenv/commit/e007983e7086186571c6562ac17b3c27f7feb298) by Dan Bradham).
-- Make sure envcache root path exists ([1b2e209](https://github.com/cpenv/cpenv/commit/1b2e20909650ea10fb6807e145e03a2dfe8be2b8) by Dan Bradham).
-- Update version to 0.1.3 ([3e08c16](https://github.com/cpenv/cpenv/commit/3e08c16a3e8c7df363424fbe3c67ceac7e86a893) by unknown).
-- Moved wheelhouse to root, moved envcache to user home ([b5d1afe](https://github.com/cpenv/cpenv/commit/b5d1afed4094f9776feb780e1c3dc27912cc9bf9) by unknown).
-- Passing os.environ directly to new subshell ([1009ebd](https://github.com/cpenv/cpenv/commit/1009ebde6fa28ddcd4884d3d5e64752af911ea2d) by unknown).
-- Force encoding utf8 ([8027476](https://github.com/cpenv/cpenv/commit/8027476d007148d46271b7e7119cf694513a24e6) by Dan Bradham).
-- No more fudging with piping standard output to a batch or bash script. it was an interesting experiment but...launching subshells instead. this has huge benefits in terms of reducing clout and code complexity. ([b50970d](https://github.com/cpenv/cpenv/commit/b50970d08fa16153152e99511c0f21db7bd5da1b) by Dan Bradham).
-- Rem: extraneous cli commands add: --module option to activate, create, and remove add: add_application_module method to virtualenvironment class add: get_application_module method to virtualenvironment class add: rem_application_module method to virtualenvironment class ([7d93f2b](https://github.com/cpenv/cpenv/commit/7d93f2b1c1a00e87929f8c03db3392a05faec69f) by Dan Bradham).
-- Launchity launch launch update, use call instead of popen... ([734f827](https://github.com/cpenv/cpenv/commit/734f8274494e115df1e6c09e78ecb121e2311b13) by Dan Bradham).
-- Working modules ([5a1607d](https://github.com/cpenv/cpenv/commit/5a1607d2656a7184c5e089717f591c0f7c484507) by Dan Bradham).
-- Wooowee big improvements to api, no longer using virtualenv activate scripts, pure python goodness ([60a2697](https://github.com/cpenv/cpenv/commit/60a2697310bdbc754ed6ea64e999341f62454c3e) by Dan Bradham).
-- Rewriting api in more object oriented style ([fd0adce](https://github.com/cpenv/cpenv/commit/fd0adce094580781270e4d19449da9f6a58dafe7) by Dan Bradham).
-- Adjust activate/deactivate cli ([7d34252](https://github.com/cpenv/cpenv/commit/7d34252ab1c090b499806899d6a779b1be1e6262) by Dan Bradham).
-- Initial commit ([817088d](https://github.com/cpenv/cpenv/commit/817088dd9695b74593ecf3a89d84fc7f29aea0c8) by Dan Bradham).
 
 
