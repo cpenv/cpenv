@@ -4,19 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.5.9](https://github.com/cpenv/cpenv/releases/tag/0.5.9) - 2020-08-06
+## [0.5.10](https://github.com/cpenv/cpenv/releases/tag/0.5.10) - 2020-08-07
+
+<small>[Compare with 0.5.9](https://github.com/cpenv/cpenv/compare/0.5.9...0.5.10)</small>
+
+
+## [0.5.9](https://github.com/cpenv/cpenv/releases/tag/0.5.9) - 2020-08-07
 
 <small>[Compare with 0.5.8](https://github.com/cpenv/cpenv/compare/0.5.8...0.5.9)</small>
 
-### Changed
-- Change: bump version to 0.5.8 ([3d56640](https://github.com/cpenv/cpenv/commit/3d566401c47e04d0ae6e2761ab6e07c9ab32187d) by Dan Bradham).
+### Fixed
+- Fix: #22 .git folders excluded when publishing to a shotgunrepo ([ea00b98](https://github.com/cpenv/cpenv/commit/ea00b98b96de3c61692122466836e9fbcd9680f6) by Dan Bradham).
 
 
-## [0.5.8](https://github.com/cpenv/cpenv/releases/tag/0.5.8) - 2020-08-05
+## [0.5.8](https://github.com/cpenv/cpenv/releases/tag/0.5.8) - 2020-08-06
 
 <small>[Compare with 0.5.7](https://github.com/cpenv/cpenv/compare/0.5.7...0.5.8)</small>
 
 ### Changed
+- Change: update changelog.md ([ae4d624](https://github.com/cpenv/cpenv/commit/ae4d624143442d326493814c9b1e513911866dea) by Dan Bradham).
+- Change: bump version to 0.5.8 ([3d56640](https://github.com/cpenv/cpenv/commit/3d566401c47e04d0ae6e2761ab6e07c9ab32187d) by Dan Bradham).
 - Change: update readme.md ([916fccf](https://github.com/cpenv/cpenv/commit/916fccf6ccfd2ea6f8d95f9317336d3302983472) by Dan Bradham).
 
 ### Fixed
