@@ -394,9 +394,6 @@ def module_to_entity(module, **fields):
 def zip_folder(folder, where):
     '''Zip the contents of a folder.'''
 
-    skip = ['__pycache__', '.git', 'thumbs.db', '.venv', 'venv']
-    skip_patterns = ['*.pyc']
-
     parent = os.path.dirname(where)
     if not os.path.isdir(parent):
         os.makedirs(parent)
@@ -404,17 +401,9 @@ def zip_folder(folder, where):
     # TODO: Count files first so we can report progress of building zip
 
     with zipfile.ZipFile(where, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for root, subdirs, files in os.walk(folder):
+        for root, subdirs, files in paths.exclusive_walk(folder):
             rel_root = os.path.relpath(root, folder)
-
-            if root in skip:
-                subdirs[:] = []
-                continue
-
             for file in files:
-                if any([fnmatch.fnmatch(file, p) for p in skip_patterns]):
-                    continue
-
                 zip_file.write(
                     os.path.join(root, file),
                     arcname=os.path.join(rel_root, file)
