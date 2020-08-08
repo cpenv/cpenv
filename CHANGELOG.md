@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [0.5.10](https://github.com/cpenv/cpenv/releases/tag/0.5.10) - 2020-08-07
+## [0.5.10](https://github.com/cpenv/cpenv/releases/tag/0.5.10) - 2020-08-08
 
 <small>[Compare with 0.5.9](https://github.com/cpenv/cpenv/compare/0.5.9...0.5.10)</small>
+
+### Added
+- Add: warning at cli when cpenv is not up-to-date. closes #23. ([e27b0fd](https://github.com/cpenv/cpenv/commit/e27b0fddf02f7d74ae50cd2df566dd489a293e09) by Dan Bradham).
 
 
 ## [0.5.9](https://github.com/cpenv/cpenv/releases/tag/0.5.9) - 2020-08-07
