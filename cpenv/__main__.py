@@ -6,6 +6,7 @@ import argparse
 import os
 import re
 import sys
+import atexit
 
 # Third party imports
 import tqdm
@@ -889,7 +890,15 @@ class CliReporter(Reporter):
             bar.close()
 
 
+def perform_self_version_check():
+    from . import _self_version_check
+    is_latest, current, latest = _self_version_check.is_latest_version()
+    if not is_latest:
+        _self_version_check.warn_newer_version_available(current, latest)
+
+
 def main():
+    atexit.register(perform_self_version_check)
     cpenv.set_reporter(CliReporter)
     cli.run(CpenvCLI, sys.argv[1:])
 
