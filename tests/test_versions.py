@@ -48,6 +48,21 @@ def test_parse_version():
         assert version.prerelease == 'dev'
         assert version.buildmetadata == '02ab'
 
+    largever_spec = [
+        parse_version('10.1.0.234'),
+        parse_version('v10.1.0.234'),
+        parse_version('module10.1.0.234'),
+        parse_version('module_10.1.0.234'),
+        parse_version('module-10.1.0.234'),
+        parse_version('module-v10.1.0.234'),
+    ]
+    for version in largever_spec:
+        assert version.major == 10
+        assert version.minor == 1
+        assert version.patch == 0
+        assert version.buildmetadata == 234
+        assert not version.prerelease
+
     # These should be parsed by versions.simple_version_pattern
     version = parse_version('module1')
     assert version.string == '1'

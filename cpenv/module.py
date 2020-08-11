@@ -135,7 +135,7 @@ class Module(object):
             path=kwargs.get('path', self.path),
             qual_name=kwargs.get('qual_name', self.qual_name),
             real_name=kwargs.get('real_name', self.real_name),
-            repo=kwargs.get('repo', None),
+            repo=kwargs.get('repo', self.repo),
             version=kwargs.get('version', self.version),
         )
 
