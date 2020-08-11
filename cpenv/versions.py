@@ -21,7 +21,17 @@ nuke_version_pattern = (
     r'(?:v)'
     r'(?P<patch>\d+)$'
 )
-# Modified regex from semver.org
+
+# Version pattern with 4 digits
+four_version_pattern = (
+    r'(?:v)?'
+    r'(?P<major>\d+)'
+    r'\.(?P<minor>\d+)'
+    r'\.(?P<revision>\d+)'
+    r'\.(?P<build>\d+)$'
+)
+
+# Modified regex from semver.org - works with calver as well
 semver_version_pattern = (
     r'(?:v)?'
     r'(?P<major>\d+)'
@@ -31,7 +41,7 @@ semver_version_pattern = (
     r'(?:\.(?:\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?'
     r'(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
 )
-simple_version_pattern = r'(?:v)?(?P<version>(\d+\.?)+)$'
+simplever_pattern = r'(?:v)?(?P<version>(\d+\.?)+)$'
 VersionBase = namedtuple(
     'Version',
     ['major', 'minor', 'patch', 'prerelease', 'buildmetadata', 'string']
@@ -114,6 +124,18 @@ def parse_version(string):
             string=match.group(0)
         )
 
+    # Parse four_version - four digit version
+    match = re.search(four_version_pattern, string)
+    if match:
+        return Version(
+            major=int(match.group('major')),
+            minor=int(match.group('minor')),
+            patch=int(match.group('revision')),
+            prerelease=None,
+            buildmetadata=int(match.group('build')),
+            string=match.group(0),
+        )
+
     # Parse Semver / Calver
     match = re.search(semver_version_pattern, string)
     if match:
@@ -127,7 +149,7 @@ def parse_version(string):
         )
 
     # Parse Simple version
-    match = re.search(simple_version_pattern, string)
+    match = re.search(simplever_pattern, string)
     if match:
         kwargs = dict(Version._defaults)
         kwargs['string'] = match.group(0)
