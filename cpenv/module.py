@@ -116,23 +116,27 @@ class Module(object):
             self.version,
         )
 
-    def as_spec(self):
-        return ModuleSpec(
-            name=self.name,
-            real_name=self.real_name,
-            qual_name=self.qual_name,
-            version=self.version,
-            path=self.path,
-            repo=self.repo,
-        )
-
     @classmethod
     def from_spec(cls, module_spec):
+        '''Create a module from a ModuleSpec object.'''
+
         return cls(
             name=module_spec.name,
             version=module_spec.version.string,
             path=module_spec.path,
             repo=module_spec.repo,
+        )
+
+    def to_spec(self, **kwargs):
+        '''Return a ModuleSpec object for this Module.'''
+
+        return ModuleSpec(
+            name=kwargs.get('name', self.name),
+            path=kwargs.get('path', self.path),
+            qual_name=kwargs.get('qual_name', self.qual_name),
+            real_name=kwargs.get('real_name', self.real_name),
+            repo=kwargs.get('repo', None),
+            version=kwargs.get('version', self.version),
         )
 
     def relative_path(self, *args):
@@ -146,18 +150,6 @@ class Module(object):
         hook = self.hook_finder(hook_name)
         if hook:
             return hook.run(self)
-
-    def spec(self, **kwargs):
-        '''Return a ModuleSpec object for this Module.'''
-
-        return ModuleSpec(
-            name=kwargs.get('name', self.name),
-            real_name=kwargs.get('real_name', self.real_name),
-            qual_name=kwargs.get('qual_name', self.qual_name),
-            path=kwargs.get('path', self.path),
-            version=kwargs.get('version', self.version),
-            repo=kwargs.get('repo', None),
-        )
 
     def activate(self):
         '''Add this module to active modules'''

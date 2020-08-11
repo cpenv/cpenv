@@ -64,14 +64,14 @@ class LocalRepo(Repo):
         for module_file in glob(self.relative_path('*', 'module.yml')):
             module_path = paths.parent(module_file)
             module = Module(module_path, repo=self)
-            module_specs.append(module.as_spec())
+            module_specs.append(module.to_spec())
 
         # Find nested module_specs
         versions = glob(self.relative_path('*', '*', 'module.yml'))
         for version_file in versions:
             version_dir = paths.parent(version_file)
             module = Module(version_dir, repo=self)
-            module_specs.append(module.as_spec())
+            module_specs.append(module.to_spec())
 
         return sort_modules(module_specs, reverse=True)
 
@@ -162,7 +162,7 @@ class LocalRepo(Repo):
                     shutil.copy2(src_path, dst_path)
                     progress_bar.update(os.path.getsize(src_path))
 
-            module_spec = Module(new_module_path).as_spec()
+            module_spec = Module(new_module_path).to_spec()
             progress_bar.update(data={
                 'module': module,
                 'module_spec': module_spec,
