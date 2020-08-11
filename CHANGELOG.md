@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.11](https://github.com/cpenv/cpenv/releases/tag/0.5.11) - 2020-08-11
+
+<small>[Compare with 0.5.10](https://github.com/cpenv/cpenv/compare/0.5.10...0.5.11)</small>
+
+### Added
+- Add: support for four decimal versions ([231fbdb](https://github.com/cpenv/cpenv/commit/231fbdbd4ec171fa1df4cb4d3d647601956ec046) by Dan Bradham).
+
+### Changed
+- Change: rename module.as_spec to module.to_spec ([c751275](https://github.com/cpenv/cpenv/commit/c751275d840f3e1c2054da570f1a5aaf68e65ae4) by Dan Bradham).
+
+### Fixed
+- Fix: circular imports caused issue in py2.7 ([48da984](https://github.com/cpenv/cpenv/commit/48da984ea5adc469f00226e291b9836b3863af2b) by Dan Bradham).
+
+
 ## [0.5.10](https://github.com/cpenv/cpenv/releases/tag/0.5.10) - 2020-08-08
 
 <small>[Compare with 0.5.9](https://github.com/cpenv/cpenv/compare/0.5.9...0.5.10)</small>
