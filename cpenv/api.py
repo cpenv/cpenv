@@ -559,17 +559,26 @@ def _init():
     _init_home_path(get_home_path())
     _init_user_path(get_user_path())
 
-    # Register all LocalRepos
+    # Register builtin repos
+    cwd = repos.LocalRepo('cwd', paths.normalize(os.getcwd()))
+    user = repos.LocalRepo('user', get_user_modules_path())
+    home = repos.LocalRepo('home', get_home_modules_path())
+    if cwd.path == home.path:
+        # We don't want a cwd repo when the cwd is the same as the home path.
+        # This prevents redundant lookups during module resolution.
+        add_repo(home)
+        add_repo(user)
+    else:
+        add_repo(cwd)
+        add_repo(user)
+        add_repo(home)
+
+    # Register additional repos from CPENV_MODULE_PATHS
+    builtin_module_paths = [repo.path for repo in get_repos()]
     for path in get_module_paths():
-        if path == paths.normalize(os.getcwd()):
-            name = 'cwd'
-        elif path == get_home_modules_path():
-            name = 'home'
-        elif path == get_user_modules_path():
-            name = 'user'
-        else:
-            name = path
-        add_repo(repos.LocalRepo(name, path))
+        if path in builtin_module_paths:
+            continue
+        add_repo(repos.LocalRepo(path, path))
 
     # Register repos from config
     configured_repos = read_config('repos', {})
