@@ -403,11 +403,10 @@ def get_module_paths():
     if cpenv_home_modules not in module_paths:
         module_paths.append(cpenv_home_modules)
 
-    cpenv_modules_path = os.environ.get('CPENV_MODULES', None)
-    if cpenv_modules_path:
-        for module_path in cpenv_modules_path.split(os.pathsep):
-            if module_path not in module_paths:
-                module_paths.append(paths.normalize(module_path))
+    cpenv_modules = os.environ.get('CPENV_MODULES', '').split(os.pathsep)
+    for module_path in cpenv_modules:
+        if module_path:
+            module_paths.append(module_path)
 
     return module_paths
 
@@ -560,17 +559,26 @@ def _init():
     _init_home_path(get_home_path())
     _init_user_path(get_user_path())
 
-    # Register all LocalRepos
+    # Register builtin repos
+    cwd = repos.LocalRepo('cwd', paths.normalize(os.getcwd()))
+    user = repos.LocalRepo('user', get_user_modules_path())
+    home = repos.LocalRepo('home', get_home_modules_path())
+    if cwd.path == home.path:
+        # We don't want a cwd repo when the cwd is the same as the home path.
+        # This prevents redundant lookups during module resolution.
+        add_repo(home)
+        add_repo(user)
+    else:
+        add_repo(cwd)
+        add_repo(user)
+        add_repo(home)
+
+    # Register additional repos from CPENV_MODULE_PATHS
+    builtin_module_paths = [repo.path for repo in get_repos()]
     for path in get_module_paths():
-        if path == paths.normalize(os.getcwd()):
-            name = 'cwd'
-        elif path == get_home_modules_path():
-            name = 'home'
-        elif path == get_user_modules_path():
-            name = 'user'
-        else:
-            name = path
-        add_repo(repos.LocalRepo(name, path))
+        if path in builtin_module_paths:
+            continue
+        add_repo(repos.LocalRepo(path, path))
 
     # Register repos from config
     configured_repos = read_config('repos', {})
@@ -589,15 +597,14 @@ def _init():
     # Set _active_modules from CPENV_ACTIVE_MODULES
     unresolved = []
     resolver = Resolver(get_repos())
-    active_modules = os.getenv('CPENV_ACTIVE_MODULES')
-    if active_modules:
-        for module in active_modules.split(os.pathsep):
-            if module:
-                try:
-                    resolved = resolver.resolve([module])[0]
-                    _active_modules.append(resolved)
-                except ResolveError:
-                    unresolved.append(module)
+    active_modules = os.getenv('CPENV_ACTIVE_MODULES', '').split(os.pathsep)
+    for module in active_modules:
+        if module:
+            try:
+                resolved = resolver.resolve([module])[0]
+                _active_modules.append(resolved)
+            except ResolveError:
+                unresolved.append(module)
 
     if unresolved:
         warnings.warn(
