@@ -2,6 +2,7 @@
 from __future__ import absolute_import, print_function
 
 # Standard library imports
+import collections
 import os
 import random
 import sys
@@ -12,6 +13,53 @@ from string import Template
 from . import paths
 from .compat import numeric_types, platform, string_types
 from .vendor import yaml
+
+
+KeyValue = collections.namedtuple('KeyValue', 'key value')
+
+
+class CaseInsensitiveDict(collections.MutableMapping):
+    '''A case insensitive dict that expects strings as keys.
+
+    Based on the requests.structures.CaseInsensitiveDict.
+    '''
+
+    def __init__(self, *args, **kwargs):
+        self._items = dict()
+        self.update(*args, **kwargs)
+
+    def __repr__(self):
+        return '{}({!r})'.format(self.__class__.__name__, dict(self.items()))
+
+    def __setitem__(self, key, value):
+        self._items[key.lower()] = KeyValue(key, value)
+
+    def __getitem__(self, key):
+        return self._items[key.lower()].value
+
+    def __delitem__(self, key):
+        del self._items[key.lower()]
+
+    def __iter__(self):
+        return (item.key for item in self._items.values())
+
+    def __len__(self):
+        return len(self._items)
+
+    def __eq__(self, other):
+        other_cmp = self._comparable_mapping(other)
+        if other_cmp is NotImplemented:
+            return NotImplemented
+        self_cmp = self._comparable_mapping(self)
+        return self_cmp == other_cmp
+
+    @classmethod
+    def _comparable_mapping(cls, mapping):
+        if isinstance(mapping, CaseInsensitiveDict):
+            return {item.key.lower(): item.value for item in mapping.values()}
+        if isinstance(mapping, collections.Mapping):
+            return {key.lower(): value for key, value in mapping.items()}
+        return NotImplemented
 
 
 def _preprocess_dict(d):
@@ -48,10 +96,10 @@ PREPROCESSORS.update(
 
 
 def preprocess_dict(d):
-    '''
-    Preprocess a dict to be used as environment variables.
+    '''Preprocess a dict to be used as environment variables.
 
-    :param d: dict to be processed
+    Extracts platform specific keys (win, osx, linux) based on the current
+    platform.
     '''
 
     out_env = {}
@@ -89,15 +137,14 @@ def _join_seq(d, k, v):
 
     if k not in d:
         d[k] = list(v)
-
     elif isinstance(d[k], list):
-        for item in v:
+        for item in reversed(v):
             if item not in d[k]:
                 d[k].insert(0, item)
-
     elif isinstance(d[k], string_types):
-        v.append(d[k])
-        d[k] = v
+        d[k] = list(v) + [d[k]]
+    else:
+        raise ValueError('Failed to join dict values %s and %s' % (d[k], v))
 
 
 JOINERS = {
@@ -113,9 +160,16 @@ JOINERS.update(
 
 
 def join_dicts(*dicts):
-    '''Join a bunch of dicts'''
+    '''Join a bunch of dicts.
 
-    out_dict = {}
+    - Expects keys to be strings
+    - Ignores key case
+    - Converts numeric and string types to string using str
+    - String values overwrite existing keys
+    - List values are prepended to existing keys
+    '''
+
+    out_dict = CaseInsensitiveDict()
 
     for d in dicts:
 
@@ -126,7 +180,7 @@ def join_dicts(*dicts):
 
             JOINERS[type(v)](out_dict, k, v)
 
-    return out_dict
+    return dict(out_dict)
 
 
 def env_to_dict(env, pathsep=os.pathsep):
