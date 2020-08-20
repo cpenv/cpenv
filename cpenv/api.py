@@ -403,11 +403,10 @@ def get_module_paths():
     if cpenv_home_modules not in module_paths:
         module_paths.append(cpenv_home_modules)
 
-    cpenv_modules_path = os.environ.get('CPENV_MODULES', None)
-    if cpenv_modules_path:
-        for module_path in cpenv_modules_path.split(os.pathsep):
-            if module_path not in module_paths:
-                module_paths.append(paths.normalize(module_path))
+    cpenv_modules = os.environ.get('CPENV_MODULES', '').split(os.pathsep)
+    for module_path in cpenv_modules:
+        if module_path:
+            module_paths.append(module_path)
 
     return module_paths
 
@@ -589,15 +588,14 @@ def _init():
     # Set _active_modules from CPENV_ACTIVE_MODULES
     unresolved = []
     resolver = Resolver(get_repos())
-    active_modules = os.getenv('CPENV_ACTIVE_MODULES')
-    if active_modules:
-        for module in active_modules.split(os.pathsep):
-            if module:
-                try:
-                    resolved = resolver.resolve([module])[0]
-                    _active_modules.append(resolved)
-                except ResolveError:
-                    unresolved.append(module)
+    active_modules = os.getenv('CPENV_ACTIVE_MODULES', '').split(os.pathsep)
+    for module in active_modules:
+        if module:
+            try:
+                resolved = resolver.resolve([module])[0]
+                _active_modules.append(resolved)
+            except ResolveError:
+                unresolved.append(module)
 
     if unresolved:
         warnings.warn(
