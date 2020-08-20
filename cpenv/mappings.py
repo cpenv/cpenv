@@ -89,15 +89,14 @@ def _join_seq(d, k, v):
 
     if k not in d:
         d[k] = list(v)
-
     elif isinstance(d[k], list):
-        for item in v:
+        for item in reversed(v):
             if item not in d[k]:
                 d[k].insert(0, item)
-
     elif isinstance(d[k], string_types):
-        v.append(d[k])
-        d[k] = v
+        d[k] = list(v) + [d[k]]
+    else:
+        raise ValueError('Failed to join dict values %s and %s' % (d[k], v))
 
 
 JOINERS = {
