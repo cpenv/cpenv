@@ -63,64 +63,129 @@ class CaseInsensitiveDict(collections.MutableMapping):
         return NotImplemented
 
 
-def _preprocess_dict(d):
-    return d.get(platform, None)
+class EnvironmentDict(CaseInsensitiveDict):
+    '''A dict suited to manipulating environment variables.
 
+    Lowercase comparisons are used to ensure unique keys and values.
 
-def _preprocess_seq(seq):
-    value = []
-    for item in seq:
-        item_value = PREPROCESSORS[type(item)](item)
-        if item_value is None:
-            continue
-        if isinstance(item_value, (list, tuple, set)):
-            value.extend(item_value)
-        else:
-            value.append(item_value)
-    return value
+    The following methods make it easy to build an Environment.
+    - set: insert or overwrite the value of a key.
+    - unset: discard a key.
+    - remove: discard an item or list of items from a key's value.
+    - append: add an item or list of items to the tail of a key's value.
+    - prepend: add an item or list of items to the head of a key's value.
 
-
-def _preprocess_str(s):
-    return str(s)
-
-
-PREPROCESSORS = {
-    dict: _preprocess_dict,
-    list: _preprocess_seq,
-    set: _preprocess_seq,
-    tuple: _preprocess_seq,
-}
-
-PREPROCESSORS.update(
-    dict((typ, _preprocess_str) for typ in numeric_types + string_types)
-)
-
-
-def preprocess_dict(d):
-    '''Preprocess a dict to be used as environment variables.
-
-    Extracts platform specific keys (win, osx, linux) based on the current
-    platform.
+    Example:
+        >>> env = EnvironmentDict()
+        >>> env.append('PATH', '/some/path')
+        >>> env.prepend('path', '/some/other/path')
+        >>> env.remove('PATH', '/some/path')
+        >>> assert env['PATH'] == ['/some/other/path']
     '''
 
-    out_env = {}
-    for k, v in d.items():
+    _value_error = 'Expected Union[list, Union[str, int, float]] got %s'
 
-        if not type(v) in PREPROCESSORS:
-            raise KeyError('Invalid type in dict: {}'.format(type(v)))
+    def __init__(self, *args, **kwargs):
+        self._add_condition = kwargs.pop('add_condition', IgnoreCase)
+        super(EnvironmentDict, self).__init__(*args, **kwargs)
 
-        value = PREPROCESSORS[type(v)](v)
-        if value is not None:
-            out_env[k] = value
+    def _ensure_list(self, value):
+        if value is None:
+            return []
+        if isinstance(value, env_value_types):
+            return [value]
+        if isinstance(value, collections.Sequence):
+            return list(value)
+        raise ValueError('%s could not be converted to a list.' % value)
 
-    return out_env
+    def _coerce_value(self, value):
+        if isinstance(value, env_value_types):
+            return str(value)
+        elif isinstance(value, collections.Sequence):
+            result = []
+            for v in value:
+                if v in (None, ''):
+                    continue
+                result.append(str(value))
+            return result
+        else:
+            raise ValueError(self._value_error % type(value))
 
+    def _default_add_condition(self, current_value, value):
+        return value not in current_value
 
-def _join_dict(d, k, v):
-    '''Add a dict value to an env dict.
+    def _remove_condition(self, current_value, value):
+        return not self._add_condition(current_value, value)
 
-    Assumes that a dict value contains system platform keys (win, mac, linux).
-    If a key is missing - we do not add this key to the result dict.
+    def unset(self, key, value=None):
+        '''Unset a key.'''
+
+        self.pop(key, None)
+
+    def set(self, key, value):
+        '''Set a key.'''
+
+        self[key] = self._coerce_value(value)
+
+    def remove(self, key, value, remove_check=None):
+        '''Remove a value from a key.'''
+
+        value = self._coerce_value(value)
+
+        if key not in self:
+            return
+
+        result = self._ensure_list(self.get(key, []))
+        if isinstance(value, env_value_types):
+            if self._remove_condition(result, value):
+                result.remove(value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._remove_condition(result, v):
+                    result.remove(v)
+
+        if not result:
+            self.pop(key, None)
+        else:
+            self[key] = result
+
+    def prepend(self, key, value, add_check=None):
+        '''Prepend a value to a key.
+
+        Sets the value if the key does not exist.
+        '''
+
+        result = self._ensure_list(self.get(key, []))
+        value = self._coerce_value(value)
+
+        if isinstance(value, env_value_types):
+            if self._add_condition(result, value):
+                result.insert(0, value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._add_condition(result, v):
+                    result.insert(0, v)
+
+        self[key] = result
+
+    def append(self, key, value, add_check=None):
+        '''Append a value to a key.
+
+        Sets the value if the key does not exist.
+        '''
+
+        result = self._ensure_list(self.get(key, []))
+        value = self._coerce_value(value)
+
+        if isinstance(value, env_value_types):
+            if self._add_condition(result, value):
+                result.append(value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._add_condition(result, v):
+                    result.append(v)
+
+        self[key] = result
     '''
 
     if platform in v:
