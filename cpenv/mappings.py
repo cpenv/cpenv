@@ -309,9 +309,29 @@ def tokenize_dict(data):
     return EnvironmentDictTokenizer.tokenize(data)
 
 
-            JOINERS[type(v)](out_dict, k, v)
+def join_dicts(*dicts, **kwargs):
+    '''Join a bunch of dicts.
 
-    return dict(out_dict)
+    Arguments:
+        *dicts: Dictionaries to merge
+        add_condition (fn): Used to check if a value should be added to a key
+    '''
+
+    env_dict = EnvironmentDict(**kwargs)
+    for data in dicts:
+        tokens = tokenize_dict(data)
+        for token in tokens:
+            if token.op == 'unset':
+                env_dict.unset(token.key, token.value)
+            elif token.op == 'set':
+                env_dict.set(token.key, token.value)
+            elif token.op == 'remove':
+                env_dict.remove(token.key, token.value)
+            elif token.op == 'prepend':
+                env_dict.prepend(token.key, token.value)
+            elif token.op == 'append':
+                env_dict.append(token.key, token.value)
+    return dict(env_dict)
 
 
 def env_to_dict(env, pathsep=os.pathsep):
