@@ -16,6 +16,7 @@ from .vendor import yaml
 
 
 KeyValue = collections.namedtuple('KeyValue', 'key value')
+Item = collections.namedtuple('Item', 'key value')
 
 
 class CaseInsensitiveDict(collections.MutableMapping):
@@ -32,7 +33,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
         return '{}({!r})'.format(self.__class__.__name__, dict(self.items()))
 
     def __setitem__(self, key, value):
-        self._items[key.lower()] = KeyValue(key, value)
+        self._items[key.lower()] = Item(key, value)
 
     def __getitem__(self, key):
         return self._items[key.lower()].value
