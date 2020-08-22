@@ -65,7 +65,7 @@ class Module(object):
         }
         self._raw_config = None
         self._config = None
-        self._environ = None
+        self._env = None
 
         # Determine name, version, qual_name, and real_name
 
@@ -172,6 +172,7 @@ class Module(object):
     def icon(self):
         return self.relative_path('icon.png')
 
+    @property
     def has_icon(self):
         return os.path.isfile(self.icon)
 
