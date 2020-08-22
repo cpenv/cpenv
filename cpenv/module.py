@@ -225,15 +225,11 @@ class Module(object):
 
     @property
     def environment(self):
-        if self._environ is None:
-            env = self.config.get('environment', {})
-            additional = {
-                'CPENV_ACTIVE_MODULES': [self.real_name],
-            }
-            env = mappings.join_dicts(additional, env)
-            self._environ = mappings.preprocess_dict(env)
+        if self._env is None:
+            self._env = self.config.get('environment', {})
+            self._env['CPENV_ACTIVE_MODULES'] = {'append': self.real_name}
 
-        return self._environ
+        return self._env
 
 
 def read_raw_config(module_file):
