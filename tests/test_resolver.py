@@ -101,18 +101,15 @@ def test_resolve_module_on_path():
 
     # Test resolve global module
     resolved = r.resolve(['testmodb'])
-
     assert resolved[0].path == data_path('modules', 'testmodb')
 
     # Test resolve module in home, should take precedence over global
     # module of the same name
     resolved = r.resolve(['testmod'])
-
     assert resolved[0].path == data_path('home', 'modules', 'testmod')
 
     # Test resoluve module in CPENV_HOME/modules
     resolved = r.resolve(['testmodc'])
-
     assert resolved[0].path == data_path('home', 'modules', 'testmodc')
 
     # Test global module does not exist
@@ -200,7 +197,7 @@ def test_multi_module_does_not_exist():
 
 
 def test_parse_redirect():
-    '''Test parse redirect strings.'''
+    '''Parse various redirect strings'''
 
     tests = [
         ('testenv testmod', ['testenv', 'testmod']),

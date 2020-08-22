@@ -243,7 +243,7 @@ class ShotgunRepo(Repo):
             progress_bar.update(1)
 
             # 3. Upload icon as thumbnail
-            if module.has_icon():
+            if module.has_icon:
                 self.shotgun.upload_thumbnail(
                     self.module_entity,
                     entity['id'],

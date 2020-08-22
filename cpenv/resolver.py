@@ -106,7 +106,6 @@ class Activator(object):
 
     def combine_modules(self, modules):
         '''Combine a list of module's environments.'''
-
         return mappings.join_dicts(*[obj.environment for obj in modules])
 
     def activate(self, module_specs):

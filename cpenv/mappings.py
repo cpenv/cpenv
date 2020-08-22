@@ -11,11 +11,13 @@ from string import Template
 
 # Local imports
 from . import paths
-from .compat import numeric_types, platform, string_types
+from .compat import numeric_types, platform, supported_platforms, string_types
 from .vendor import yaml
 
 
-KeyValue = collections.namedtuple('KeyValue', 'key value')
+env_value_types = numeric_types + string_types
+Item = collections.namedtuple('Item', 'key value')
+Op = collections.namedtuple('Op', 'key value op')
 
 
 class CaseInsensitiveDict(collections.MutableMapping):
@@ -32,7 +34,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
         return '{}({!r})'.format(self.__class__.__name__, dict(self.items()))
 
     def __setitem__(self, key, value):
-        self._items[key.lower()] = KeyValue(key, value)
+        self._items[key.lower()] = Item(key, value)
 
     def __getitem__(self, key):
         return self._items[key.lower()].value
@@ -62,125 +64,274 @@ class CaseInsensitiveDict(collections.MutableMapping):
         return NotImplemented
 
 
-def _preprocess_dict(d):
-    return d.get(platform, None)
+class EnvironmentDict(CaseInsensitiveDict):
+    '''A dict suited to manipulating environment variables.
 
+    Lowercase comparisons are used to ensure unique keys and values.
 
-def _preprocess_seq(seq):
-    value = []
-    for item in seq:
-        item_value = PREPROCESSORS[type(item)](item)
-        if item_value is None:
-            continue
-        if isinstance(item_value, (list, tuple, set)):
-            value.extend(item_value)
+    The following methods make it easy to build an Environment.
+    - set: insert or overwrite the value of a key.
+    - unset: discard a key.
+    - remove: discard an item or list of items from a key's value.
+    - append: add an item or list of items to the tail of a key's value.
+    - prepend: add an item or list of items to the head of a key's value.
+
+    Example:
+        >>> env = EnvironmentDict()
+        >>> env.append('PATH', '/some/path')
+        >>> env.prepend('path', '/some/other/path')
+        >>> env.remove('PATH', '/some/path')
+        >>> assert env['PATH'] == ['/some/other/path']
+    '''
+
+    _value_error = 'Expected Union[list, Union[str, int, float]] got %s'
+
+    def __init__(self, *args, **kwargs):
+        self._add_condition = kwargs.pop('add_condition', IgnoreCase)
+        super(EnvironmentDict, self).__init__(*args, **kwargs)
+
+    def _ensure_list(self, value):
+        if value is None:
+            return []
+        if isinstance(value, env_value_types):
+            return [value]
+        if isinstance(value, collections.Sequence):
+            return list(value)
+        raise ValueError('%s could not be converted to a list.' % value)
+
+    def _coerce_value(self, value):
+        if isinstance(value, env_value_types):
+            return str(value)
+        elif isinstance(value, collections.Sequence):
+            result = []
+            for v in value:
+                if v in (None, ''):
+                    continue
+                result.append(str(value))
+            return result
         else:
-            value.append(item_value)
-    return value
+            raise ValueError(self._value_error % type(value))
+
+    def _default_add_condition(self, current_value, value):
+        return value not in current_value
+
+    def _remove_condition(self, current_value, value):
+        return not self._add_condition(current_value, value)
+
+    def unset(self, key, value=None):
+        '''Unset a key.'''
+
+        self.pop(key, None)
+
+    def set(self, key, value):
+        '''Set a key.'''
+
+        self[key] = self._coerce_value(value)
+
+    def remove(self, key, value, remove_check=None):
+        '''Remove a value from a key.'''
+
+        value = self._coerce_value(value)
+
+        if key not in self:
+            return
+
+        result = self._ensure_list(self.get(key, []))
+        if isinstance(value, env_value_types):
+            if self._remove_condition(result, value):
+                result.remove(value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._remove_condition(result, v):
+                    result.remove(v)
+
+        if not result:
+            self.pop(key, None)
+        else:
+            self[key] = result
+
+    def prepend(self, key, value, add_check=None):
+        '''Prepend a value to a key.
+
+        Sets the value if the key does not exist.
+        '''
+
+        result = self._ensure_list(self.get(key, []))
+        value = self._coerce_value(value)
+
+        if isinstance(value, env_value_types):
+            if self._add_condition(result, value):
+                result.insert(0, value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._add_condition(result, v):
+                    result.insert(0, v)
+
+        self[key] = result
+
+    def append(self, key, value, add_check=None):
+        '''Append a value to a key.
+
+        Sets the value if the key does not exist.
+        '''
+
+        result = self._ensure_list(self.get(key, []))
+        value = self._coerce_value(value)
+
+        if isinstance(value, env_value_types):
+            if self._add_condition(result, value):
+                result.append(value)
+        elif isinstance(value, collections.Sequence):
+            for v in value:
+                if self._add_condition(result, v):
+                    result.append(v)
+
+        self[key] = result
 
 
-def _preprocess_str(s):
-    return str(s)
+class EnvironmentDictTokenizer(object):
+    '''Responsible for converting a dict into a list of Operation tokens that
+    can be used to merge one dict with another. Used internally by
+    `join_dicts`.
 
+    An Op token will be returned for each of the following keys:
+    - set: insert or overwrite the value of a key.
+    - unset: discard a key.
+    - remove: discard an item or list of items from a key's value.
+    - append: add an item or list of items to the tail of a key's value.
+    - prepend: add an item or list of items to the head of a key's value.
 
-PREPROCESSORS = {
-    dict: _preprocess_dict,
-    list: _preprocess_seq,
-    set: _preprocess_seq,
-    tuple: _preprocess_seq,
-}
+    You may specify platform specific keys, the value of the current platform
+    will be extracted before tokenization.
+    - win
+    - osx
+    - linux
 
-PREPROCESSORS.update(
-    dict((typ, _preprocess_str) for typ in numeric_types + string_types)
-)
-
-
-def preprocess_dict(d):
-    '''Preprocess a dict to be used as environment variables.
-
-    Extracts platform specific keys (win, osx, linux) based on the current
-    platform.
+    Example:
+        >>> data = {
+        ...     'PATH': [
+        ...         {'append': '/path/a'},
+        ...         {'remove': ['/path/b', '/path/c']}
+        ...     ],
+        ... }
+        [Op('PATH', '/path/a', 'append'), Op('PATH', '/path/b', 'remove')...]
     '''
 
-    out_env = {}
-    for k, v in d.items():
+    operation_names = ['unset', 'set', 'remove', 'append', 'prepend']
 
-        if not type(v) in PREPROCESSORS:
-            raise KeyError('Invalid type in dict: {}'.format(type(v)))
+    @staticmethod
+    def _is_explicit_list_value(value):
+        return len(value) and isinstance(value[0], collections.Mapping)
 
-        value = PREPROCESSORS[type(v)](v)
-        if value is not None:
-            out_env[k] = value
+    @classmethod
+    def tokenize_mapping(cls, key, value, op, tokens):
+        # Handle platform specific keys
+        for plat in supported_platforms:
+            if plat in value:
+                if platform == 'mac':
+                    # mac and osx are valid platform keys for macos
+                    plat_value = value.get(platform, value.get('osx', None))
+                else:
+                    plat_value = value.get(platform, None)
+                if plat_value:
+                    cls.tokenize_value(key, plat_value, op, tokens)
+                return
 
-    return out_env
+        # Handle explicit operations keys
+        for op, op_value in value.items():
+            if op not in cls.operation_names:
+                raise KeyError('Invalid key in dict value: %s' % op)
+            cls.tokenize_value(key, op_value, op, tokens)
+
+    @classmethod
+    def tokenize_str(cls, key, value, op, tokens):
+        if isinstance(value, bool):
+            value = str(int(value))
+        elif isinstance(value, env_value_types):
+            value = str(value)
+        elif value is None:
+            # Skip null values
+            return
+        else:
+            raise ValueError('Got invalid value %s for key %s' % (value, key))
+        tokens.append(Op(key, value, op))
+
+    @classmethod
+    def tokenize_sequence(cls, key, value, op, tokens):
+        if not cls._is_explicit_list_value(value) and op == 'prepend':
+            value = value[::-1]
+        for item in value:
+            cls.tokenize_value(key, item, op, tokens)
+
+    @classmethod
+    def tokenize_value(cls, key, value, op=None, tokens=None):
+        if tokens is None:
+            tokens = []
+        if op == 'set':
+            tokens.append(Op(key, None, 'unset'))
+        if isinstance(value, env_value_types):
+            op = op or 'set'
+            cls.tokenize_str(key, value, op, tokens)
+        elif isinstance(value, collections.Mapping):
+            op = op or 'set'
+            cls.tokenize_mapping(key, value, op, tokens)
+        elif isinstance(value, collections.Sequence):
+            if op in (None, 'set'):
+                op = 'prepend'
+            cls.tokenize_sequence(key, value, op, tokens)
+
+        # TODO: Raise ValueError when value is not a valid type.
+
+        return tokens
+
+    @classmethod
+    def tokenize(cls, data):
+        tokens = []
+        for key, value in data.items():
+            tokens.extend(cls.tokenize_value(key, value))
+        return tokens
 
 
-def _join_dict(d, k, v):
-    '''Add a dict value to an env dict.
+def IgnoreCase(items, value):
+    '''`EnvironmentDict` s default add_condition.
 
-    Assumes that a dict value contains system platform keys (win, mac, linux).
-    If a key is missing - we do not add this key to the result dict.
+    Returns True if value is not in items.
     '''
 
-    if platform in v:
-        d[k] = v[platform]
+    return value.lower() not in [item.lower() for item in items]
 
 
-def _join_str(d, k, v):
-    '''Add a string value to env dict'''
+def tokenize_dict(data):
+    '''Tokenize a dict returning a list of Ops that can be used to
+    join the dict with another.
+    '''
 
-    d[k] = str(v)
-
-
-def _join_seq(d, k, v):
-    '''Add a sequence value to env dict'''
-
-    if k not in d:
-        d[k] = list(v)
-    elif isinstance(d[k], list):
-        for item in reversed(v):
-            if item not in d[k]:
-                d[k].insert(0, item)
-    elif isinstance(d[k], string_types):
-        d[k] = list(v) + [d[k]]
-    else:
-        raise ValueError('Failed to join dict values %s and %s' % (d[k], v))
+    return EnvironmentDictTokenizer.tokenize(data)
 
 
-JOINERS = {
-    dict: _join_dict,
-    list: _join_seq,
-    set: _join_seq,
-    tuple: _join_seq,
-}
-
-JOINERS.update(
-    dict((typ, _join_str) for typ in numeric_types + string_types)
-)
-
-
-def join_dicts(*dicts):
+def join_dicts(*dicts, **kwargs):
     '''Join a bunch of dicts.
 
-    - Expects keys to be strings
-    - Ignores key case
-    - Converts numeric and string types to string using str
-    - String values overwrite existing keys
-    - List values are prepended to existing keys
+    Arguments:
+        *dicts: Dictionaries to merge
+        add_condition (fn): Used to check if a value should be added to a key
     '''
 
-    out_dict = CaseInsensitiveDict()
-
-    for d in dicts:
-
-        for k, v in d.items():
-
-            if type(v) not in JOINERS:
-                raise KeyError('Invalid type in dict: {}'.format(type(v)))
-
-            JOINERS[type(v)](out_dict, k, v)
-
-    return dict(out_dict)
+    env_dict = EnvironmentDict(**kwargs)
+    for data in dicts:
+        tokens = tokenize_dict(data)
+        for token in tokens:
+            if token.op == 'unset':
+                env_dict.unset(token.key, token.value)
+            elif token.op == 'set':
+                env_dict.set(token.key, token.value)
+            elif token.op == 'remove':
+                env_dict.remove(token.key, token.value)
+            elif token.op == 'prepend':
+                env_dict.prepend(token.key, token.value)
+            elif token.op == 'append':
+                env_dict.append(token.key, token.value)
+    return dict(env_dict)
 
 
 def env_to_dict(env, pathsep=os.pathsep):

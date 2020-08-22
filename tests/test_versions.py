@@ -8,7 +8,7 @@ from cpenv.versions import ParseError, parse_version
 
 
 def test_parse_version():
-    '''Parse semver, calver, and simple version strings'''
+    '''Parse all supported version strings.'''
 
     # These should be parsed by parsers.semver_version_pattern
     basic_semver = [

@@ -19,6 +19,10 @@ if is_py3:
 
 
 platform = sys.platform.rstrip('1234567890').lower()
-if platform == 'darwin':  # Use osx instead of darwin
-    platform = 'osx'
+if platform == 'darwin':  # Use mac instead of darwin
+    platform = 'mac'
 os.environ['CPENV_PLATFORM'] = platform
+
+
+# Leave osx in supported platforms for backwards compatability
+supported_platforms = ['win', 'linux', 'mac', 'osx']
