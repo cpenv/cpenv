@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # Standard library imports
 import io
-import fnmatch
 import os
 import zipfile
 from functools import partial
