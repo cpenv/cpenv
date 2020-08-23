@@ -2,9 +2,10 @@
 
 
 class Repo(object):
-    '''A source of modules.
+    '''Base class for all Repos.
 
-    Provides methods for listing, finding, uploading, and downloading modules.
+    A Repo is a source of modules. They can be local or remote so long as they
+    provide this interface.
     '''
 
     type_name = 'repo'

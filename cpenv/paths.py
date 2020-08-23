@@ -43,7 +43,8 @@ def rmtree(path):
 
 
 def walk_up(start_dir, depth=20):
-    '''Walk up a directory tree'''
+    '''Like os.walk but walks up a tree.'''
+
     root = start_dir
 
     for i in range(depth):
@@ -142,7 +143,7 @@ def zip_folder(folder, where):
     # TODO: Count files first so we can report progress of building zip.
 
     with zipfile.ZipFile(where, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        for root, subdirs, files in paths.exclusive_walk(folder):
+        for root, subdirs, files in exclusive_walk(folder):
             rel_root = os.path.relpath(root, folder)
             for file in files:
                 zip_file.write(

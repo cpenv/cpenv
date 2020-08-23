@@ -50,7 +50,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
 
     def __eq__(self, other):
         other_cmp = self._comparable_mapping(other)
-        if other_cmp is NotImplemented:
+        if other_cmp is None:
             return NotImplemented
         self_cmp = self._comparable_mapping(self)
         return self_cmp == other_cmp
@@ -61,11 +61,10 @@ class CaseInsensitiveDict(collections.MutableMapping):
             return {item.key.lower(): item.value for item in mapping.values()}
         if isinstance(mapping, collections.Mapping):
             return {key.lower(): value for key, value in mapping.items()}
-        return NotImplemented
 
 
 class EnvironmentDict(CaseInsensitiveDict):
-    '''A dict suited to manipulating environment variables.
+    '''A dict suited to storing and manipulating environment variables.
 
     Lowercase comparisons are used to ensure unique keys and values.
 
@@ -87,10 +86,11 @@ class EnvironmentDict(CaseInsensitiveDict):
     _value_error = 'Expected Union[list, Union[str, int, float]] got %s'
 
     def __init__(self, *args, **kwargs):
-        self._add_condition = kwargs.pop('add_condition', IgnoreCase)
+        self._add_condition = kwargs.pop('add_condition', ignore_case)
         super(EnvironmentDict, self).__init__(*args, **kwargs)
 
-    def _ensure_list(self, value):
+    def _get_list(self, key):
+        value = self.get(key, None)
         if value is None:
             return []
         if isinstance(value, env_value_types):
@@ -111,9 +111,6 @@ class EnvironmentDict(CaseInsensitiveDict):
             return result
         else:
             raise ValueError(self._value_error % type(value))
-
-    def _default_add_condition(self, current_value, value):
-        return value not in current_value
 
     def _remove_condition(self, current_value, value):
         return not self._add_condition(current_value, value)
@@ -136,7 +133,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         if key not in self:
             return
 
-        result = self._ensure_list(self.get(key, []))
+        result = self._get_list(key)
         if isinstance(value, env_value_types):
             if self._remove_condition(result, value):
                 result.remove(value)
@@ -156,7 +153,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         Sets the value if the key does not exist.
         '''
 
-        result = self._ensure_list(self.get(key, []))
+        result = self._get_list(key)
         value = self._coerce_value(value)
 
         if isinstance(value, env_value_types):
@@ -175,7 +172,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         Sets the value if the key does not exist.
         '''
 
-        result = self._ensure_list(self.get(key, []))
+        result = self._get_list(key)
         value = self._coerce_value(value)
 
         if isinstance(value, env_value_types):
@@ -260,6 +257,7 @@ class EnvironmentDictTokenizer(object):
     def tokenize_sequence(cls, key, value, op, tokens):
         if not cls._is_explicit_list_value(value) and op == 'prepend':
             value = value[::-1]
+
         for item in value:
             cls.tokenize_value(key, item, op, tokens)
 
@@ -279,8 +277,8 @@ class EnvironmentDictTokenizer(object):
             if op in (None, 'set'):
                 op = 'prepend'
             cls.tokenize_sequence(key, value, op, tokens)
-
-        # TODO: Raise ValueError when value is not a valid type.
+        else:
+            raise ValueError('Could not tokenize %s' % value)
 
         return tokens
 
@@ -292,8 +290,8 @@ class EnvironmentDictTokenizer(object):
         return tokens
 
 
-def IgnoreCase(items, value):
-    '''`EnvironmentDict` s default add_condition.
+def ignore_case(items, value):
+    '''Default add_condition for `EnvironmentDict`.
 
     Returns True if value is not in items.
     '''

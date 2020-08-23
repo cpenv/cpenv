@@ -118,6 +118,7 @@ PYTHONPATH:
         - $MODULE/python
         - $MODULE/lib
 ```
+
 You can also uses lists of opreations to perform complex modifications.
 ```
 PATH:
@@ -125,6 +126,7 @@ PATH:
     - append: /some/other/path
     - prepend: /one/more/path
 ```
+
 One workflow that this enables is the use of modules solely for the purpose of overriding environment variables. Imagine you have a module `my_tool` and it uses a variable `MY_TOOL_PLUGINS` to lookup plugins.
 ```
 name: my_tool
@@ -134,6 +136,7 @@ environment:
         - //studio/dev/my_tool/plugins
         - //studio/projects/test_project/plugins
 ```
+
 Now imagine you have a new project and you want `my_tool` to look at a different location for plugins just for that project. Rather than create a new version of the `my_tool` module, create a override module. We might name this module after our project, `project_b`.
 ```
 name: project_b
@@ -144,6 +147,7 @@ environment:
             - //studio/prod/my_tool/plugins
             - //studio/projects/project_b/plugins
 ```
+
 All we have to do is activate `my_tool` and `project_b` in that order to make sure our overrides are used.
 ```
 > cpenv activate my_tool project_b

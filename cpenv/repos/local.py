@@ -175,8 +175,8 @@ class LocalRepo(Repo):
 
         if module_spec.repo is not self:
             raise OSError(
-                'You can only remove modules from a repo that the module is '
-                'actually in!'
+                'You can only remove modules from a repo '
+                'that the module is actually in!'
             )
 
         module = Module(module_spec.path)
@@ -186,7 +186,7 @@ class LocalRepo(Repo):
         '''Read a modules config data.'''
 
         if not os.path.isdir(module_spec.path):
-            raise OSError('module_spec.path does not appare to exist.')
+            raise OSError('module_spec.path does not appear to exist.')
 
         module = Module(module_spec.path)
         return yaml.safe_load(module.raw_config)
