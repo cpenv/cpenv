@@ -899,7 +899,7 @@ def perform_self_version_check():
 
 def main():
     atexit.register(perform_self_version_check)
-    cpenv.set_reporter(CliReporter)
+    cpenv.set_reporter(CliReporter())
     cli.run(CpenvCLI, sys.argv[1:])
 
 

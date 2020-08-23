@@ -11,8 +11,11 @@ this = sys.modules[__name__]
 this._reporter = None
 
 
-def set_reporter(reporter_cls):
-    this._reporter = reporter_cls()
+def set_reporter(reporter, *args, **kwargs):
+    if isinstance(reporter, Reporter):
+        this._reporter = reporter
+    else:
+        this._reporter = reporter(*args, **kwargs)
 
 
 def get_reporter():
