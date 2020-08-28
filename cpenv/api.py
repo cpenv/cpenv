@@ -317,11 +317,18 @@ def get_home_path():
 
     Default home paths:
         win - C:/ProgramData/cpenv
-        mac - /Library/Application Support/cpenv
+        mac - /Library/Caches/cpenv
         linux - /usr/local/share/cpenv OR /usr/share/cpenv
     '''
 
-    home_default = appdirs.site_data_dir('cpenv', appauthor=False)
+    if compat.platform == 'mac':
+        # /Library/Application Support has restricted access
+        # Prefer /Library/Caches as it has open permissions
+        # and it's still shared across all users.
+        home_default = '/Library/Caches/cpenv'
+    else:
+        home_default = appdirs.site_data_dir('cpenv', appauthor=False)
+
     home = paths.normalize(os.getenv('CPENV_HOME', home_default))
     return home
 
@@ -331,7 +338,7 @@ def get_home_modules_path():
 
     Default home modules paths:
         win - C:/ProgramData/cpenv/modules
-        mac - /Library/Application Support/cpenv/modules
+        mac - /Library/Caches/cpenv/modules
         linux - /usr/local/share/cpenv OR /usr/share/cpenv/modules
     '''
 
@@ -343,7 +350,7 @@ def get_cache_path(*parts):
 
     Default cache paths:
         win - C:/ProgramData/cpenv/cache
-        mac - /Library/Application Support/cpenv/cache
+        mac - /Library/Caches/cpenv/cache
         linux - /usr/local/share/cpenv OR /usr/share/cpenv/cache
 
     Arguments:
