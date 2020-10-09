@@ -269,8 +269,6 @@ def add_active_module(module):
     if module not in _active_modules:
         _active_modules.append(module)
 
-    _active_modules.sort(key=lambda m: m.real_name)
-
     module_names = os.pathsep.join([m.real_name for m in _active_modules])
     os.environ['CPENV_ACTIVE_MODULES'] = str(module_names)
 
