@@ -76,6 +76,17 @@ python-versions = "*"
 version = "1.3.7"
 
 [[package]]
+category = "dev"
+description = "Exclude specific directories from nosetests runs."
+name = "nose-exclude"
+optional = false
+python-versions = "*"
+version = "0.5.0"
+
+[package.dependencies]
+nose = "*"
+
+[[package]]
 category = "main"
 description = "Cross-platform lib for process and system monitoring in Python."
 name = "psutil"
@@ -117,7 +128,7 @@ version = "4.46.0"
 dev = ["py-make (>=0.1.0)", "twine", "argopt", "pydoc-markdown"]
 
 [metadata]
-content-hash = "a70118c90284f790e5936d963e0fe8e7c81f2261606f8884454baba5c536dbd9"
+content-hash = "8f4810873f05928f19053290d4d7b01d4a9ccb017ccc9649e8fa362da004572a"
 python-versions = "^2.7 || ^3.6"
 
 [metadata.files]
@@ -175,6 +186,9 @@ nose = [
     {file = "nose-1.3.7-py2-none-any.whl", hash = "sha256:dadcddc0aefbf99eea214e0f1232b94f2fa9bd98fa8353711dacb112bfcbbb2a"},
     {file = "nose-1.3.7-py3-none-any.whl", hash = "sha256:9ff7c6cc443f8c51994b34a667bbcf45afd6d945be7477b52e97516fd17c53ac"},
     {file = "nose-1.3.7.tar.gz", hash = "sha256:f1bffef9cbc82628f6e7d7b40d7e255aefaa1adb6a1b1d26c69a8b79e6208a98"},
+]
+nose-exclude = [
+    {file = "nose-exclude-0.5.0.tar.gz", hash = "sha256:f78fa8b41eeb815f0486414f710f1eea0949e346cfb11d59ba6295ed69e84304"},
 ]
 psutil = [
     {file = "psutil-5.7.0-cp27-none-win32.whl", hash = "sha256:298af2f14b635c3c7118fd9183843f4e73e681bb6f01e12284d4d70d48a60953"},
