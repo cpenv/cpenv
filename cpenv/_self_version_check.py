@@ -8,11 +8,12 @@ from datetime import datetime
 
 # Local imports
 from . import __version__
+from . import http
 from .api import get_cache_path
 from .versions import parse_version, default_version
 
 
-_cache_expiration = 3600  # seconds - 1 hour
+_cache_expiration = 3600  # seconds or 1 hour
 _warning_template = '''
 WARNING: You are using cpenv version {}, however version {} is available.
 You should consider upgrading via the 'pip install --upgrade cpenv' command.
@@ -60,16 +61,19 @@ def get_latest_version():
 
     latest = default_version()
     if latest_file_expired:
-        python = sys.executable
-        query = subprocess.check_output(python + ' -m pip search cpenv')
-        query = query.decode(sys.stdout.encoding)
-        for line in query.splitlines():
-            if 'latest:' in line.lower():
-                latest = parse_version(line.split(':')[-1].strip())
+        try:
+            response = http.get('https://pypi.python.org/pypi/cpenv/json')
+            json = http.json(response)
+            latest = parse_version(json['info']['version'])
+            if latest:
+                with open(latest_file, 'w') as f:
+                    f.write(latest.string)
+        except Exception as e:
+            print('Failed to query pypi for latest version: %s' % e)
 
-        if latest:
             with open(latest_file, 'w') as f:
-                f.write(latest.string)
+                f.write(default_version().string)
+
     else:
         with open(latest_file, 'r') as f:
             latest_string = f.read()

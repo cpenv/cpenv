@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Standard library imports
 from json import dumps as json_dump
+from json import loads as json_load
 
 try:
     from urllib2 import urlopen, HTTPError, URLError
@@ -29,4 +30,4 @@ def get(url):
 def json(response):
     '''Get dict from json response.'''
 
-    return json_dump(response.read())
+    return json_load(response.read().decode())
