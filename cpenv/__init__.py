@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''isort:skip_file'''
 __title__ = 'cpenv'
-__version__ = '0.5.14'
+__version__ = '0.5.15'
 __author__ = 'Dan Bradham'
 __email__ = 'danielbradham@gmail.com'
 __url__ = 'http://github.com/cpenv/cpenv'
