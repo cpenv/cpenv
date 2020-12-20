@@ -14,5 +14,5 @@ appdirs==1.4.4
 cachetools==3.1.1
 certifi==2020.04.05.1
 pyyaml==5.3.1
-shotgun_api3==3.2.4
+shotgun_api3==3.2.6
 terminalsize - https://gist.github.com/jtriley/1108174
