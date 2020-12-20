@@ -81,7 +81,7 @@ class ShotgunRepo(Repo):
                 base_url=base_url,
                 script_name=script_name,
                 api_key=api_key,
-                ca_certs=certifi.where(),
+                ca_certs=http.ca_certs(),
             )
 
         self.base_url = self._api.base_url
