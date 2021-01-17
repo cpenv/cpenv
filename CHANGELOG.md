@@ -4,6 +4,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.20](https://github.com/cpenv/cpenv/releases/tag/0.5.20) - 2021-01-17
+
+<small>[Compare with 0.5.15](https://github.com/cpenv/cpenv/compare/0.5.15...0.5.20)</small>
+
+### Added
+- Add: first class support for environments (aliases) ([9bb7611](https://github.com/cpenv/cpenv/commit/9bb76113d1bc60df155aded26d39469f169a7513) by Dan Bradham). Related issues/PRs: [#21](https://github.com/cpenv/cpenv/issues/21)
+
+### Changed
+- Change: bump version to 0.5.2 ([332d7d1](https://github.com/cpenv/cpenv/commit/332d7d101c4c587764af32947fbded67a7a124be) by Dan Bradham).
+
+### Removed
+- Remove: unused imports ([0c4ec74](https://github.com/cpenv/cpenv/commit/0c4ec7408c8c6caf7d6f1f4f1f0c93acb083bccb) by Dan Bradham).
+
+
+## [0.5.15](https://github.com/cpenv/cpenv/releases/tag/0.5.15) - 2020-12-20
+
+<small>[Compare with 0.5.14](https://github.com/cpenv/cpenv/compare/0.5.14...0.5.15)</small>
+
+### Changed
+- Change: bump version to 0.5.15 ([da958d4](https://github.com/cpenv/cpenv/commit/da958d42fca78e8de613b9941f250ea1ac23d294) by Dan Bradham).
+
+### Fixed
+- Fix: exclude vendor subpackage from tests ([c0a10c5](https://github.com/cpenv/cpenv/commit/c0a10c579fe0325e311eb751bf4e46f375486678) by Dan Bradham).
+- Fix pypi version check ([80648d8](https://github.com/cpenv/cpenv/commit/80648d8029bbcbc4a7ca1d9dcf5758de53d4c8a7) by Dan Bradham).
+
+
+## [0.5.14](https://github.com/cpenv/cpenv/releases/tag/0.5.14) - 2020-10-09
+
+<small>[Compare with 0.5.13](https://github.com/cpenv/cpenv/compare/0.5.13...0.5.14)</small>
+
+### Changed
+- Change: bump version to 0.5.14 ([fed503d](https://github.com/cpenv/cpenv/commit/fed503ddd4719730cd64d6531d21dc3435d04828) by Dan Bradham).
+
+### Fixed
+- Fix: modules no longer sorted when added to active_modules list ([afd18b2](https://github.com/cpenv/cpenv/commit/afd18b26d3b18663acc91ef28cab8b143e8379bf) by Dan Bradham).
+
+
+## [0.5.13](https://github.com/cpenv/cpenv/releases/tag/0.5.13) - 2020-08-28
+
+<small>[Compare with 0.5.12](https://github.com/cpenv/cpenv/compare/0.5.12...0.5.13)</small>
+
+### Changed
+- Change: bump version to 0.5.13 ([17d5b9c](https://github.com/cpenv/cpenv/commit/17d5b9c471f6dcde2e1e0d4f055d1649f1f9f4b3) by Dan Bradham).
+
+### Fixed
+- Fix: use /library/caches/cpenv as home on macos ([062b0fa](https://github.com/cpenv/cpenv/commit/062b0fa453da11c2705beac0e25853d6cdaef958) by Dan Bradham).
+
+
+## [0.5.12](https://github.com/cpenv/cpenv/releases/tag/0.5.12) - 2020-08-26
+
+<small>[Compare with 0.5.11](https://github.com/cpenv/cpenv/compare/0.5.11...0.5.12)</small>
+
+### Added
+- Add: test explicit environment operations ([8db08f5](https://github.com/cpenv/cpenv/commit/8db08f552797230ab75a7191b8ff41c004908083) by Dan Bradham).
+- Add: environmentdicttokenizer to build list of operations to join dicts ([cb03802](https://github.com/cpenv/cpenv/commit/cb03802b80f63a65682d21b66ce419964f61ab52) by Dan Bradham).
+- Add: environmentdict object ([8bcbf26](https://github.com/cpenv/cpenv/commit/8bcbf26692f33a5a36d1f3bda26206ead333897a) by Dan Bradham).
+- Add: supported_platforms to compat ([9887ad9](https://github.com/cpenv/cpenv/commit/9887ad9cab039b85ad5103c00b30e174bccea8be) by Dan Bradham).
+
+### Changed
+- Change: allow passing instantiated reporter to set_reporter ([962df1f](https://github.com/cpenv/cpenv/commit/962df1ffa258d27a22e5e54be4472804878e5ea1) by Dan Bradham).
+- Change: move zip_folder to paths ([9be3062](https://github.com/cpenv/cpenv/commit/9be3062843611a9958869dc2257a04dae624fd7c) by Dan Bradham).
+- Change: move zip_folder to paths module ([34c266f](https://github.com/cpenv/cpenv/commit/34c266fcbc989802fbafd52652ca3227d79a8198) by Dan Bradham).
+- Change: make module.has_icon a property ([be5846d](https://github.com/cpenv/cpenv/commit/be5846ddbe26229ba9438977388a51eafffd6e5c) by Dan Bradham).
+- Change: reimplement join_dicts using op tokens ([dcf1384](https://github.com/cpenv/cpenv/commit/dcf13840c0250b938fe710ebcb5e484b4231f54a) by Dan Bradham).
+- Change: rename keyvalue to item ([aeee654](https://github.com/cpenv/cpenv/commit/aeee6540d9ac23c35e2fb9e0b790d1ceb4fc6f88) by Dan Bradham).
+
+### Fixed
+- Fix: module.environment no longer requires preprocessing ([9978716](https://github.com/cpenv/cpenv/commit/99787162c3b9e22886486bccce55459f30f8f046) by Dan Bradham).
+- Fix: #27 make join_dicts case insensitive add: caseinsensitivedict class ([5151c28](https://github.com/cpenv/cpenv/commit/5151c288a47e47fc49345f9ed486e457a27469d0) by Dan Bradham).
+- Fix: ensure ordering of list values prepended by join_dicts ([67fbce5](https://github.com/cpenv/cpenv/commit/67fbce59d7fd38f2f815e5967c07c4dea1dad91a) by Dan Bradham).
+- Fix: #26 make sure home repo is added when cwd is the same as home ([55c1f3d](https://github.com/cpenv/cpenv/commit/55c1f3d80d540d428f8d1f0385adeb866c5c8387) by Dan Bradham).
+
+
 ## [0.5.11](https://github.com/cpenv/cpenv/releases/tag/0.5.11) - 2020-08-11
 
 <small>[Compare with 0.5.10](https://github.com/cpenv/cpenv/compare/0.5.10...0.5.11)</small>
