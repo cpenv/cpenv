@@ -1,13 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
 
-# Standard library imports
-import os
-
-# Local imports
-from . import api, paths
-from .vendor import yaml
-
 
 missing = object()
 
