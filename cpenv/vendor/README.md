@@ -1,6 +1,6 @@
 Vendor Policy
 -------------
-Cpenv vendors packages:
+Vendor packages...
 
 - To ease the use of cpenv in environments that do not support
   pip.

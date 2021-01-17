@@ -54,6 +54,7 @@ class CpenvCLI(cli.CLI):
             Create(self),
             Info(self),
             Edit(self),
+            Env(self),
             List(self),
             Localize(self),
             Publish(self),
@@ -100,18 +101,26 @@ class Edit(cli.CLI):
         3. subl (default editor)
     '''
 
-    usage = 'cpenv edit [-h] <module>'
+    usage = 'cpenv edit [-h, --env] <module_or_environment>'
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'module',
-            help='Module to clone.',
+            '--env',
+            help='Edit an Environment instead of a Module.',
+            action='store_true',
+        )
+        parser.add_argument(
+            'module_or_environment',
+            help='Module or Environment name.',
         )
 
     def run(self, args):
         cli.echo()
+        if args.env:
+            return self.run_env(args.module_or_environment)
+
         try:
-            module_spec = api.resolve([args.module])[0]
+            module_spec = api.resolve([args.module_or_environment])[0]
         except ResolveError:
             sys.exit(1)
 
@@ -124,11 +133,48 @@ class Edit(cli.CLI):
         cli.echo('Opening %s in %s.' % (module_spec.path, editor))
         shell.run(editor, module_spec.path)
 
+    def run_env(self, environment):
+        file = None
+        repo = False
+        found_in_remote = False
+        for repo in api.get_repos():
+            for env in repo.list_environments():
+                if env.name == environment:
+                    if isinstance(repo, LocalRepo):
+                        file = env.path
+                        break
+                    else:
+                        repo = repo
+                        found_in_remote = True
+            if file:
+                break
+
+        if found_in_remote:
+            cli.echo('Error: Can only edit Environments in local repos.')
+            cli.echo('Found %s in repo %s' % (environment, repo.name))
+            sys.exit(1)
+
+        editor = os.getenv('CPENV_EDITOR', os.getenv('EDITOR', 'subl'))
+        cli.echo('Opening %s in %s.' % (file, editor))
+        shell.run(editor, file)
+
 
 class Activate(cli.CLI):
-    '''Activate a list of Modules.'''
+    '''Activate a list of Modules or an Environment.
 
-    usage = 'cpenv activate [-h] [<modules>...]'
+    Examples:
+      cpenv activate module_a module_b
+      cpenv activate module_a-1.0 module_b 0.2.0
+      cpenv activate my_environment
+      cpenv activate --env my_environment
+
+    Note:
+      Use the --env flag to specifically activate an Environment by name
+      rather than checking for modules first. Use the "cpenv env" command to
+      manage Environments.
+    '''
+
+    usage = 'cpenv activate [-h] [<modules> or <environment>...]'
 
     def setup_parser(self, parser):
         parser.add_argument(
@@ -136,13 +182,29 @@ class Activate(cli.CLI):
             help='Space separated list of modules.',
             nargs='+',
         )
+        parser.add_argument(
+            '--env',
+            help='Activate an Environment. (False)',
+            action='store_true',
+        )
 
     def run(self, args):
+
         cli.echo()
-        try:
-            api.activate(args.modules)
-        except ResolveError:
-            sys.exit(1)
+
+        if args.env:
+            try:
+                api.activate_environment(args.modules[0])
+            except ResolveError as e:
+                cli.echo(str(e))
+                sys.exit(1)
+        else:
+            try:
+                api.activate(args.modules)
+            except ResolveError:
+                api.activate_environment(args.modules[0])
+            except ResolveError:
+                sys.exit(1)
 
         cli.echo('- Launching subshell...')
         cli.echo()
@@ -289,6 +351,11 @@ class List(cli.CLI):
             default=None,
         )
         parser.add_argument(
+            '--repo',
+            help='List modules only in this repo.',
+            default=None,
+        )
+        parser.add_argument(
             '--verbose', '-v',
             help='Print more module info.',
             action='store_true',
@@ -314,7 +381,11 @@ class List(cli.CLI):
             ))
             cli.echo()
 
-        for repo in api.get_repos():
+        repos = api.get_repos()
+        if args.repo:
+            repos = [api.get_repo(args.repo)]
+
+        for repo in repos:
             if args.requirement:
                 repo_modules = repo.find(args.requirement)
             else:
@@ -541,11 +612,6 @@ class Remove(cli.CLI):
             '--from_repo',
             help='Specific repo to remove from.',
             default=None,
-        )
-        parser.add_argument(
-            '--quiet',
-            help='Overwrite the destination directory. (False)',
-            action='store_true',
         )
 
     def run(self, args):
@@ -775,6 +841,209 @@ class Version(cli.CLI):
             return
 
         cli.echo(cli.format_section('Dependencies', dependencies), end='\n\n')
+
+
+class Env(cli.CLI):
+    '''
+    Manage, Configure and list Repos.
+
+    Repos are sources of Modules. A Repo can be local or remote. Modules
+    stored in remote Repos will be localized to a local repo prior to
+    activation or explicitly by using "cpenv localize".
+    '''
+
+    def commands(self):
+        return [
+            ListEnv(self),
+            SaveEnv(self),
+            RemoveEnv(self),
+        ]
+
+
+class ListEnv(cli.CLI):
+    '''
+    List available Environments.
+
+    Environments are like Aliases for a list of module requirements. They
+    can be Activated using a single name rather than providing a full list of
+    module requirements.
+    '''
+
+    name = 'list'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'filters',
+            help='Environment filters like --name="My*".',
+            nargs=argparse.REMAINDER,
+        )
+
+    def parse_filters(self, filters):
+        pattern = (
+            r'-{1,2}(?P<param>[a-zA-Z0-9_]+)=*\s*'
+            r'"?(?P<value>.+)"?'
+        )
+        kwargs = {}
+        for arg in filters:
+            match = re.search(pattern, arg)
+            param = match.group('param')
+            raw_value = '"%s"' % match.group('value').strip()
+            value = cli.safe_eval(raw_value)
+            kwargs[param] = value
+        return kwargs
+
+    def run(self, args):
+
+        filters = self.parse_filters(args.filters)
+        cli.echo()
+
+        found_environments = False
+
+        for repo in api.get_repos():
+            environments = repo.list_environments(filters)
+            env_names = sorted([env.name for env in environments])
+            if env_names:
+                found_environments = True
+                if repo.name != repo.path:
+                    header = repo.name + ' - ' + repo.path
+                else:
+                    header = repo.name
+                cli.echo(cli.format_columns(
+                    header,
+                    env_names,
+                    indent='  ',
+                ))
+                cli.echo()
+
+        if not found_environments:
+            cli.echo('No Environments are were found.')
+            cli.echo('Use "cpenv env save <name>" to save an Environment.')
+
+
+class SaveEnv(cli.CLI):
+    '''
+    Save an Environment.
+
+    Examples:
+        cpenv env save my_env
+        cpenv env save --force my_env
+        cpenv env save --no_versions my_env
+        cpenv env save --repo MyShotgunRepo --project=1234 my_env
+    '''
+
+    name = 'save'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            '--repo',
+            help='Repo to save the Environment in.',
+            default='home',
+        )
+        parser.add_argument(
+            '--force',
+            help='Overwrite existing Environment? (False)',
+            action='store_true',
+        )
+        parser.add_argument(
+            '--no_versions',
+            help='Write requirements without versions. (False)',
+            action='store_true',
+        )
+        parser.add_argument(
+            'name',
+            help='Name of the Environment.'
+        )
+        parser.add_argument(
+            'data',
+            help='Data to include in Environment.',
+            nargs=argparse.REMAINDER,
+        )
+
+    def parse_data(self, data):
+        pattern = (
+            r'-{1,2}(?P<param>[a-zA-Z0-9_]+)=*\s*'
+            r'"?(?P<value>.+)"?'
+        )
+        kwargs = {}
+        for arg in data:
+            match = re.search(pattern, arg)
+            param = match.group('param')
+            raw_value = '"%s"' % match.group('value').strip()
+            value = cli.safe_eval(raw_value)
+            kwargs[param] = value
+        return kwargs
+
+    def run(self, args):
+
+        extra_data = self.parse_data(args.data)
+        repo = api.get_repo(args.repo)
+        requires = api.get_active_modules()
+
+        if not requires:
+            cli.echo('Activate some modules before you save an Environment.')
+            return
+
+        if args.no_versions:
+            requires = [m.name for m in requires]
+        else:
+            requires = [m.qual_name for m in requires]
+
+        data = {
+            'name': args.name,
+            'requires': requires,
+        }
+        data.update(extra_data)
+
+        repo.save_environment(
+            name=data['name'],
+            data=data,
+            force=args.force,
+        )
+
+
+class RemoveEnv(cli.CLI):
+    '''
+    Remove an Environment.
+
+    Examples:
+      cpenv env remove my_env
+      cpenv env remove my_env --from_repo SomeRepo
+    '''
+
+    name = 'remove'
+
+    def setup_parser(self, parser):
+        parser.add_argument(
+            'name',
+            help='Name of the Environment.'
+        )
+        parser.add_argument(
+            '--from_repo',
+            help='Repo to remove the Environment from.',
+            default='home',
+        )
+
+    def run(self, args):
+
+        name = args.name
+        from_repo = api.get_repo(name=args.from_repo)
+
+        cli.echo()
+        cli.echo('- Removing Environment from %s...' % from_repo.name)
+        cli.echo()
+
+        env_removed = False
+        for env in from_repo.list_environments():
+            if env.name == name:
+                env_removed = True
+                from_repo.remove_environment(env.name)
+
+        if env_removed:
+            cli.echo('Successfully removed %s.' % name)
+        else:
+            cli.echo('Could not find Environment "%s".' % name)
+
+        cli.echo()
 
 
 def prompt_for_repo(repos, message, default_repo_name='home'):

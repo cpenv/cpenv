@@ -102,6 +102,27 @@ def activate(requirements):
     return modules
 
 
+def activate_environment(environment):
+    '''Activate an environment by name.
+
+    Usage:
+        >>> cpenv.activate_environment('MyEnvironment')
+
+    Arguments:
+        environment (str): Name of Environment
+
+    Returns:
+        list of Module objects that have been activated
+    '''
+
+    for repo in get_repos():
+        for env in repo.list_environments():
+            if env.name == environment:
+                return activate(env.requires)
+    else:
+        raise ResolveError('Failed to resolve Environment: %s' % environment)
+
+
 def deactivate():
     '''Deactivates an environment by restoring all env vars to a clean state
     stored prior to activating environments
@@ -302,12 +323,14 @@ def set_home_path(path):
 
 
 def _init_home_path(home):
-    home_modules = paths.normalize(home, 'modules')
-    home_cache = paths.normalize(home, 'cache')
-
-    paths.ensure_path_exists(home)
-    paths.ensure_path_exists(home_modules)
-    paths.ensure_path_exists(home_cache)
+    folders = [
+        home,
+        paths.normalize(home, 'modules'),
+        paths.normalize(home, 'environments'),
+        paths.normalize(home, 'cache'),
+    ]
+    for folder in folders:
+        paths.ensure_path_exists(folder)
 
 
 def get_home_path():
@@ -361,9 +384,12 @@ def get_cache_path(*parts):
 def _init_user_path(user):
     '''Initialize user path.'''
 
-    user_modules = paths.normalize(user, 'modules')
-    paths.ensure_path_exists(user)
-    paths.ensure_path_exists(user_modules)
+    folders = [
+        user,
+        paths.normalize(user, 'modules'),
+    ]
+    for folder in folders:
+        paths.ensure_path_exists(folder)
 
 
 def get_user_path():

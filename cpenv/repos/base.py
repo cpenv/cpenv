@@ -94,3 +94,34 @@ class Repo(object):
         Return None when no thumbnail is available.
         '''
         return
+
+    def list_environments(self, filters=None):
+        '''Return a list of Environments in this repo.
+
+        Filters should be a dict containing fields to match in the list of
+        results for example:
+            {
+                'name': 'My*',
+                'requires': ['my_module'],
+            }
+
+        The above filters should return a list of Environments with names
+        beginning with My and requires containing my_module.
+        '''
+
+        return []
+
+    def save_environment(self, name, data, force=False):
+        '''Save an environment to this repo.
+
+        This method needs to store an Environment within the Repo. This could
+        mean saving to a database or to a file on disk in the case of
+        local repositories.
+        '''
+
+        return NotImplemented
+
+    def remove_environment(self, name):
+        '''Removes an Environment from this repo.'''
+
+        return NotImplemented

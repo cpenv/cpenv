@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+
 # Standard library imports
+import logging
 import os
 import shutil
 from glob import glob
+from fnmatch import fnmatch
 from functools import partial
 
 # Local imports
-from .. import paths
+from .. import compat, paths
+from ..environment import Environment
 from ..module import (
     Module,
     is_exact_match,
@@ -17,6 +21,9 @@ from ..reporter import get_reporter
 from ..vendor import yaml
 from ..vendor.cachetools import TTLCache, cachedmethod, keys
 from .base import Repo
+
+
+_log = logging.getLogger(__name__)
 
 
 class LocalRepo(Repo):
@@ -210,3 +217,92 @@ class LocalRepo(Repo):
             return
 
         return icon_path
+
+    def validate_filters(self, filters):
+        errors = {}
+        name = filters.get(name)
+        if name and not isinstance(name, compat.string_types):
+            errors['name'] = 'Name must be a string.'
+
+        requires = filters.get('requires')
+        requires_error = 'requires must be a list of strings.'
+        if requires:
+            if not isinstance(requires, list):
+                errors['requires'] = requires_error
+            else:
+                for require in requires:
+                    if not isinstance(require, compat.string_types):
+                        errors['requires'] = requires_error
+
+        return not bool(errors), errors
+
+    def list_environments(self, filters=None):
+        '''Returns a list of environments matching the provided filters.'''
+
+
+        if filters:
+            valid, errors = self.validate_filters(filters)
+            if not valid:
+                _log.debug(
+                    'Provided filters are incompatible with LocalRepo.\n'
+                    'The following errors were found: %s',
+                    errors,
+                )
+
+        filters = {}
+        name_filter = filters.get('name', None)
+        requires_filter = filters.get('requires', None)
+
+        environments = []
+        for file in glob(self.relative_path('..', 'environments', '*.yml')):
+
+            try:
+                with open(file, 'r') as f:
+                    data = yaml.safe_load(f.read())
+
+                env = Environment(
+                    name=data.get(
+                        'name',
+                        os.path.basename(file).rsplit('.', 1)[0]
+                    ),
+                    data=data,
+                    path=paths.normalize(file),
+                )
+
+                # Check filters
+                if name_filter and not fnmatch(env.name, name_filter):
+                    continue
+
+                if requires_filter:
+                    if not set(requires_filter) - set(env['requires']):
+                        continue
+
+                environments.append(env)
+
+            except Exception as e:
+                _log.error('Invalid Environment file: ' + file)
+                print(str(e))
+
+        return environments
+
+    def save_environment(self, name, data, force=False):
+        '''Saves an Environment to a yml file in the LocalRepo.'''
+
+        file = self.relative_path('..', 'environments', name + '.yml')
+        if not force and os.path.isfile(file):
+            raise ValueError(
+                'Environment "%s" because it already exists.' % name
+            )
+
+        encoded = yaml.safe_dump(data)
+        with open(file, 'w') as f:
+            f.write(encoded)
+
+        return True
+
+    def remove_environment(self, name):
+        '''Removes an Environment from the LocalRepo.'''
+
+        file = self.relative_path('..', 'environments', name + '.yml')
+        if os.path.isfile(file):
+            os.remove(file)
