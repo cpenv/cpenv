@@ -5,6 +5,9 @@ import re
 from collections import namedtuple
 from functools import total_ordering
 
+# Local imports
+from . import compat
+
 
 __all__ = [
     'ParseError',
@@ -65,31 +68,50 @@ class Version(VersionBase):
     def __hash__(self):
         return super(Version, self).__hash__()
 
-    def _comparable(self):
+    def _comparable_value(self, value, other):
+        '''Return a value that will be comparable with other.'''
+
+        types_match = type(value) is type(other)
+        if types_match or isinstance(value, compat.numeric_types):
+            return value
+
+        if other is None:
+            return value
+
+        if value is None and isinstance(other, compat.string_types):
+            return 'zzzzzzzz'
+
+        if isinstance(other, compat.numeric_types):
+            return -float('inf')
+
+        return value
+
+    def _comparable(self, other):
         '''Generate a comparison key for a Version object.
 
-        We use 'zzzzzzzz' as a default in lieu of complicated conditional logic
-        to force releases to take precendence over prereleases.
+        Coerces types of prerelease and buildmeta to ensure that the Version
+        objects are comparable. This is required because Python 3 now raises
+        a TypeError when attempting to compare str and int.
         '''
         return (
             self.major,
             self.minor,
             self.patch,
-            self.prerelease or 'zzzzzzzz',
-            self.buildmetadata or 'zzzzzzzz',
+            self._comparable_value(self.prerelease, other.prerelease),
+            self._comparable_value(self.buildmetadata, other.buildmetadata),
         )
 
     def __lt__(self, other):
         if not isinstance(other, Version):
             raise ValueError('Can only compare two Version objects.')
 
-        return self._comparable() < other._comparable()
+        return self._comparable(other) < other._comparable(self)
 
     def __eq__(self, other):
         if not isinstance(other, Version):
             raise ValueError('Can only compare two Version objects.')
 
-        return self._comparable() == other._comparable()
+        return tuple(other) == tuple(self)
 
 
 class ParseError(Exception):

@@ -131,3 +131,25 @@ def test_compare_versions():
     version_objects = [parse_version(v) for v in version_strings]
     ordered_versions = [v.string for v in sorted(version_objects)]
     assert ordered_versions == expected_order
+
+
+def test_compare_fourver():
+    '''Validate four digit Version comparisons with other Version types.'''
+
+    version_strings = [
+        '5.6.0.1',
+        '5.2.0',
+        '5.2.0-beta',
+        '5.6.0.0',
+    ]
+    expected_order = [
+        '5.2.0-beta',
+        '5.2.0',
+        '5.6.0.0',
+        '5.6.0.1',
+    ]
+
+    # Parse and sort
+    version_objects = [parse_version(v) for v in version_strings]
+    ordered_versions = [v.string for v in sorted(version_objects)]
+    assert ordered_versions == expected_order
