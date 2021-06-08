@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cpenv"
-version = "0.5.21"
+version = "0.5.22"
 description = "Cross-platform module and environment management."
 authors = ["Dan Bradham <danielbradham@gmail.com>"]
 license = "MIT"
