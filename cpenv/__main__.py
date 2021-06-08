@@ -73,24 +73,109 @@ class Info(cli.CLI):
         parser.add_argument(
             'modules',
             help='Space separated list of modules.',
-            nargs='+',
+            nargs='*',
+        )
+        parser.add_argument(
+            '--key',
+            help=(
+                'Specify the name of a key like "path" or "version". '
+                'When provided this command will print the value of the key.'
+            ),
+            default=None,
+        )
+        parser.add_argument(
+            '--repo',
+            help='Get repo info instead of module info.',
+            action='store_true',
+        )
+        parser.add_argument(
+            '--home',
+            help='Get the path to the cpenv home directory.',
+            action='store_true',
+        )
+        parser.add_argument(
+            '--cache',
+            help='Get the path to the cpenv cache directory.',
+            action='store_true',
         )
 
-    def run(self, args):
-        cli.echo()
+    def _get_key(self, obj, key):
         try:
-            module_specs = api.resolve(args.modules)
-        except ResolveError:
+            return eval('obj.' + key)
+        except Exception as e:
+            cli.echo('Error: %s' % e)
             sys.exit(1)
 
-        cli.echo()
-        for spec in module_specs:
-            cli.echo(cli.format_section(
-                spec.real_name,
-                [(k, str(v)) for k, v in sorted(spec._asdict().items())]
-            ))
-            cli.echo()
+    def run(self, args):
+        if args.home:
+            cli.echo(cpenv.get_home_path())
+            return
 
+        if args.cache:
+            cli.echo(cpenv.get_cache_path())
+            return
+
+        # Key mode - print a key's value of a module or repo.
+        if args.key:
+            cpenv.set_reporter(Reporter())
+            if args.repo:
+                objects = []
+                for repo_name in args.modules:
+                    repo = api.get_repo(repo_name)
+                    if repo is None:
+                        cli.echo('Could not find repo %s' % repo_name)
+                        sys.exit(1)
+                    objects.append(repo)
+            else:
+                try:
+                    objects = api.resolve(args.modules)
+                except ResolveError:
+                    sys.exit(1)
+
+            value = self._get_key(objects[0], args.key)
+            cli.echo(value)
+            return
+
+        # Normal mode - resolve repos or modules and show info.
+        cli.echo()
+        if args.repo:
+            repos = []
+            for repo_name in args.modules:
+                repo = api.get_repo(repo_name)
+                if repo is None:
+                    cli.echo('Could not find repo %s' % repo_name)
+                    sys.exit(1)
+                repos.append(repo)
+
+            for repo in repos:
+                cli.echo(cli.format_section(
+                    repo.name,
+                    [
+                        ('name', repo.name),
+                        ('path', repo.path),
+                        ('type', str(type(repo))),
+                        ('type_name', repo.type_name),
+                    ]
+                ))
+                cli.echo()
+            return
+        else:
+            try:
+                module_specs = api.resolve(args.modules)
+            except ResolveError:
+                sys.exit(1)
+
+            cli.echo()
+            for spec in module_specs:
+                cli.echo(cli.format_section(
+                    spec.qual_name,
+                    [
+                        (k, str(v))
+                        for k, v in sorted(spec._asdict().items())
+                    ],
+                ))
+                cli.echo()
+            return
 
 class Edit(cli.CLI):
     '''Open a module in a text editor.
