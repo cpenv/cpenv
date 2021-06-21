@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.23](https://github.com/cpenv/cpenv/releases/tag/0.5.23) - 2021-06-21
+
+<small>[Compare with 0.5.22](https://github.com/cpenv/cpenv/compare/0.5.22...0.5.23)</small>
+
+### Added
+- Add: disable cpenv shell prompts with cpenv_disable_prompts=1 ([6cfbea3](https://github.com/cpenv/cpenv/commit/6cfbea37448ffdccb13f811eea7fa5687159d42e) by Dan Bradham).
+
+
+## [0.5.22](https://github.com/cpenv/cpenv/releases/tag/0.5.22) - 2021-06-08
+
+<small>[Compare with 0.5.20](https://github.com/cpenv/cpenv/compare/0.5.20...0.5.22)</small>
+
+### Added
+- Add: additional options to info command closes #35. ([1039cfa](https://github.com/cpenv/cpenv/commit/1039cfa2783bb93ba03de1a1bdf1ee248f2cebf5) by Dan Bradham).
+
+### Changed
+- Change: update changelog ([13f51ea](https://github.com/cpenv/cpenv/commit/13f51ea2d63ead95c0483f97df8b799c153f5e26) by Dan Bradham).
+
+### Fixed
+- Fix: #33 typeerror was raised when comparing versions of different types. ([d9b2a66](https://github.com/cpenv/cpenv/commit/d9b2a6642cf7d490bf754d3f8b0388eb5bc0f8df) by Dan Bradham).
+
+
 ## [0.5.20](https://github.com/cpenv/cpenv/releases/tag/0.5.20) - 2021-01-17
 
 <small>[Compare with 0.5.15](https://github.com/cpenv/cpenv/compare/0.5.15...0.5.20)</small>
