@@ -118,21 +118,27 @@ def get_subshell_command(prefix):
     '''Return a command to launch a subshell'''
 
     shell = get_shell()
+    try:
+        disable_prompt = int(os.getenv('CPENV_DISABLE_PROMPT', 0))
+    except:
+        disable_prompt = 0
+
     prompt = get_prompt(shell, prefix)
 
     if shell.endswith('cmd.exe'):
-        os.environ['PROMPT'] = prompt
+        if not disable_prompt:
+            os.environ['PROMPT'] = prompt
         return [shell, '/K']
 
     if shell.endswith('powershell.exe'):
-        return [
-            shell,
-            '-NoExit',
-            '-Command',
-            "function Prompt {%s}" % prompt
-        ]
+        args = [shell, '-NoExit']
+        if not disable_prompt:
+            args += ['-Command', "function Prompt {%s}" % prompt]
+        return args
 
     if shell.endswith('bash'):
+        if not disable_prompt:
+            os.environ['PROMPT'] = prompt
         return [shell, binpath('subshell.sh')]
 
     return [shell]
