@@ -16,7 +16,10 @@ from .versions import parse_version, default_version
 _cache_expiration = 3600  # seconds or 1 hour
 _warning_template = '''
 WARNING: You are using cpenv version {}, however version {} is available.
-You should consider upgrading via the 'pip install --upgrade cpenv' command.
+Please consider upgrading using one of the following commands.
+
+    pipx upgrade cpenv
+    pip install --upgrade cpenv
 '''
 
 
