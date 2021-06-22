@@ -31,7 +31,8 @@ four_version_pattern = (
     r'(?P<major>\d+)'
     r'\.(?P<minor>\d+)'
     r'\.(?P<revision>\d+)'
-    r'\.(?P<build>\d+)$'
+    r'\.(?P<build>\d+)'
+    r'(?:-(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
 )
 
 # Modified regex from semver.org - works with calver as well
@@ -153,8 +154,8 @@ def parse_version(string):
             major=int(match.group('major')),
             minor=int(match.group('minor')),
             patch=int(match.group('revision')),
-            prerelease=None,
-            buildmetadata=int(match.group('build')),
+            prerelease=int(match.group('build')),
+            buildmetadata=match.group('buildmetadata'),
             string=match.group(0),
         )
 

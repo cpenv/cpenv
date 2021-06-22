@@ -60,8 +60,23 @@ def test_parse_version():
         assert version.major == 10
         assert version.minor == 1
         assert version.patch == 0
-        assert version.buildmetadata == 234
-        assert not version.prerelease
+        assert version.prerelease == 234
+        assert not version.buildmetadata
+
+    largever_spec = [
+        parse_version('2.2.1.2-abc2040'),
+        parse_version('v2.2.1.2-abc2040'),
+        parse_version('module2.2.1.2-abc2040'),
+        parse_version('module_2.2.1.2-abc2040'),
+        parse_version('module-2.2.1.2-abc2040'),
+        parse_version('module-2.2.1.2-abc2040'),
+    ]
+    for version in largever_spec:
+        assert version.major == 2
+        assert version.minor == 2
+        assert version.patch == 1
+        assert version.prerelease == 2
+        assert version.buildmetadata == 'abc2040'
 
     # These should be parsed by versions.simple_version_pattern
     version = parse_version('module1')
