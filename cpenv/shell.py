@@ -131,7 +131,7 @@ def get_subshell_command(prefix):
         return [shell, '/K']
 
     if shell.endswith('powershell.exe'):
-        args = [shell, '-NoExit']
+        args = [shell, '-NoExit', '-NoLogo']
         if not disable_prompt:
             args += ['-Command', "function Prompt {%s}" % prompt]
         return args
