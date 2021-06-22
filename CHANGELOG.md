@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.24](https://github.com/cpenv/cpenv/releases/tag/0.5.24) - 2021-06-22
+
+<small>[Compare with 0.5.23](https://github.com/cpenv/cpenv/compare/0.5.23...0.5.24)</small>
+
+### Added
+- Add -nologo argument to powershell command. ([fb36350](https://github.com/cpenv/cpenv/commit/fb363501f4f12cdecf763824773b4749852ad63f) by Dan Bradham).
+
+### Changed
+- Change: update new version warning to include pipx command. ([84d13e5](https://github.com/cpenv/cpenv/commit/84d13e5fff4e3af3dfe60c4470b2cf675cd2549e) by Dan Bradham).
+
+### Fixed
+- Fix: support buildmetadata at the end of four version regex. ([be174fe](https://github.com/cpenv/cpenv/commit/be174fe7ab48e60bf054f9e3bc9a8cd287bc0170) by Dan Bradham).
+
+
 ## [0.5.23](https://github.com/cpenv/cpenv/releases/tag/0.5.23) - 2021-06-21
 
 <small>[Compare with 0.5.22](https://github.com/cpenv/cpenv/compare/0.5.22...0.5.23)</small>
