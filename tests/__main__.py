@@ -11,7 +11,6 @@ def main(*args):
         'pytest',
         '-vv',
         '--cov=cpenv',
-        '--cov-config=.coveragerc'
     ]
     sys.exit(subprocess.check_call(' '.join(cmd), shell=True))
 
