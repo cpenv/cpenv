@@ -3,13 +3,8 @@
 # Standard library imports
 import os
 
-# Third party imports
-from nose.tools import assert_raises, raises
-
 # Local imports
 import cpenv
-
-# Local imports
 from . import data_path
 
 

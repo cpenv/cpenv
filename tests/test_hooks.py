@@ -4,14 +4,12 @@
 import unittest
 
 # Third party imports
-from nose.tools import raises
+import pytest
 
 # Local imports
 from cpenv import paths
 from cpenv.hooks import HookFinder
 from cpenv.module import Module
-
-# Local imports
 from . import data_path
 from .utils import make_files
 
@@ -50,59 +48,60 @@ def teardown_module():
     paths.rmtree(data_path('home'))
 
 
-class TestHookFinder(unittest.TestCase):
+@pytest.fixture
+def hook_finder():
+    return HookFinder(
+        data_path('home', 'modules', 'testmod', 'hooks'),
+        data_path('home', 'hooks'),
+    )
 
-    def setUp(self):
 
-        self.hook_finder = HookFinder(
-            data_path('home', 'modules', 'testmod', 'hooks'),
-            data_path('home', 'hooks'),
-        )
+def test_hook_resolution(hook_finder):
+    '''HookFinder resolve in correct order'''
 
-    def test_hook_resolution(self):
-        '''HookFinder resolve in correct order'''
+    hook = hook_finder('preactivate')
+    assert hook.__file__ == data_path('home', 'hooks', 'preactivate.py')
 
-        hook = self.hook_finder('preactivate')
-        assert hook.__file__ == data_path('home', 'hooks', 'preactivate.py')
+    hook = hook_finder('postactivate')
+    assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                      'hooks', 'postactivate.py')
 
-        hook = self.hook_finder('postactivate')
-        assert hook.__file__ == data_path('home', 'modules', 'testmod',
-                                          'hooks', 'postactivate.py')
+    hook = hook_finder('postcreate')
+    assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                      'hooks', 'postcreate.py')
 
-        hook = self.hook_finder('postcreate')
-        assert hook.__file__ == data_path('home', 'modules', 'testmod',
-                                          'hooks', 'postcreate.py')
+    hook = hook_finder('precreate')
+    assert hook.__file__ == data_path('home', 'modules', 'testmod',
+                                      'hooks', 'precreate.py')
 
-        hook = self.hook_finder('precreate')
-        assert hook.__file__ == data_path('home', 'modules', 'testmod',
-                                          'hooks', 'precreate.py')
+def test_mod_hook(hook_finder):
+    '''Run module-level hooks'''
 
-    def test_mod_hook(self):
-        '''Run module-level hooks'''
+    mod = Module(data_path('home', 'testmod'))
+    assert mod.run_hook('precreate')
+    assert mod.run_hook('postcreate')
+    assert mod.run_hook('postactivate')
 
-        mod = Module(data_path('home', 'testmod'))
-        assert mod.run_hook('precreate')
-        assert mod.run_hook('postcreate')
-        assert mod.run_hook('postactivate')
+def test_hook_not_found(hook_finder):
+    '''HookFinder returns None for missing hook'''
 
-    def test_hook_not_found(self):
-        '''HookFinder returns None for missing hook'''
+    hook = hook_finder('ppp')
+    assert hook is None
 
-        hook = self.hook_finder('ppp')
-        assert hook is None
+def test_hook_syntaxerror(hook_finder):
+    '''HookFinder raises SytanxError'''
 
-    @raises(SyntaxError)
-    def test_hook_syntaxerror(self):
-        '''HookFinder raises SytanxError'''
+    make_files(data_path('home', 'hooks', 'badhook.py'), text='x is = 4')
 
-        make_files(data_path('home', 'hooks', 'badhook.py'), text='x is = 4')
-        self.hook_finder('badhook')
+    with pytest.raises(SyntaxError):
+        hook_finder('badhook')
 
-    @raises(IndexError)
-    def test_hook_runerror(self):
-        '''Hook.run exceptions bubble up.'''
+def test_hook_runerror(hook_finder):
+    '''Hook.run exceptions bubble up.'''
 
-        fake_module = []
-        make_files(data_path('home', 'hooks', 'badrunhook.py'),
-                   text='def run(module):\n\treturn module[1]')
-        self.hook_finder('badrunhook').run(fake_module)
+    fake_module = []
+    make_files(data_path('home', 'hooks', 'badrunhook.py'),
+               text='def run(module):\n\treturn module[1]')
+
+    with pytest.raises(IndexError):
+        hook_finder('badrunhook').run(fake_module)

@@ -4,13 +4,11 @@
 import os
 
 # Third party imports
-from nose.tools import assert_raises, raises
+import pytest
 
 # Local imports
 import cpenv
 from cpenv import paths
-
-# Local imports
 from . import data_path
 from .utils import cwd, make_files
 
@@ -113,7 +111,7 @@ def test_resolve_module_on_path():
     assert resolved[0].path == data_path('home', 'modules', 'testmodc')
 
     # Test global module does not exist
-    with assert_raises(cpenv.ResolveError):
+    with pytest.raises(cpenv.ResolveError):
         r.resolve(['testmod', 'does_not_exist'])
 
 
@@ -180,20 +178,20 @@ def test_redirect_resolver_from_file():
     assert resolved[2].path == expected_paths[2]
 
 
-@raises(cpenv.ResolveError)
 def test_nonexistant_module():
     '''Raise cpenv.ResolveError when module does not exist'''
 
-    r = cpenv.Resolver(cpenv.get_repos())
-    r.resolve(['testmod', 'does_not_exist'])
+    with pytest.raises(cpenv.ResolveError):
+        r = cpenv.Resolver(cpenv.get_repos())
+        r.resolve(['testmod', 'does_not_exist'])
 
 
-@raises(cpenv.ResolveError)
 def test_multi_module_does_not_exist():
     '''Raise cpenv.ResolveError when a module does not exist'''
 
-    r = cpenv.Resolver(cpenv.get_repos())
-    r.resolve(['testmod', 'testmodb', 'does_not_exist'])
+    with pytest.raises(cpenv.ResolveError):
+        r = cpenv.Resolver(cpenv.get_repos())
+        r.resolve(['testmod', 'testmodb', 'does_not_exist'])
 
 
 def test_parse_redirect():

@@ -8,12 +8,10 @@ import sys
 def main(*args):
     print('\n\nRunning Test Suite...\n\n')
     cmd = [
-        'nosetests',
-        '-v',
-        '--logging-clear-handlers',
-        '--with-coverage',
-        '--cover-package=cpenv',
-        '--exclude-dir=cpenv/vendor',
+        'pytest',
+        '-vv',
+        '--cov=cpenv',
+        '--cov-config=.coveragerc'
     ]
     sys.exit(subprocess.check_call(' '.join(cmd), shell=True))
 

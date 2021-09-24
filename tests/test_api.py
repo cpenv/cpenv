@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
 # Third party imports
-from nose.tools import assert_raises
+import pytest
 
 # Local imports
 import cpenv
 from cpenv import paths
-
-# Local imports
 from . import data_path
 
 
@@ -22,11 +20,9 @@ def teardown_module():
 def test_create():
     '''Create a module'''
 
+    # First run creates a module
     cpenv.create(data_path('home', 'testmod'), name='testmod', version='0')
-    assert_raises(
-        OSError,
-        cpenv.create,
-        data_path('home', 'testmod'),
-        'testmod',
-        '0'
-    )
+
+    # Second run raises error
+    with pytest.raises(OSError):
+        cpenv.create(data_path('home', 'testmod'), name='testmod', version='0')

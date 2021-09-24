@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Third party imports
-from nose.tools import assert_raises
+import pytest
 
 # Local imports
 from cpenv.versions import ParseError, parse_version
@@ -115,7 +115,8 @@ def test_parse_version_raises():
     ]
 
     for string in bad_strings:
-        assert_raises(ParseError, parse_version, string)
+        with pytest.raises(ParseError):
+            parse_version(string)
 
 
 def test_compare_versions():
