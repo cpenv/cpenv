@@ -104,33 +104,89 @@ def get_folder_size(folder):
     return size
 
 
-def is_excluded(value, exclude, exclude_patterns):
-    '''Check if a string value matches exclude values and glob patterns'''
+def exclude_names(names):
+    '''Returns True when a file matches one of the provided names.'''
+
+    def check_file_against_names(file):
+        return os.path.basename(file) in names
+
+    return check_file_against_names
+
+
+def exclude_patterns(patterns):
+    '''Returns True when a file matches against one of the provided patterns'''
+
+    def check_file_against_patterns(file):
+        return any([fnmatch(file, p) for p in patterns])
+
+    return check_file_against_patterns
+
+
+def include_prebuilt_pyc(file):
+    '''Returns True when a pyc file has no accompanying py file.
+
+    This is useful in cases where tool distributors prebuild pyc files as
+    a crude form of anti-piracy. These need to be included in cpenv modules
+    when zipped to be uploaded to a repository.
+    '''
 
     return (
-        value in exclude
-        or any([fnmatch(value, p) for p in exclude_patterns])
+        file.endswith('.pyc')
+        and not os.path.isfile(file.replace('.pyc', '.py'))
+        and '__pycache__' not in file
     )
 
 
-def exclusive_walk(folder, exclude=None, exclude_patterns=None):
-    '''Like os.walk but exclude files by value or glob pattern.'''
+def is_excluded(value, predicates):
+    '''Check if a value matches any of the exclude predicates.'''
 
-    exclude = exclude or ['__pycache__', '.git', 'thumbs.db', '.venv', 'venv']
-    exclude_patterns = exclude_patterns or ['*.pyc', '*.egg-info']
+    return any([predicate(value) for predicate in predicates])
+
+
+def is_included(value, predicates):
+    '''Returns True if value matches any of the include predicates.'''
+
+    return any([predicate(value) for predicate in predicates])
+
+
+def exclusive_walk(folder, excludes=None, includes=None):
+    '''Like os.walk but excludes/includes files by using predicate functions.
+
+    Excludes the following by default:
+        names: __pycache__, .git, Thumbs.db, .venv, venv
+        patterns: *.pyc, *.egg-info
+
+    Includes the following by default:
+        .pyc files that have no accompanying .py file.
+
+    Arguments:
+        folder (str): Root folder to recursively walk.
+        excludes ([callable]): List of predicate functions used to exclude files.
+        includes ([callable]): List of predicate functions to include files. Overrides excludes.
+
+    Returns:
+        Generator yielding (root, subdirs, files).
+    '''
+
+    excludes = excludes or [
+        exclude_names(['__pycache__', '.git', 'thumbs.db', '.venv', 'venv']),
+        exclude_patterns(['*.pyc', '*.egg-info']),
+    ]
+    includes = includes or [include_prebuilt_pyc]
 
     for root, subdirs, files in os.walk(folder):
-        if is_excluded(os.path.basename(root), exclude, exclude_patterns):
+        if is_excluded(root, excludes) and not is_included(root, includes):
             subdirs[:] = []
             continue
 
-        included = []
+        included_files = []
         for file in files:
-            if is_excluded(file, exclude, exclude_patterns):
+            path = normalize(root, file)
+            if is_excluded(path, excludes) and not is_included(path, includes):
                 continue
-            included.append(file)
+            included_files.append(file)
 
-        yield root, subdirs, included
+        yield root, subdirs, included_files
 
 
 def zip_folder(folder, where):
