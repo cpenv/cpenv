@@ -5,27 +5,29 @@ description = "Cross-platform module and environment management."
 authors = ["Dan Bradham <danielbradham@gmail.com>"]
 license = "MIT"
 
+
 [tool.poetry.scripts]
 cpenv = "cpenv.__main__:main"
 
+
 [tool.poetry.dependencies]
-python = "^2.7 || ^3.6"
+python = ">=3.6,<4.0"
 tqdm = "^4.46.0"
 colorama = "^0.4.3"
 psutil = "^5.7.0"
+
 
 [tool.poetry.dev-dependencies]
 coverage = {extras = ["toml"], version = "^5.1"}
 isort = "^4.3.21"
 rope = "^0.17.0"
-nose = "^1.3.7"
-nose-exclude = "^0.5.0"
+pytest = "^6.2.5"
+pytest-cov = "^2.12.1"
 
-[tool.coverage.report]
-omit = [
-    "*/vendor/*",
-    "*/xmlrpc/*"
-]
+
+[tool.coverage.run]
+omit = ["cpenv/vendor/*"]
+
 
 [tool.isort]
 from_first = false
@@ -43,7 +45,8 @@ lines_after_imports = 2
 skip = "venv,cpenv/vendor,docs,.venv"
 multi_line_output = 3
 include_trailing_comma = true
+
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
-
