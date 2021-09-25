@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [0.5.26](https://github.com/cpenv/cpenv/releases/tag/0.5.26) - 2021-09-25
+
+<small>[Compare with 0.5.25](https://github.com/cpenv/cpenv/compare/0.5.25...0.5.26)</small>
+
+### Added
+- Add: support for prebuilt .pyc files. closes #37 ([767475e](https://github.com/cpenv/cpenv/commit/767475ec385aa25168769dc5c04dd0bfdea08a93) by Dan Bradham).
+
+### Changed
+- Change: py2.7 still works, but dropping it from list of python versions add: pytest dependencies ([caf083e](https://github.com/cpenv/cpenv/commit/caf083e9cfafc675ae7c0792213332ddf9c964b1) by Dan Bradham).
+
+
+## [0.5.25](https://github.com/cpenv/cpenv/releases/tag/0.5.25) - 2021-09-25
+
+<small>[Compare with 0.5.24](https://github.com/cpenv/cpenv/compare/0.5.24...0.5.25)</small>
+
+### Changed
+- Change: upgrade vendor.shotgun_api3 to v3.3.1 ([5964f7a](https://github.com/cpenv/cpenv/commit/5964f7aa2094bbaf486e73d121dd0ba4e2c6c000) by Dan Bradham).
+
+### Fixed
+- Fix: support buildmetadata at the end of four version regex. ([be174fe](https://github.com/cpenv/cpenv/commit/be174fe7ab48e60bf054f9e3bc9a8cd287bc0170) by Dan Bradham).
+
+
 ## [0.5.24](https://github.com/cpenv/cpenv/releases/tag/0.5.24) - 2021-06-22
 
 <small>[Compare with 0.5.23](https://github.com/cpenv/cpenv/compare/0.5.23...0.5.24)</small>
@@ -13,9 +35,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 - Change: update new version warning to include pipx command. ([84d13e5](https://github.com/cpenv/cpenv/commit/84d13e5fff4e3af3dfe60c4470b2cf675cd2549e) by Dan Bradham).
-
-### Fixed
-- Fix: support buildmetadata at the end of four version regex. ([be174fe](https://github.com/cpenv/cpenv/commit/be174fe7ab48e60bf054f9e3bc9a8cd287bc0170) by Dan Bradham).
 
 
 ## [0.5.23](https://github.com/cpenv/cpenv/releases/tag/0.5.23) - 2021-06-21
