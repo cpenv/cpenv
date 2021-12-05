@@ -6,7 +6,6 @@ import sys
 
 
 def main(*args):
-    print('\n\nRunning Test Suite...\n\n')
     cmd = [
         'pytest',
         '-vv',
