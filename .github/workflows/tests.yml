@@ -43,4 +43,4 @@ jobs:
         run: poetry run pip install pytest-github-actions-annotate-failures
 
       - name: Run tests
-        run: poetry run python -m tests
+        run: poetry run python -m tasks test
