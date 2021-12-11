@@ -8,6 +8,10 @@ import random
 import sys
 import tempfile
 from string import Template
+try:
+    from collections.abc import Mapping, MutableMapping, Sequence
+except ImportError:
+    from collections import Mapping, MutableMapping, Sequence
 
 # Local imports
 from . import paths
@@ -20,7 +24,7 @@ Item = collections.namedtuple('Item', 'key value')
 Op = collections.namedtuple('Op', 'key value op')
 
 
-class CaseInsensitiveDict(collections.MutableMapping):
+class CaseInsensitiveDict(MutableMapping):
     '''A case insensitive dict that expects strings as keys.
 
     Based on the requests.structures.CaseInsensitiveDict.
@@ -59,7 +63,7 @@ class CaseInsensitiveDict(collections.MutableMapping):
     def _comparable_mapping(cls, mapping):
         if isinstance(mapping, CaseInsensitiveDict):
             return {item.key.lower(): item.value for item in mapping.values()}
-        if isinstance(mapping, collections.Mapping):
+        if isinstance(mapping, Mapping):
             return {key.lower(): value for key, value in mapping.items()}
 
 
@@ -95,14 +99,14 @@ class EnvironmentDict(CaseInsensitiveDict):
             return []
         if isinstance(value, env_value_types):
             return [value]
-        if isinstance(value, collections.Sequence):
+        if isinstance(value, Sequence):
             return list(value)
         raise ValueError('%s could not be converted to a list.' % value)
 
     def _coerce_value(self, value):
         if isinstance(value, env_value_types):
             return str(value)
-        elif isinstance(value, collections.Sequence):
+        elif isinstance(value, Sequence):
             result = []
             for v in value:
                 if v in (None, ''):
@@ -137,7 +141,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         if isinstance(value, env_value_types):
             if self._remove_condition(result, value):
                 result.remove(value)
-        elif isinstance(value, collections.Sequence):
+        elif isinstance(value, Sequence):
             for v in value:
                 if self._remove_condition(result, v):
                     result.remove(v)
@@ -159,7 +163,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         if isinstance(value, env_value_types):
             if self._add_condition(result, value):
                 result.insert(0, value)
-        elif isinstance(value, collections.Sequence):
+        elif isinstance(value, Sequence):
             for v in value:
                 if self._add_condition(result, v):
                     result.insert(0, v)
@@ -178,7 +182,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         if isinstance(value, env_value_types):
             if self._add_condition(result, value):
                 result.append(value)
-        elif isinstance(value, collections.Sequence):
+        elif isinstance(value, Sequence):
             for v in value:
                 if self._add_condition(result, v):
                     result.append(v)
@@ -218,7 +222,7 @@ class EnvironmentDictTokenizer(object):
 
     @staticmethod
     def _is_explicit_list_value(value):
-        return len(value) and isinstance(value[0], collections.Mapping)
+        return len(value) and isinstance(value[0], Mapping)
 
     @classmethod
     def tokenize_mapping(cls, key, value, op, tokens):
@@ -270,10 +274,10 @@ class EnvironmentDictTokenizer(object):
         if isinstance(value, env_value_types):
             op = op or 'set'
             cls.tokenize_str(key, value, op, tokens)
-        elif isinstance(value, collections.Mapping):
+        elif isinstance(value, Mapping):
             op = op or 'set'
             cls.tokenize_mapping(key, value, op, tokens)
-        elif isinstance(value, collections.Sequence):
+        elif isinstance(value, Sequence):
             if op in (None, 'set'):
                 op = 'prepend'
             cls.tokenize_sequence(key, value, op, tokens)
