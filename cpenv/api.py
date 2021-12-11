@@ -338,41 +338,50 @@ def get_home_path():
 
     Default home paths:
         win - C:/ProgramData/cpenv
-        mac - /Library/Caches/cpenv
-        linux - /usr/local/share/cpenv OR /usr/share/cpenv
+        mac - /Library/Application Support/cpenv OR /Library/Caches/cpenv
+        linux - /usr/local/share/cpenv OR ~/.local/share/cpenv
     '''
 
-    if compat.platform == 'mac':
-        # /Library/Application Support has restricted access
-        # Prefer /Library/Caches as it has open permissions
-        # and it's still shared across all users.
-        home_default = '/Library/Caches/cpenv'
-    else:
-        home_default = appdirs.site_data_dir('cpenv', appauthor=False)
+    home = os.getenv('CPENV_HOME')
+    if home and paths.is_writable(home):
+        if paths.is_writable(home):
+            return home
+        else:
+            raise RuntimeError('Could not access CPENV_HOME: %s', home)
 
-    home = paths.normalize(os.getenv('CPENV_HOME', home_default))
-    return home
+    home_default = appdirs.site_data_dir('cpenv', appauthor=False)
+    if paths.is_writable(home_default):
+        return home_default
+    else:
+        if compat.platform == 'mac':
+            # Fallback to /Library/Caches as it has open permissions
+            # and it's still shared across all users. This is not ideal
+            # however, people don't clear their cache often.
+            fallback = '/Library/Caches/cpenv'
+        elif compat.platform == 'linux':
+            # Fallback to user directory on linux.
+            fallback = appdirs.user_data_dir('cpenv', appauthor=False)
+        else:
+            raise RuntimeError('Could not access default home: %s', home)
+        message = (
+            'Could not access default cpenv home directory "{default}".'
+            'Falling back to "{home}". If you want to use a shared home dir '
+            'for all users on your machine run the following commands:\n\n'
+            '    sudo mkdir {default}\n'
+            '    sudo chmod -R a+rwx {default}\n'
+        ).format(default=home_default, home=fallback)
+        warnings.warn(message)
+        return fallback
 
 
 def get_home_modules_path():
-    '''Return the modules directory within the cpenv home directory.
-
-    Default home modules paths:
-        win - C:/ProgramData/cpenv/modules
-        mac - /Library/Caches/cpenv/modules
-        linux - /usr/local/share/cpenv OR /usr/share/cpenv/modules
-    '''
+    '''Return the modules directory within the cpenv home directory.'''
 
     return paths.normalize(get_home_path(), 'modules')
 
 
 def get_cache_path(*parts):
     '''Return the cpenv cache directory within the cpenv home directory.
-
-    Default cache paths:
-        win - C:/ProgramData/cpenv/cache
-        mac - /Library/Caches/cpenv/cache
-        linux - /usr/local/share/cpenv OR /usr/share/cpenv/cache
 
     Arguments:
         *parts (str) - List of path parts to join with cache path
@@ -595,10 +604,24 @@ def _init():
     user = repos.LocalRepo('user', get_user_modules_path())
     home = repos.LocalRepo('home', get_home_modules_path())
     if cwd.path == home.path:
+        builtin_repos = [home, user]
+    elif cwd.path == user.path:
+        builtin_repos = [user, home]
+    elif user.path == home.path:
+        builtin_repos = [cwd, home]
+    else:
+        builtin_repos = [cwd, user, home]
+    for repo in builtin_repos:
+        add_repo(repo)
+
+    if cwd.path == home.path:
         # We don't want a cwd repo when the cwd is the same as the home path.
         # This prevents redundant lookups during module resolution.
         add_repo(home)
         add_repo(user)
+    elif cwd.path == user.path:
+        add_repo(user)
+        add_repo(home)
     else:
         add_repo(cwd)
         add_repo(user)

@@ -32,6 +32,22 @@ def ensure_path_exists(path, *args):
     os.makedirs(path, *args)
 
 
+def is_writable(path):
+    '''Check if a directory is writable.'''
+
+    if os.path.exists(path):
+        return os.access(path, os.X_OK | os.W_OK)
+
+    try:
+        os.makedirs(path)
+        touch(normalize(path, 'tmpfile'))
+    except OSError as e:
+        return False
+    else:
+        rmtree(path)
+        return True
+
+
 def rmtree(path):
     '''Safely remove directory and all of it's contents.'''
 
