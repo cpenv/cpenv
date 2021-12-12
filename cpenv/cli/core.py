@@ -124,6 +124,10 @@ def echo(message='', end='\n'):
         sys.stdout.flush()
 
 
+def exit(returncode=0):
+    return sys.exit(returncode)
+
+
 def prompt(message):
     '''Prompt a user for input'''
 
@@ -131,6 +135,49 @@ def prompt(message):
         return raw_input(message)
 
     return input(message)
+
+
+def prompt_for_repo(repos, message, default_repo_name='home'):
+    '''Prompt a user to select a repository'''
+
+    default = 0
+    for i, from_repo in enumerate(repos):
+        if from_repo.name == default_repo_name:
+            default = i
+        if from_repo.name == from_repo.path:
+            line = '  [{}] {}'.format(i, from_repo.path)
+        else:
+            line = '  [{}] {} - {}'.format(
+                i,
+                from_repo.name,
+                from_repo.path,
+            )
+        echo(line)
+
+    # Prompt user to choose a repo defaults to home
+    echo()
+    choice = prompt('{} [{}]: '.format(message, default))
+
+    if not choice:
+        choice = default
+        echo()
+        return repos[choice]
+
+    try:
+        choice = int(choice)
+        value_error = False
+    except ValueError:
+        value_error = True
+
+    if value_error or choice > len(repos) - 1:
+        echo()
+        echo('Error: {!r} is not a valid choice'.format(choice))
+        exit(1)
+
+    echo()
+
+    # Get the repo the user chose
+    return repos[choice]
 
 
 def format_section(header, rows):
