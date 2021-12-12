@@ -1,7 +1,8 @@
 import re
+import subprocess
+import sys
 from pathlib import Path
 
-import subprocess
 import typer
 
 
@@ -74,7 +75,8 @@ def release():
 def test():
     '''Run test suite.'''
 
-    subprocess.run(['pytest', '-vv', '--cov=' + package_name])
+    result = subprocess.run(['pytest', '-vv', '--cov=' + package_name])
+    sys.exit(result.returncode)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,9 @@
-name: Tests
+name: Test
 
 on:
   push:
     paths-ignore:
       - 'docs/**'
-    branches:
-      - setup-github-actions
   pull_request:
     paths-ignore:
       - 'docs/**'
