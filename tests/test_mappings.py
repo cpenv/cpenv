@@ -10,24 +10,24 @@ def test_platform_values():
 
     tests = {
         'implicit_set': {
-            'osx': 'osx',
+            'mac': 'mac',
             'linux': 'linux',
             'win': 'win',
         },
         'implicit_prepend': {
-            'osx': ['osx0', 'osx1'],
+            'mac': ['mac0', 'mac1'],
             'linux': ['linux0', 'linux1'],
             'win': ['win0', 'win1'],
         },
         'explicit_set': {
             'set': {
-                'osx': 'osx',
+                'mac': 'mac',
                 'linux': 'linux',
                 'win': 'win',
             }
         },
         'explicit_ops': {
-            'osx': [{'append': 'osx0'}, {'prepend': 'osx1'}],
+            'mac': [{'append': 'mac0'}, {'prepend': 'mac1'}],
             'linux': [{'append': 'linux0'}, {'prepend': 'linux1'}],
             'win': [{'append': 'win0'}, {'prepend': 'win1'}],
         }
@@ -37,7 +37,7 @@ def test_platform_values():
         'implicit_prepend': tests['implicit_prepend'],
         'explicit_set': tests['explicit_set']['set'],
         'explicit_ops': {
-            'osx': ['osx1', 'osx0'],
+            'mac': ['mac1', 'mac0'],
             'linux': ['linux1', 'linux0'],
             'win': ['win1', 'win0'],
         }
