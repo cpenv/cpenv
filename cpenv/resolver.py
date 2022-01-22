@@ -251,12 +251,11 @@ class Localizer(object):
         return localized
 
 
-# Deprecated
-# The following functions implement the old resolution algorithm
-# this is called by Resolver.resolve only when no Repos are able to resolve
-# a requirement.
-
 def old_resolve_algorithm(resolver, paths):
+    '''Deprecated: Pre-0.5.0 resolution algorithm.
+
+    Included for backwards compatability.
+    '''
 
     modules = []
     for path in list(paths):
@@ -282,7 +281,7 @@ def old_resolve_algorithm(resolver, paths):
 def system_path_resolver(resolver, path):
     '''Checks if path is already a :class:`Module` object'''
 
-    is_system_path = ('/' in path or '\\' in path)
+    is_system_path = ('/' in path or '\\' in path or path.startswith('.'))
     if is_system_path:
         mod_path = paths.normalize(path)
         if is_module(mod_path):
