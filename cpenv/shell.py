@@ -65,21 +65,12 @@ def get_shell():
             'csh',
         ]
 
-        if compat.platform == 'win':
-            py_proc = 'py*.exe'
-        else:
-            py_proc = 'python*'
-
-        proc = psutil.Process()
-        while True:
+        process_parents = psutil.Process().parents()
+        for proc in process_parents[::-1]:
             exe = proc.exe()
             exe_name = os.path.basename(exe)
-            if fnmatch.fnmatch(exe_name, py_proc):
-                proc = proc.parent()
-                continue
             if exe_name in supported_shells:
                 return exe
-            break
     except ImportError:
         pass
 
