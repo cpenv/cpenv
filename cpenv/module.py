@@ -8,11 +8,10 @@ from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import compat, mappings, paths
-from .versions import ParseError, Version, default_version, parse_version
+from . import compat, paths
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
-
+from .versions import ParseError, Version, default_version, parse_version
 
 __all__ = [
     'Module',

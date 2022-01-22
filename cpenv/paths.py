@@ -4,11 +4,11 @@ Tools for working with paths and files.
 '''
 
 # Standard library imports
-from fnmatch import fnmatch
 import os
 import shutil
 import stat
 import zipfile
+from fnmatch import fnmatch
 
 
 def normalize(*parts):

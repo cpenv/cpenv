@@ -10,9 +10,9 @@ import pytest
 from cpenv import paths
 from cpenv.hooks import HookFinder
 from cpenv.module import Module
+
 from . import data_path
 from .utils import make_files
-
 
 GLOBAL_HOOK_TEXT = '''
 def run(module):

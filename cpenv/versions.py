@@ -8,7 +8,6 @@ from functools import total_ordering
 # Local imports
 from . import compat
 
-
 __all__ = [
     'ParseError',
     'Version',

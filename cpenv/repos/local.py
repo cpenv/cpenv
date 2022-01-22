@@ -4,24 +4,18 @@
 import logging
 import os
 import shutil
-from glob import glob
 from fnmatch import fnmatch
 from functools import partial
+from glob import glob
 
 # Local imports
 from .. import compat, paths
 from ..environment import Environment
-from ..module import (
-    Module,
-    is_exact_match,
-    is_partial_match,
-    sort_modules,
-)
+from ..module import Module, is_exact_match, is_partial_match, sort_modules
 from ..reporter import get_reporter
 from ..vendor import yaml
 from ..vendor.cachetools import TTLCache, cachedmethod, keys
 from .base import Repo
-
 
 _log = logging.getLogger(__name__)
 

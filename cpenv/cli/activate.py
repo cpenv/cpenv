@@ -1,6 +1,6 @@
 from cpenv import api, shell
-from cpenv.resolver import ResolveError
 from cpenv.cli import core
+from cpenv.resolver import ResolveError
 
 
 class Activate(core.CLI):

@@ -5,19 +5,13 @@ import os
 import zipfile
 from functools import partial
 
-# Third party imports
-try:
-    import certifi
-except ImportError:
-    from ..vendor import certifi
-
 # Local imports
 from .. import http, paths
 from ..module import Module, ModuleSpec, parse_module_requirement, sort_modules
 from ..reporter import get_reporter
 from ..vendor import yaml
-from ..vendor.shotgun_api3 import Shotgun
 from ..vendor.cachetools import TTLCache, cachedmethod, keys
+from ..vendor.shotgun_api3 import Shotgun
 from ..versions import parse_version
 from .base import Repo
 

@@ -2,16 +2,12 @@
 
 # Standard library imports
 import os
-import sys
-import subprocess
 from datetime import datetime
 
 # Local imports
-from . import __version__
-from . import http
+from . import __version__, http
 from .api import get_cache_path
-from .versions import parse_version, default_version
-
+from .versions import default_version, parse_version
 
 _cache_expiration = 3600  # seconds or 1 hour
 _warning_template = '''

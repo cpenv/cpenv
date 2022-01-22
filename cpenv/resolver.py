@@ -6,10 +6,9 @@ import shlex
 
 # Local imports
 from . import mappings, paths
-from .repos import LocalRepo
+from .module import Module, best_match, is_exact_match, is_module
 from .reporter import get_reporter
-from .module import Module, is_module, is_exact_match, best_match
-
+from .repos import LocalRepo
 
 __all__ = [
     'ResolveError',

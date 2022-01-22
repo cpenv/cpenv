@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import sys
 import contextlib
+import sys
 
 __all__ = [
     'set_reporter',

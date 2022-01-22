@@ -2,6 +2,7 @@
 
 # Local imports
 from cpenv import paths
+
 from . import data_path
 from .utils import make_files
 

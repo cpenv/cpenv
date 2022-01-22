@@ -1,7 +1,7 @@
 from cpenv import api
 from cpenv.cli import core
-from cpenv.resolver import Resolver
 from cpenv.module import Module
+from cpenv.resolver import Resolver
 
 
 class Publish(core.CLI):

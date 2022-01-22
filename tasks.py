@@ -5,7 +5,6 @@ from pathlib import Path
 
 import typer
 
-
 repo_path = Path(__file__).parent
 package_name = repo_path.name
 package_path = repo_path / package_name
@@ -61,7 +60,7 @@ def version(
 def code_quality():
     '''Run code quality tools.'''
 
-    subprocess.run('python -m isort')
+    subprocess.run('poetry run isort')
 
 
 @app.command()

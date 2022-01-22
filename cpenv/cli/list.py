@@ -1,9 +1,6 @@
 from cpenv import api
 from cpenv.cli import core
-from cpenv.module import (
-    is_partial_match,
-    sort_modules,
-)
+from cpenv.module import is_partial_match, sort_modules
 
 
 class List(core.CLI):

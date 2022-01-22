@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Standard library imports
 import os
+import ssl
 from json import dumps as json_dump
 from json import loads as json_load
 
@@ -17,7 +18,6 @@ try:
 except ImportError:
     from .vendor import certifi
 
-import ssl
 
 
 def get(url):

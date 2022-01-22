@@ -1,8 +1,8 @@
 import sys
 
 from cpenv import api, reporter
-from cpenv.resolver import ResolveError
 from cpenv.cli import core
+from cpenv.resolver import ResolveError
 
 
 class Info(core.CLI):

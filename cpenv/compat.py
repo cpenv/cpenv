@@ -4,7 +4,6 @@
 import os
 import sys
 
-
 py_ver = sys.version_info[0]
 is_py2 = py_ver == 2
 is_py3 = py_ver == 3

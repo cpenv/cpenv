@@ -2,8 +2,8 @@ import os
 import sys
 
 from cpenv import api, repos, shell
-from cpenv.resolver import ResolveError
 from cpenv.cli import core
+from cpenv.resolver import ResolveError
 
 
 class Edit(core.CLI):

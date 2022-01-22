@@ -8,15 +8,17 @@ import random
 import sys
 import tempfile
 from string import Template
+
+# Local imports
+from . import paths
+from .compat import numeric_types, platform, string_types, supported_platforms
+from .vendor import yaml
+
 try:
     from collections.abc import Mapping, MutableMapping, Sequence
 except ImportError:
     from collections import Mapping, MutableMapping, Sequence
 
-# Local imports
-from . import paths
-from .compat import numeric_types, platform, supported_platforms, string_types
-from .vendor import yaml
 
 
 env_value_types = numeric_types + string_types

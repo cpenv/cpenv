@@ -1,7 +1,7 @@
 from cpenv import api
+from cpenv.cli import core
 from cpenv.repos import LocalRepo
 from cpenv.resolver import Localizer, ResolveError
-from cpenv.cli import core
 
 
 class Localize(core.CLI):

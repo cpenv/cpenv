@@ -3,21 +3,14 @@ from __future__ import absolute_import, print_function
 
 # Standard library imports
 import os
-from collections import OrderedDict
 import warnings
+from collections import OrderedDict
 
 # Local imports
-from . import hooks, paths, compat, repos
+from . import compat, hooks, paths, repos
 from .module import Module, ModuleSpec, module_header, sort_modules
-from .resolver import (
-    ResolveError,
-    Resolver,
-    Activator,
-    Copier,
-    Localizer,
-)
+from .resolver import Activator, Copier, Localizer, ResolveError, Resolver
 from .vendor import appdirs, yaml
-
 
 __all__ = [
     'activate',

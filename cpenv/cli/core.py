@@ -7,6 +7,7 @@ import argparse
 import ast
 import sys
 from textwrap import wrap
+
 try:
     from StringIO import StringIO
 except ImportError:

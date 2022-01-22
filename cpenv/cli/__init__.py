@@ -1,7 +1,6 @@
 import tqdm
 
 from cpenv import repos
-from cpenv.reporter import Reporter
 from cpenv.cli import (
     activate,
     clone,
@@ -18,6 +17,7 @@ from cpenv.cli import (
     repo,
     version,
 )
+from cpenv.reporter import Reporter
 
 
 class CpenvCLI(core.CLI):
