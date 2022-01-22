@@ -603,7 +603,9 @@ def _init():
     cwd = repos.LocalRepo('cwd', paths.normalize(os.getcwd()))
     user = repos.LocalRepo('user', get_user_modules_path())
     home = repos.LocalRepo('home', get_home_modules_path())
-    if cwd.path == home.path:
+    if cwd.path == home.path == user.path:
+        builtin_repos = [home]
+    elif cwd.path == home.path:
         builtin_repos = [home, user]
     elif cwd.path == user.path:
         builtin_repos = [user, home]
@@ -613,19 +615,6 @@ def _init():
         builtin_repos = [cwd, user, home]
     for repo in builtin_repos:
         add_repo(repo)
-
-    if cwd.path == home.path:
-        # We don't want a cwd repo when the cwd is the same as the home path.
-        # This prevents redundant lookups during module resolution.
-        add_repo(home)
-        add_repo(user)
-    elif cwd.path == user.path:
-        add_repo(user)
-        add_repo(home)
-    else:
-        add_repo(cwd)
-        add_repo(user)
-        add_repo(home)
 
     # Register additional repos from CPENV_MODULE_PATHS
     builtin_module_paths = [repo.path for repo in get_repos()]
