@@ -20,6 +20,7 @@ class Repo(core.CLI):
             ListRepo(self),
             AddRepo(self),
             RemoveRepo(self),
+            EditRepos(self),
         ]
 
 
@@ -163,3 +164,16 @@ class RemoveRepo(core.CLI):
         api.write_config('repos', repo_config)
         core.echo('OK!')
         core.echo()
+
+
+class EditRepos(core.CLI):
+    '''Open repos config in text editor.'''
+
+    name = 'edit'
+
+    def run(self, args):
+
+        config_path = api.get_config_path()
+        editor = os.getenv('CPENV_EDITOR', os.getenv('EDITOR', 'subl'))
+        core.echo('Opening %s in %s.' % (config_path, editor))
+        shell.run(editor, config_path)
