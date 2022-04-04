@@ -1,7 +1,8 @@
 import argparse
+import os
 import re
 
-from cpenv import api, repos
+from cpenv import api, repos, shell
 from cpenv.cli import core
 
 
@@ -71,6 +72,12 @@ class AddRepo(core.CLI):
             help='Name of the repo',
         )
         parser.add_argument(
+            '--priority',
+            help='Priority of repo - the lower the priority the earlier in the list of repos the repo will appear.',
+            default=None,
+            type=int,
+        )
+        parser.add_argument(
             'type_args',
             help='Type specific arguments.',
             nargs=argparse.REMAINDER,
@@ -108,6 +115,7 @@ class AddRepo(core.CLI):
 
         repo_cls = repos.registry[repo_type]
         repo_kwargs['name'] = args.name
+        repo_kwargs['priority'] = args.priority
         core.echo('- Checking %s args...' % repo_cls.__name__, end='')
         try:
             repo_cls(**repo_kwargs)
