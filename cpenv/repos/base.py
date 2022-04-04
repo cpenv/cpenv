@@ -10,8 +10,9 @@ class Repo(object):
 
     type_name = 'repo'
 
-    def __init__(self, name):
+    def __init__(self, name, priority=10):
         self.name = name
+        self.priority = priority
 
     def __repr__(self):
         args = []

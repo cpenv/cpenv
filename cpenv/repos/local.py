@@ -34,8 +34,8 @@ class LocalRepo(Repo):
 
     type_name = 'local'
 
-    def __init__(self, name, path):
-        super(LocalRepo, self).__init__(name)
+    def __init__(self, name, path, priority=10):
+        super(LocalRepo, self).__init__(name, priority)
         self.path = paths.normalize(path)
         self.cache = TTLCache(maxsize=10, ttl=60)
 

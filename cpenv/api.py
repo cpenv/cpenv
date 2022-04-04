@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function
 import os
 import warnings
 from collections import OrderedDict
+from bisect import bisect
 
 # Local imports
 from . import compat, hooks, paths, repos
@@ -488,19 +489,24 @@ def update_repo(repo):
     _registry['repos'].update({repo.name: repo})
 
 
-def add_repo(repo, idx=None):
+def add_repo(repo, priority=None):
     '''Register a Repo.
 
-    Provide an idx to insert the Repo rather than append.
+    Arguments:
+        priority (int): Override the Repos priority when adding.
     '''
 
+    if priority is not None:
+        repo.priority = priority
+
     if repo.name not in _registry['repos']:
-        if idx is not None:
-            items = list(_registry['repos'].items())
-            items.insert(idx, (repo.name, repo))
-            _registry['repos'] = OrderedDict(items)
-        else:
+        repos = list(_registry['repos'].values())
+        insert_idx = bisect([r.priority for r in repos], repo.priority)
+        if insert_idx == len(repos):
             _registry['repos'][repo.name] = repo
+        else:
+            repos.insert(insert_idx, repo)
+            _registry['repos'] = OrderedDict([(repo.name, repo) for repo in repos])
 
 
 def remove_repo(repo):
