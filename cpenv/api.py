@@ -4,8 +4,8 @@ from __future__ import absolute_import, print_function
 # Standard library imports
 import os
 import warnings
-from collections import OrderedDict
 from bisect import bisect
+from collections import OrderedDict
 
 # Local imports
 from . import compat, hooks, paths, repos
