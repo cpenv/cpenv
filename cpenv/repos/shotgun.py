@@ -64,8 +64,9 @@ class ShotgunRepo(Repo):
         api_key=None,
         api=None,
         module_entity='CustomNonProjectEntity01',
+        priority=20,
     ):
-        super(ShotgunRepo, self).__init__(name)
+        super(ShotgunRepo, self).__init__(name, priority)
         if api:
             # Assume we've received a Shotgun instance
             # This will be done via the tk-cpenv shotgun app
