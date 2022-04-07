@@ -9,10 +9,11 @@ class Repo(object):
     '''
 
     type_name = 'repo'
+    priority = 10
 
-    def __init__(self, name, priority=10):
+    def __init__(self, name, priority=None):
         self.name = name
-        self.priority = priority
+        self.priority = self.priority if priority is None else priority
 
     def __repr__(self):
         args = []

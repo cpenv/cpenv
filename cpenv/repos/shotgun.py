@@ -55,6 +55,7 @@ class ShotgunRepo(Repo):
     '''
 
     type_name = 'shotgun'
+    priority = 20
 
     def __init__(
         self,
@@ -64,7 +65,7 @@ class ShotgunRepo(Repo):
         api_key=None,
         api=None,
         module_entity='CustomNonProjectEntity01',
-        priority=20,
+        priority=None,
     ):
         super(ShotgunRepo, self).__init__(name, priority)
         if api:

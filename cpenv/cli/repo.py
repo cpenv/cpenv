@@ -53,15 +53,22 @@ class AddRepo(core.CLI):
     '''Add a new repo.
 
     LocalRepo:
-        cpenv repo add custom --path=~/custom_repo
+      cpenv repo add --type=local custom --path=~/custom_repo
 
     ShotgunRepo:
-        cpenv repo add my_shotgun --type=shotgun --base_url=https://my.shotgunstudio.com --script_name=cpenv --api_key=secret
+        cpenv repo add --type=shotgun my_shotgun --base_url=https://my.shotgunstudio.com --script_name=cpenv --api_key=secret
+
+    The order of the arguments is important. First you have the --type and --priority
+    options, then name, and finally repo type specific arguments.
     '''
 
     name = 'add'
 
     def setup_parser(self, parser):
+        parser.add_argument(
+            'name',
+            help='Name of the repo',
+        )
         parser.add_argument(
             '--type',
             help='Type of repo',
@@ -69,25 +76,22 @@ class AddRepo(core.CLI):
             default='local',
         )
         parser.add_argument(
-            'name',
-            help='Name of the repo',
-        )
-        parser.add_argument(
             '--priority',
-            help='Priority of repo - the lower the priority the earlier in the list of repos the repo will appear.',
+            help='Priority of repo - the lower the priority the earlier in the list of repos it will appear. For example a priority of 0 would force the repo to be used first for module resolution. (Defaults: local - 10, shotgun - 20.)',
             default=None,
             type=int,
         )
         parser.add_argument(
             'type_args',
             help='Type specific arguments.',
+            type=str,
             nargs=argparse.REMAINDER,
         )
 
     def parse_type_args(self, type_args):
         pattern = (
             r'-{1,2}(?P<param>[a-zA-Z0-9_]+)=*\s*'
-            r'"?(?P<value>.+)"?'
+            r'[\'\"]?(?P<value>.+)[\'\"]?'
         )
         kwargs = {}
         for arg in type_args:
@@ -100,6 +104,7 @@ class AddRepo(core.CLI):
 
     def run(self, args):
 
+        core.echo(args)
         # Parse type_args or args that are specific to a given Repo type
         repo_kwargs = self.parse_type_args(args.type_args)
         repo_type = repo_kwargs.pop('type', args.type)
@@ -139,7 +144,7 @@ class AddRepo(core.CLI):
 
 
 class RemoveRepo(core.CLI):
-    '''Remove repo by name.'''
+    '''Remove a repo by name.'''
 
     name = 'remove'
 
@@ -167,7 +172,7 @@ class RemoveRepo(core.CLI):
 
 
 class EditRepos(core.CLI):
-    '''Open repos config in text editor.'''
+    '''Open repos in text editor.'''
 
     name = 'edit'
 
