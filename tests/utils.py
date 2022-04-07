@@ -15,23 +15,23 @@ def cwd(new_cwd):
 
     try:
         os.chdir(new_cwd)
-        cpenv.update_repo(cpenv.LocalRepo('cwd', new_cwd))
+        cpenv.update_repo(cpenv.LocalRepo("cwd", new_cwd))
         yield
     except Exception:
         raise
     finally:
         os.chdir(old_cwd)
-        cpenv.update_repo(cpenv.LocalRepo('cwd', old_cwd))
+        cpenv.update_repo(cpenv.LocalRepo("cwd", old_cwd))
 
 
 def touch(filepath):
 
-    with open(filepath, 'a'):
+    with open(filepath, "a"):
         os.utime(filepath, None)
 
 
 def make_files(*filepaths, **kwargs):
-    data = kwargs.get('text', None)
+    data = kwargs.get("text", None)
 
     for filepath in filepaths:
         d = os.path.dirname(filepath)
@@ -44,5 +44,5 @@ def make_files(*filepaths, **kwargs):
         if not data:
             touch(filepath)
         else:
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 f.write(data)

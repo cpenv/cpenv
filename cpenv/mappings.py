@@ -20,24 +20,23 @@ except ImportError:
     from collections import Mapping, MutableMapping, Sequence
 
 
-
 env_value_types = numeric_types + string_types
-Item = collections.namedtuple('Item', 'key value')
-Op = collections.namedtuple('Op', 'key value op')
+Item = collections.namedtuple("Item", "key value")
+Op = collections.namedtuple("Op", "key value op")
 
 
 class CaseInsensitiveDict(MutableMapping):
-    '''A case insensitive dict that expects strings as keys.
+    """A case insensitive dict that expects strings as keys.
 
     Based on the requests.structures.CaseInsensitiveDict.
-    '''
+    """
 
     def __init__(self, *args, **kwargs):
         self._items = dict()
         self.update(*args, **kwargs)
 
     def __repr__(self):
-        return '{}({!r})'.format(self.__class__.__name__, dict(self.items()))
+        return "{}({!r})".format(self.__class__.__name__, dict(self.items()))
 
     def __setitem__(self, key, value):
         self._items[key.lower()] = Item(key, value)
@@ -70,7 +69,7 @@ class CaseInsensitiveDict(MutableMapping):
 
 
 class EnvironmentDict(CaseInsensitiveDict):
-    '''A dict suited to storing and manipulating environment variables.
+    """A dict suited to storing and manipulating environment variables.
 
     Lowercase comparisons are used to ensure unique keys and values.
 
@@ -87,12 +86,12 @@ class EnvironmentDict(CaseInsensitiveDict):
         >>> env.prepend('path', '/some/other/path')
         >>> env.remove('PATH', '/some/path')
         >>> assert env['PATH'] == ['/some/other/path']
-    '''
+    """
 
-    _value_error = 'Expected Union[list, Union[str, int, float]] got %s'
+    _value_error = "Expected Union[list, Union[str, int, float]] got %s"
 
     def __init__(self, *args, **kwargs):
-        self._add_condition = kwargs.pop('add_condition', ignore_case)
+        self._add_condition = kwargs.pop("add_condition", ignore_case)
         super(EnvironmentDict, self).__init__(*args, **kwargs)
 
     def _get_list(self, key):
@@ -103,7 +102,7 @@ class EnvironmentDict(CaseInsensitiveDict):
             return [value]
         if isinstance(value, Sequence):
             return list(value)
-        raise ValueError('%s could not be converted to a list.' % value)
+        raise ValueError("%s could not be converted to a list." % value)
 
     def _coerce_value(self, value):
         if isinstance(value, env_value_types):
@@ -111,7 +110,7 @@ class EnvironmentDict(CaseInsensitiveDict):
         elif isinstance(value, Sequence):
             result = []
             for v in value:
-                if v in (None, ''):
+                if v in (None, ""):
                     continue
                 result.append(str(value))
             return result
@@ -122,17 +121,17 @@ class EnvironmentDict(CaseInsensitiveDict):
         return not self._add_condition(current_value, value)
 
     def unset(self, key, value=None):
-        '''Unset a key.'''
+        """Unset a key."""
 
         self.pop(key, None)
 
     def set(self, key, value):
-        '''Set a key.'''
+        """Set a key."""
 
         self[key] = self._coerce_value(value)
 
     def remove(self, key, value, remove_check=None):
-        '''Remove a value from a key.'''
+        """Remove a value from a key."""
 
         value = self._coerce_value(value)
 
@@ -154,10 +153,10 @@ class EnvironmentDict(CaseInsensitiveDict):
             self[key] = result
 
     def prepend(self, key, value, add_check=None):
-        '''Prepend a value to a key.
+        """Prepend a value to a key.
 
         Sets the value if the key does not exist.
-        '''
+        """
 
         result = self._get_list(key)
         value = self._coerce_value(value)
@@ -173,10 +172,10 @@ class EnvironmentDict(CaseInsensitiveDict):
         self[key] = result
 
     def append(self, key, value, add_check=None):
-        '''Append a value to a key.
+        """Append a value to a key.
 
         Sets the value if the key does not exist.
-        '''
+        """
 
         result = self._get_list(key)
         value = self._coerce_value(value)
@@ -193,7 +192,7 @@ class EnvironmentDict(CaseInsensitiveDict):
 
 
 class EnvironmentDictTokenizer(object):
-    '''Responsible for converting a dict into a list of Operation tokens that
+    """Responsible for converting a dict into a list of Operation tokens that
     can be used to merge one dict with another. Used internally by
     `join_dicts`.
 
@@ -218,9 +217,9 @@ class EnvironmentDictTokenizer(object):
         ...     ],
         ... }
         [Op('PATH', '/path/a', 'append'), Op('PATH', '/path/b', 'remove')...]
-    '''
+    """
 
-    operation_names = ['unset', 'set', 'remove', 'append', 'prepend']
+    operation_names = ["unset", "set", "remove", "append", "prepend"]
 
     @staticmethod
     def _is_explicit_list_value(value):
@@ -231,9 +230,9 @@ class EnvironmentDictTokenizer(object):
         # Handle platform specific keys
         for plat in supported_platforms:
             if plat in value:
-                if platform == 'mac':
+                if platform == "mac":
                     # mac and osx are valid platform keys for macos
-                    plat_value = value.get(platform, value.get('osx', None))
+                    plat_value = value.get(platform, value.get("osx", None))
                 else:
                     plat_value = value.get(platform, None)
                 if plat_value:
@@ -243,7 +242,7 @@ class EnvironmentDictTokenizer(object):
         # Handle explicit operations keys
         for op, op_value in value.items():
             if op not in cls.operation_names:
-                raise KeyError('Invalid key in dict value: %s' % op)
+                raise KeyError("Invalid key in dict value: %s" % op)
             cls.tokenize_value(key, op_value, op, tokens)
 
     @classmethod
@@ -256,12 +255,12 @@ class EnvironmentDictTokenizer(object):
             # Skip null values
             return
         else:
-            raise ValueError('Got invalid value %s for key %s' % (value, key))
+            raise ValueError("Got invalid value %s for key %s" % (value, key))
         tokens.append(Op(key, value, op))
 
     @classmethod
     def tokenize_sequence(cls, key, value, op, tokens):
-        if not cls._is_explicit_list_value(value) and op == 'prepend':
+        if not cls._is_explicit_list_value(value) and op == "prepend":
             value = value[::-1]
 
         for item in value:
@@ -271,20 +270,20 @@ class EnvironmentDictTokenizer(object):
     def tokenize_value(cls, key, value, op=None, tokens=None):
         if tokens is None:
             tokens = []
-        if op == 'set':
-            tokens.append(Op(key, None, 'unset'))
+        if op == "set":
+            tokens.append(Op(key, None, "unset"))
         if isinstance(value, env_value_types):
-            op = op or 'set'
+            op = op or "set"
             cls.tokenize_str(key, value, op, tokens)
         elif isinstance(value, Mapping):
-            op = op or 'set'
+            op = op or "set"
             cls.tokenize_mapping(key, value, op, tokens)
         elif isinstance(value, Sequence):
-            if op in (None, 'set'):
-                op = 'prepend'
+            if op in (None, "set"):
+                op = "prepend"
             cls.tokenize_sequence(key, value, op, tokens)
         else:
-            raise ValueError('Could not tokenize %s' % value)
+            raise ValueError("Could not tokenize %s" % value)
 
         return tokens
 
@@ -297,56 +296,56 @@ class EnvironmentDictTokenizer(object):
 
 
 def ignore_case(items, value):
-    '''Default add_condition for `EnvironmentDict`.
+    """Default add_condition for `EnvironmentDict`.
 
     Returns True if value is not in items.
-    '''
+    """
 
     return value.lower() not in [item.lower() for item in items]
 
 
 def tokenize_dict(data):
-    '''Tokenize a dict returning a list of Ops that can be used to
+    """Tokenize a dict returning a list of Ops that can be used to
     join the dict with another.
-    '''
+    """
 
     return EnvironmentDictTokenizer.tokenize(data)
 
 
 def join_dicts(*dicts, **kwargs):
-    '''Join a bunch of dicts.
+    """Join a bunch of dicts.
 
     Arguments:
         *dicts: Dictionaries to merge
         add_condition (fn): Used to check if a value should be added to a key
-    '''
+    """
 
     env_dict = EnvironmentDict(**kwargs)
     for data in dicts:
         tokens = tokenize_dict(data)
         for token in tokens:
-            if token.op == 'unset':
+            if token.op == "unset":
                 env_dict.unset(token.key, token.value)
-            elif token.op == 'set':
+            elif token.op == "set":
                 env_dict.set(token.key, token.value)
-            elif token.op == 'remove':
+            elif token.op == "remove":
                 env_dict.remove(token.key, token.value)
-            elif token.op == 'prepend':
+            elif token.op == "prepend":
                 env_dict.prepend(token.key, token.value)
-            elif token.op == 'append':
+            elif token.op == "append":
                 env_dict.append(token.key, token.value)
     return dict(env_dict)
 
 
 def env_to_dict(env, pathsep=os.pathsep):
-    '''
+    """
     Convert a dict containing environment variables into a standard dict.
     Variables containing multiple values will be split into a list based on
     the argument passed to pathsep.
 
     :param env: Environment dict like dict(os.environ)
     :param pathsep: Path separator used to split variables
-    '''
+    """
 
     out_dict = {}
 
@@ -360,13 +359,13 @@ def env_to_dict(env, pathsep=os.pathsep):
 
 
 def dict_to_env(d, pathsep=os.pathsep):
-    '''
+    """
     Convert a python dict to a dict containing valid environment variable
     values.
 
     :param d: Dict to convert to an env dict
     :param pathsep: Path separator used to join lists(default os.pathsep)
-    '''
+    """
 
     out_env = {}
 
@@ -376,17 +375,17 @@ def dict_to_env(d, pathsep=os.pathsep):
         elif isinstance(v, string_types):
             out_env[k] = v
         else:
-            raise TypeError('{} not a valid env var type'.format(type(v)))
+            raise TypeError("{} not a valid env var type".format(type(v)))
 
     return out_env
 
 
 def expand_envvars(env):
-    '''
+    """
     Expand all environment variables in an environment dict
 
     :param env: Environment dict
-    '''
+    """
 
     out_env = {}
 
@@ -401,14 +400,11 @@ def expand_envvars(env):
 
 
 def get_store_env_tmp():
-    '''Returns an unused random filepath.'''
+    """Returns an unused random filepath."""
 
     tempdir = tempfile.gettempdir()
-    temp_name = 'envstore{0:0>3d}'
-    temp_path = paths.normalize(
-        tempdir,
-        temp_name.format(random.getrandbits(9))
-    )
+    temp_name = "envstore{0:0>3d}"
+    temp_path = paths.normalize(tempdir, temp_name.format(random.getrandbits(9)))
     if not os.path.exists(temp_path):
         return temp_path
     else:
@@ -416,47 +412,47 @@ def get_store_env_tmp():
 
 
 def store_env(path=None):
-    '''Encode current environment as yaml and store in path or a temporary
+    """Encode current environment as yaml and store in path or a temporary
     file. Return the path to the stored environment.
-    '''
+    """
 
     path = path or get_store_env_tmp()
 
     env_dict = yaml.safe_dump(dict(os.environ), default_flow_style=False)
 
-    with open(path, 'w') as f:
+    with open(path, "w") as f:
         f.write(env_dict)
 
     return path
 
 
 def restore_env(env_dict):
-    '''Set environment variables in the current python process from a dict
-    containing envvars and values.'''
+    """Set environment variables in the current python process from a dict
+    containing envvars and values."""
 
-    if hasattr(sys, 'real_prefix'):
+    if hasattr(sys, "real_prefix"):
         sys.prefix = sys.real_prefix
-        del(sys.real_prefix)
+        del sys.real_prefix
 
     replace_osenviron(expand_envvars(dict_to_env(env_dict)))
 
 
 def restore_env_from_file(env_file):
-    '''Restore the current environment from an environment stored in a yaml
+    """Restore the current environment from an environment stored in a yaml
     yaml file.
 
     :param env_file: Path to environment yaml file.
-    '''
+    """
 
-    with open(env_file, 'r') as f:
+    with open(env_file, "r") as f:
         env_dict = yaml.safe_load(f.read())
 
     restore_env(env_dict)
 
 
 def set_env(*env_dicts):
-    '''Set environment variables in the current python process from a dict
-    containing envvars and values.'''
+    """Set environment variables in the current python process from a dict
+    containing envvars and values."""
 
     old_env_dict = env_to_dict(dict(os.environ))
     new_env_dict = join_dicts(old_env_dict, *env_dicts)
@@ -465,17 +461,17 @@ def set_env(*env_dicts):
 
 
 def set_env_from_file(env_file):
-    '''Restore the current environment from an environment stored in a yaml
+    """Restore the current environment from an environment stored in a yaml
     yaml file.
 
     :param env_file: Path to environment yaml file.
-    '''
+    """
 
-    with open(env_file, 'r') as f:
+    with open(env_file, "r") as f:
         env_dict = yaml.safe_load(f.read())
 
-    if 'environment' in env_dict:
-        env_dict = env_dict['environment']
+    if "environment" in env_dict:
+        env_dict = env_dict["environment"]
 
     set_env(env_dict)
 

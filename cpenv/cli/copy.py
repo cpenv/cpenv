@@ -4,28 +4,28 @@ from cpenv.resolver import Copier, Resolver
 
 
 class Copy(core.CLI):
-    '''Copy Modules from one Repo to another.'''
+    """Copy Modules from one Repo to another."""
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'modules',
-            help='Space separated list of modules.',
-            nargs='+',
+            "modules",
+            help="Space separated list of modules.",
+            nargs="+",
         )
         parser.add_argument(
-            '--from_repo',
-            help='Download from',
+            "--from_repo",
+            help="Download from",
             default=None,
         )
         parser.add_argument(
-            '--to_repo',
-            help='Upload to',
+            "--to_repo",
+            help="Upload to",
             default=None,
         )
         parser.add_argument(
-            '--overwrite',
-            help='Overwrite the destination directory. (False)',
-            action='store_true',
+            "--overwrite",
+            help="Overwrite the destination directory. (False)",
+            action="store_true",
         )
 
     def run(self, args):
@@ -37,8 +37,8 @@ class Copy(core.CLI):
         else:
             from_repo = core.prompt_for_repo(
                 api.get_repos(),
-                'Download from',
-                default_repo_name='home',
+                "Download from",
+                default_repo_name="home",
             )
 
         if args.to_repo:
@@ -48,17 +48,17 @@ class Copy(core.CLI):
             repos.remove(from_repo)
             to_repo = core.prompt_for_repo(
                 repos,
-                'Upload to',
-                default_repo_name='home',
+                "Upload to",
+                default_repo_name="home",
             )
 
         resolver = Resolver([from_repo])
         module_specs = resolver.resolve(args.modules)
         core.echo()
 
-        choice = core.prompt('Copy these modules to %s?[y/n] ' % to_repo.name)
-        if choice.lower() not in ['y', 'yes', 'yup']:
-            core.echo('Aborted.')
+        choice = core.prompt("Copy these modules to %s?[y/n] " % to_repo.name)
+        if choice.lower() not in ["y", "yes", "yup"]:
+            core.echo("Aborted.")
             core.exit(1)
         core.echo()
 

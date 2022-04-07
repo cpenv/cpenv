@@ -15,15 +15,15 @@ def setup_module():
 
 
 def teardown_module():
-    paths.rmtree(data_path('home'))
+    paths.rmtree(data_path("home"))
 
 
 def test_create():
-    '''Create a module'''
+    """Create a module"""
 
     # First run creates a module
-    cpenv.create(data_path('home', 'testmod'), name='testmod', version='0')
+    cpenv.create(data_path("home", "testmod"), name="testmod", version="0")
 
     # Second run raises error
     with pytest.raises(OSError):
-        cpenv.create(data_path('home', 'testmod'), name='testmod', version='0')
+        cpenv.create(data_path("home", "testmod"), name="testmod", version="0")

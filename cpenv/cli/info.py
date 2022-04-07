@@ -6,45 +6,45 @@ from cpenv.resolver import ResolveError
 
 
 class Info(core.CLI):
-    '''Show Module info'''
+    """Show Module info"""
 
-    usage = 'cpenv info [-h] [<modules>...]'
+    usage = "cpenv info [-h] [<modules>...]"
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'modules',
-            help='Space separated list of modules.',
-            nargs='*',
+            "modules",
+            help="Space separated list of modules.",
+            nargs="*",
         )
         parser.add_argument(
-            '--key',
+            "--key",
             help=(
                 'Specify the name of a key like "path" or "version". '
-                'When provided this command will print the value of the key.'
+                "When provided this command will print the value of the key."
             ),
             default=None,
         )
         parser.add_argument(
-            '--repo',
-            help='Get repo info instead of module info.',
-            action='store_true',
+            "--repo",
+            help="Get repo info instead of module info.",
+            action="store_true",
         )
         parser.add_argument(
-            '--home',
-            help='Get the path to the cpenv home directory.',
-            action='store_true',
+            "--home",
+            help="Get the path to the cpenv home directory.",
+            action="store_true",
         )
         parser.add_argument(
-            '--cache',
-            help='Get the path to the cpenv cache directory.',
-            action='store_true',
+            "--cache",
+            help="Get the path to the cpenv cache directory.",
+            action="store_true",
         )
 
     def _get_key(self, obj, key):
         try:
-            return eval('obj.' + key)
+            return eval("obj." + key)
         except Exception as e:
-            core.echo('Error: %s' % e)
+            core.echo("Error: %s" % e)
             sys.exit(1)
 
     def run(self, args):
@@ -64,7 +64,7 @@ class Info(core.CLI):
                 for repo_name in args.modules:
                     repo = api.get_repo(repo_name)
                     if repo is None:
-                        core.echo('Could not find repo %s' % repo_name)
+                        core.echo("Could not find repo %s" % repo_name)
                         sys.exit(1)
                     objects.append(repo)
             else:
@@ -84,20 +84,22 @@ class Info(core.CLI):
             for repo_name in args.modules:
                 repo = api.get_repo(repo_name)
                 if repo is None:
-                    core.echo('Could not find repo %s' % repo_name)
+                    core.echo("Could not find repo %s" % repo_name)
                     sys.exit(1)
                 repos.append(repo)
 
             for repo in repos:
-                core.echo(core.format_section(
-                    repo.name,
-                    [
-                        ('name', repo.name),
-                        ('path', repo.path),
-                        ('type', str(type(repo))),
-                        ('type_name', repo.type_name),
-                    ]
-                ))
+                core.echo(
+                    core.format_section(
+                        repo.name,
+                        [
+                            ("name", repo.name),
+                            ("path", repo.path),
+                            ("type", str(type(repo))),
+                            ("type_name", repo.type_name),
+                        ],
+                    )
+                )
                 core.echo()
             return
         else:
@@ -108,12 +110,11 @@ class Info(core.CLI):
 
             core.echo()
             for spec in module_specs:
-                core.echo(core.format_section(
-                    spec.qual_name,
-                    [
-                        (k, str(v))
-                        for k, v in sorted(spec._asdict().items())
-                    ],
-                ))
+                core.echo(
+                    core.format_section(
+                        spec.qual_name,
+                        [(k, str(v)) for k, v in sorted(spec._asdict().items())],
+                    )
+                )
                 core.echo()
             return

@@ -21,16 +21,16 @@ from cpenv.reporter import Reporter
 
 
 class CpenvCLI(core.CLI):
-    '''
+    """
     Create, activate and manage Modules.
 
     A Module is a folder containing a module.yml file describing the Module's
     name, version, requirements, and environment variables. Module's can also
     contain a hooks folder with python files that respond to specific events.
-    '''
+    """
 
-    name = 'cpenv'
-    usage = 'cpenv [-h] <command> [<args>...]'
+    name = "cpenv"
+    usage = "cpenv [-h] <command> [<args>...]"
 
     def commands(self):
         return [
@@ -51,35 +51,34 @@ class CpenvCLI(core.CLI):
 
 
 class CliReporter(Reporter):
-
     def __init__(self):
         self._bars = {}
 
     def get_bar_style(self, desc, total, unit=None):
         return {
-            'desc': desc,
-            'total': total,
-            'bar_format': '  {desc} {bar} {n_fmt}/{total_fmt}',
-            'unit': unit or 'iB',
-            'unit_scale': True,
+            "desc": desc,
+            "total": total,
+            "bar_format": "  {desc} {bar} {n_fmt}/{total_fmt}",
+            "unit": unit or "iB",
+            "unit_scale": True,
         }
 
     def start_resolve(self, requirements):
-        core.echo('- Resolving requirements...')
+        core.echo("- Resolving requirements...")
         core.echo()
 
     def resolve_requirement(self, requirement, module_spec):
-        core.echo('  %s - %s' % (module_spec.real_name, module_spec.path))
+        core.echo("  %s - %s" % (module_spec.real_name, module_spec.path))
 
     def end_resolve(self, resolved, unresolved):
         core.echo()
         if unresolved:
-            core.echo('Error: Failed to resolve %s' % ', '.join(unresolved))
+            core.echo("Error: Failed to resolve %s" % ", ".join(unresolved))
 
     def start_localize(self, module_specs):
         for spec in module_specs:
             if not isinstance(spec.repo, repos.LocalRepo):
-                core.echo('- Localizing modules...')
+                core.echo("- Localizing modules...")
                 core.echo()
                 return
 
@@ -87,25 +86,19 @@ class CliReporter(Reporter):
         core.echo()
 
     def start_progress(self, label, max_size, data):
-        if 'download' in label.lower():
-            spec = data['module_spec']
-            core.echo(
-                '  Downloading %s from %s...' %
-                (spec.qual_name, spec.repo.name)
-            )
+        if "download" in label.lower():
+            spec = data["module_spec"]
+            core.echo("  Downloading %s from %s..." % (spec.qual_name, spec.repo.name))
             desc = spec.real_name
-        elif 'upload' in label.lower():
-            module = data['module']
-            to_repo = data['to_repo']
-            core.echo(
-                '  Uploading %s to %s...' %
-                (module.qual_name, to_repo.name)
-            )
+        elif "upload" in label.lower():
+            module = data["module"]
+            to_repo = data["to_repo"]
+            core.echo("  Uploading %s to %s..." % (module.qual_name, to_repo.name))
             desc = module.real_name
         else:
             desc = label
 
-        style = self.get_bar_style(desc, max_size, data.get('unit', None))
+        style = self.get_bar_style(desc, max_size, data.get("unit", None))
         self._bars[label] = tqdm.tqdm(**style)
 
     def update_progress(self, label, chunk_size, data):
