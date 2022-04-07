@@ -104,8 +104,6 @@ class AddRepo(core.CLI):
         return kwargs
 
     def run(self, args):
-
-        core.echo(args)
         # Parse type_args or args that are specific to a given Repo type
         repo_kwargs = self.parse_type_args(args.type_args)
         repo_type = repo_kwargs.pop("type", args.type)
