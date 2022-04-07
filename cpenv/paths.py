@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Tools for working with paths and files.
-'''
+"""
 
 # Standard library imports
 import os
@@ -12,19 +12,19 @@ from fnmatch import fnmatch
 
 
 def normalize(*parts):
-    '''Join, expand, and normalize a filepath.'''
+    """Join, expand, and normalize a filepath."""
 
     path = os.path.expanduser(os.path.expandvars(os.path.join(*parts)))
-    return os.path.abspath(path).replace('\\', '/')
+    return os.path.abspath(path).replace("\\", "/")
 
 
 def parent(path):
-    '''Get a file paths parent directory'''
+    """Get a file paths parent directory"""
     return normalize(os.path.dirname(path))
 
 
 def ensure_path_exists(path, *args):
-    '''Like os.makedirs but keeps quiet if path already exists'''
+    """Like os.makedirs but keeps quiet if path already exists"""
 
     if os.path.exists(path):
         return
@@ -33,14 +33,14 @@ def ensure_path_exists(path, *args):
 
 
 def is_writable(path):
-    '''Check if a directory is writable.'''
+    """Check if a directory is writable."""
 
     if os.path.exists(path):
         return os.access(path, os.X_OK | os.W_OK)
 
     try:
         os.makedirs(path)
-        touch(normalize(path, 'tmpfile'))
+        touch(normalize(path, "tmpfile"))
     except OSError as e:
         return False
     else:
@@ -49,7 +49,7 @@ def is_writable(path):
 
 
 def rmtree(path):
-    '''Safely remove directory and all of it's contents.'''
+    """Safely remove directory and all of it's contents."""
 
     def onerror(func, path, _):
         os.chmod(path, stat.S_IWRITE)
@@ -59,7 +59,7 @@ def rmtree(path):
 
 
 def walk_up(start_dir, depth=20):
-    '''Like os.walk but walks up a tree.'''
+    """Like os.walk but walks up a tree."""
 
     root = start_dir
 
@@ -82,17 +82,17 @@ def walk_up(start_dir, depth=20):
 
 
 def touch(filepath):
-    '''Touch the given filepath'''
+    """Touch the given filepath"""
 
-    with open(filepath, 'a'):
+    with open(filepath, "a"):
         os.utime(filepath, None)
 
 
 def format_size(bytesize):
-    '''Human readable size.'''
+    """Human readable size."""
 
     value = bytesize
-    for unit in ['b', 'kb', 'mb', 'gb', 'tb', 'pb', 'zi']:
+    for unit in ["b", "kb", "mb", "gb", "tb", "pb", "zi"]:
         if value < 1024.0:
             return "{:.0f} {}".format(value, unit)
         value /= 1024.0
@@ -100,7 +100,7 @@ def format_size(bytesize):
 
 
 def get_file_count(folder):
-    '''Get the number of files in a folder.'''
+    """Get the number of files in a folder."""
 
     count = 0
     for _, _, files in exclusive_walk(folder):
@@ -109,7 +109,7 @@ def get_file_count(folder):
 
 
 def get_folder_size(folder):
-    '''Get the size of a folder in bytes.'''
+    """Get the size of a folder in bytes."""
 
     size = 0
     for root, _, files in exclusive_walk(folder):
@@ -121,7 +121,7 @@ def get_folder_size(folder):
 
 
 def exclude_names(names):
-    '''Returns True when a file matches one of the provided names.'''
+    """Returns True when a file matches one of the provided names."""
 
     def check_file_against_names(file):
         return os.path.basename(file) in names
@@ -130,7 +130,7 @@ def exclude_names(names):
 
 
 def exclude_patterns(patterns):
-    '''Returns True when a file matches against one of the provided patterns'''
+    """Returns True when a file matches against one of the provided patterns"""
 
     def check_file_against_patterns(file):
         return any([fnmatch(file, p) for p in patterns])
@@ -139,34 +139,34 @@ def exclude_patterns(patterns):
 
 
 def include_prebuilt_pyc(file):
-    '''Returns True when a pyc file has no accompanying py file.
+    """Returns True when a pyc file has no accompanying py file.
 
     This is useful in cases where tool distributors prebuild pyc files as
     a crude form of anti-piracy. These need to be included in cpenv modules
     when zipped to be uploaded to a repository.
-    '''
+    """
 
     return (
-        file.endswith('.pyc')
-        and not os.path.isfile(file.replace('.pyc', '.py'))
-        and '__pycache__' not in file
+        file.endswith(".pyc")
+        and not os.path.isfile(file.replace(".pyc", ".py"))
+        and "__pycache__" not in file
     )
 
 
 def is_excluded(value, predicates):
-    '''Check if a value matches any of the exclude predicates.'''
+    """Check if a value matches any of the exclude predicates."""
 
     return any([predicate(value) for predicate in predicates])
 
 
 def is_included(value, predicates):
-    '''Returns True if value matches any of the include predicates.'''
+    """Returns True if value matches any of the include predicates."""
 
     return any([predicate(value) for predicate in predicates])
 
 
 def exclusive_walk(folder, excludes=None, includes=None):
-    '''Like os.walk but excludes/includes files by using predicate functions.
+    """Like os.walk but excludes/includes files by using predicate functions.
 
     Excludes the following by default:
         names: __pycache__, .git, Thumbs.db, .venv, venv
@@ -182,11 +182,11 @@ def exclusive_walk(folder, excludes=None, includes=None):
 
     Returns:
         Generator yielding (root, subdirs, files).
-    '''
+    """
 
     excludes = excludes or [
-        exclude_names(['__pycache__', '.git', 'thumbs.db', '.venv', 'venv']),
-        exclude_patterns(['*.pyc', '*.egg-info']),
+        exclude_names(["__pycache__", ".git", "thumbs.db", ".venv", "venv"]),
+        exclude_patterns(["*.pyc", "*.egg-info"]),
     ]
     includes = includes or [include_prebuilt_pyc]
 
@@ -206,7 +206,7 @@ def exclusive_walk(folder, excludes=None, includes=None):
 
 
 def zip_folder(folder, where):
-    '''Zip the contents of a folder.'''
+    """Zip the contents of a folder."""
 
     parent = os.path.dirname(where)
     if not os.path.isdir(parent):
@@ -214,11 +214,10 @@ def zip_folder(folder, where):
 
     # TODO: Count files first so we can report progress of building zip.
 
-    with zipfile.ZipFile(where, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+    with zipfile.ZipFile(where, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for root, subdirs, files in exclusive_walk(folder):
             rel_root = os.path.relpath(root, folder)
             for file in files:
                 zip_file.write(
-                    os.path.join(root, file),
-                    arcname=os.path.join(rel_root, file)
+                    os.path.join(root, file), arcname=os.path.join(rel_root, file)
                 )

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-'''A minimal CLI framework.'''
+"""A minimal CLI framework."""
 from __future__ import absolute_import, print_function
 
 # Standard library imports
@@ -47,14 +47,14 @@ class CLI(object):
 
     @property
     def short_description(self):
-        return self.__doc__.strip().split('\n')[0].rsplit('.', 1)[0]
+        return self.__doc__.strip().split("\n")[0].rsplit(".", 1)[0]
 
     @property
     def fullname(self):
         name = [self.name]
         if self.parent:
             name.insert(0, self.parent.fullname)
-        return ' '.join(name)
+        return " ".join(name)
 
     def commands(self):
         return []
@@ -64,19 +64,16 @@ class CLI(object):
 
     def format_commands(self):
         if not self._commands:
-            return ''
+            return ""
 
         return format_section(
-            'commands:',
-            [
-                (k, v.short_description)
-                for k, v in self._commands.items()
-            ],
+            "commands:",
+            [(k, v.short_description) for k, v in self._commands.items()],
         )
 
     @property
     def parser(self):
-        if hasattr(self, '_parser'):
+        if hasattr(self, "_parser"):
             return self._parser
 
         self._parser = argparse.ArgumentParser(
@@ -87,38 +84,38 @@ class CLI(object):
             add_help=False,
         )
         self._parser.add_argument(
-            '-h',
-            '--help',
-            help='show this help message and exit',
-            action='store_true',
-            dest='help'
+            "-h",
+            "--help",
+            help="show this help message and exit",
+            action="store_true",
+            dest="help",
         )
-        self._parser._positionals.title = 'required'
-        self._parser._optionals.title = 'optional'
+        self._parser._positionals.title = "required"
+        self._parser._optionals.title = "optional"
         self.setup_parser(self._parser)
 
         argument_names = [a.dest for a in self._parser._actions]
-        if self._commands and 'command' not in argument_names:
+        if self._commands and "command" not in argument_names:
             self._parser.add_argument(
-                'command',
-                help='subcommand to run.',
-                action='store',
-                nargs='?',
+                "command",
+                help="subcommand to run.",
+                action="store",
+                nargs="?",
             )
             self._parser.epilog = self.format_commands()
 
         return self._parser
 
     def setup_parser(self, parser):
-        '''Subclasses implement this method to parse arguments.'''
+        """Subclasses implement this method to parse arguments."""
 
     def run(self, args):
-        '''Subclasses implement this method.'''
+        """Subclasses implement this method."""
         self.parser.print_help()
 
 
-def echo(message='', end='\n'):
-    '''Write a message to stdout.'''
+def echo(message="", end="\n"):
+    """Write a message to stdout."""
 
     print(message, end=end)
     if not end:
@@ -130,7 +127,7 @@ def exit(returncode=0):
 
 
 def prompt(message):
-    '''Prompt a user for input'''
+    """Prompt a user for input"""
 
     if is_py2:
         return raw_input(message)
@@ -138,17 +135,17 @@ def prompt(message):
     return input(message)
 
 
-def prompt_for_repo(repos, message, default_repo_name='home'):
-    '''Prompt a user to select a repository'''
+def prompt_for_repo(repos, message, default_repo_name="home"):
+    """Prompt a user to select a repository"""
 
     default = 0
     for i, from_repo in enumerate(repos):
         if from_repo.name == default_repo_name:
             default = i
         if from_repo.name == from_repo.path:
-            line = '  [{}] {}'.format(i, from_repo.path)
+            line = "  [{}] {}".format(i, from_repo.path)
         else:
-            line = '  [{}] {} - {}'.format(
+            line = "  [{}] {} - {}".format(
                 i,
                 from_repo.name,
                 from_repo.path,
@@ -157,7 +154,7 @@ def prompt_for_repo(repos, message, default_repo_name='home'):
 
     # Prompt user to choose a repo defaults to home
     echo()
-    choice = prompt('{} [{}]: '.format(message, default))
+    choice = prompt("{} [{}]: ".format(message, default))
 
     if not choice:
         choice = default
@@ -172,7 +169,7 @@ def prompt_for_repo(repos, message, default_repo_name='home'):
 
     if value_error or choice > len(repos) - 1:
         echo()
-        echo('Error: {!r} is not a valid choice'.format(choice))
+        echo("Error: {!r} is not a valid choice".format(choice))
         exit(1)
 
     echo()
@@ -198,21 +195,21 @@ def format_section(header, rows):
                 value = value[0]
 
         line = wrap(
-            '{1:<{0}}  {2}'.format(width, key, value),
-            initial_indent='  ',
-            subsequent_indent=' ' * (width + 4),
+            "{1:<{0}}  {2}".format(width, key, value),
+            initial_indent="  ",
+            subsequent_indent=" " * (width + 4),
         )
-        lines.append('\n'.join(line))
+        lines.append("\n".join(line))
 
         for value in additional_lines:
             line = wrap(
-                '{1:<{0}}  {2}'.format(width, '', value),
-                initial_indent='  ',
-                subsequent_indent=' ' * (width + 4),
+                "{1:<{0}}  {2}".format(width, "", value),
+                initial_indent="  ",
+                subsequent_indent=" " * (width + 4),
             )
-            lines.append('\n'.join(line))
+            lines.append("\n".join(line))
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def columns_to_rows(items, columns, width):
@@ -222,9 +219,9 @@ def columns_to_rows(items, columns, width):
     # Build columns
     columns = []
     for i in range(0, len(items), row_count):
-        column = [elide(item, width) for item in items[i:i + row_count]]
+        column = [elide(item, width) for item in items[i : i + row_count]]
         if len(column) < row_count:
-            column += [''] * (row_count - len(column))
+            column += [""] * (row_count - len(column))
         columns.append(column)
 
     # Transpose for rows
@@ -232,7 +229,7 @@ def columns_to_rows(items, columns, width):
     return rows
 
 
-def format_columns(header, items, indent='    '):
+def format_columns(header, items, indent="    "):
 
     size = get_terminal_size()
     width = max(len(max(items, key=len)), 18) + 4
@@ -241,31 +238,29 @@ def format_columns(header, items, indent='    '):
     lines = [header]
     for row in columns_to_rows(items, columns, width):
         if len(row) < columns:
-            row += [''] * (columns - len(row))
-        lines.append((
-            indent + '{:<{width}} ' * columns
-        ).format(*row, width=width))
+            row += [""] * (columns - len(row))
+        lines.append((indent + "{:<{width}} " * columns).format(*row, width=width))
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def elide(text, width):
     if len(text) > width:
-        return text[:width - 3] + '...'
+        return text[: width - 3] + "..."
     return text
 
 
 class NameToString(ast.NodeTransformer):
-    '''Visits Name nodes and transforms them to Str nodes'''
+    """Visits Name nodes and transforms them to Str nodes"""
 
     def visit_Name(self, node):
-        if node.id in ('True', 'False', 'None'):
+        if node.id in ("True", "False", "None"):
             return node
         return ast.copy_location(ast.Str(node.id), node)
 
 
 def safe_eval(string):
-    '''Safely evaluates "string", converting it to a valid python object.
+    """Safely evaluates "string", converting it to a valid python object.
     This is the same technique used by Python Fire to evaluate arguments. This
     method is intended to be used for cli argument conversion and therefore
     converts all ast.Name nodes to ast.Str nodes to reduce the need for
@@ -281,15 +276,15 @@ def safe_eval(string):
         "{a: 1.0}"     =>  {'a': 1.0}
         "{'a': 1.0}"   =>  {'a': 1.0}
         "[a, 1, 2.0]"  =>  ['a', 1, 2.0]
-    '''
+    """
 
-    tree = NameToString().visit(ast.parse(string, mode='eval'))
+    tree = NameToString().visit(ast.parse(string, mode="eval"))
     value = ast.literal_eval(tree)
     return value
 
 
 def parse_known_args(parser, unparsed_args):
-    '''Like ArgumentParser.parse_known_args but prints help on error.'''
+    """Like ArgumentParser.parse_known_args but prints help on error."""
 
     tmp_stdout = StringIO()
     tmp_stderr = StringIO()
@@ -300,7 +295,7 @@ def parse_known_args(parser, unparsed_args):
     except SystemExit:
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
-        if '-h' in unparsed_args or '--help' in unparsed_args:
+        if "-h" in unparsed_args or "--help" in unparsed_args:
             parser.print_help()
             sys.exit()
         print(tmp_stdout.getvalue())
@@ -316,7 +311,7 @@ def parse_known_args(parser, unparsed_args):
 
 
 def run(cli, unparsed_args=missing):
-    '''Execute a CLI command.'''
+    """Execute a CLI command."""
 
     if unparsed_args is missing:
         unparsed_args = sys.argv[1:]
@@ -324,16 +319,16 @@ def run(cli, unparsed_args=missing):
     try:
         cli = cli()
     except TypeError as e:
-        if 'object is not callable' not in str(e):
+        if "object is not callable" not in str(e):
             raise
 
     # First parse used to pass arguments along to subcommands
     args, more_args = parse_known_args(cli.parser, unparsed_args)
 
-    global_options = [('help', '-h'), ('verbose', '-v')]
+    global_options = [("help", "-h"), ("verbose", "-v")]
     options = [f for n, f in global_options if args.__dict__.get(n, False)]
 
-    if 'command' in args:
+    if "command" in args:
         cli_command = cli.get_command(args.command)
         if cli_command:
             # Recursively execute subcommand
@@ -343,7 +338,7 @@ def run(cli, unparsed_args=missing):
         if cli_command is not None:
             cli.parser.print_usage()
             print('error: unrecognized command "%s"' % args.command)
-            print('       expected one of %s' % list(cli._commands.keys()))
+            print("       expected one of %s" % list(cli._commands.keys()))
             sys.exit(2)
 
     # Final parse for validation before run

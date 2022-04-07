@@ -13,11 +13,11 @@ from cpenv import paths
 from . import data_path
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def setup_and_teardown():
 
     # Setup
-    cpenv.set_home_path(data_path('home'))
+    cpenv.set_home_path(data_path("home"))
 
     yield
 

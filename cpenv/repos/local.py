@@ -21,7 +21,7 @@ _log = logging.getLogger(__name__)
 
 
 class LocalRepo(Repo):
-    '''Local Filesystem Repo.
+    """Local Filesystem Repo.
 
     Supports two types of hierarchies.
 
@@ -30,9 +30,9 @@ class LocalRepo(Repo):
 
     Nested:
         <repo_path>/<name>/<version>/module.yml
-    '''
+    """
 
-    type_name = 'local'
+    type_name = "local"
     priority = 10
 
     def __init__(self, name, path, priority=None):
@@ -46,7 +46,7 @@ class LocalRepo(Repo):
     def clear_cache(self):
         self.cache.clear()
 
-    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'find'))
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, "find"))
     def find(self, requirement):
         matches = []
         for module_spec in self.list():
@@ -58,18 +58,18 @@ class LocalRepo(Repo):
 
         return matches
 
-    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, 'list'))
+    @cachedmethod(lambda self: self.cache, key=partial(keys.hashkey, "list"))
     def list(self):
         module_specs = []
 
         # Find flat module_specs
-        for module_file in glob(self.relative_path('*', 'module.yml')):
+        for module_file in glob(self.relative_path("*", "module.yml")):
             module_path = paths.parent(module_file)
             module = Module(module_path, repo=self)
             module_specs.append(module.to_spec())
 
         # Find nested module_specs
-        versions = glob(self.relative_path('*', '*', 'module.yml'))
+        versions = glob(self.relative_path("*", "*", "module.yml"))
         for version_file in versions:
             version_dir = paths.parent(version_file)
             module = Module(version_dir, repo=self)
@@ -80,7 +80,7 @@ class LocalRepo(Repo):
     def download(self, module_spec, where, overwrite=False):
         if os.path.isdir(where):
             if not overwrite:
-                raise OSError('%s already exists...' % where)
+                raise OSError("%s already exists..." % where)
             else:
                 paths.rmtree(where)
 
@@ -89,9 +89,9 @@ class LocalRepo(Repo):
 
         reporter = get_reporter()
         progress_bar = reporter.progress_bar(
-            label='Download %s' % module_spec.name,
+            label="Download %s" % module_spec.name,
             max_size=self.get_size(module_spec),
-            data={'module_spec': module_spec},
+            data={"module_spec": module_spec},
         )
         with progress_bar as progress_bar:
             for root, _, files in paths.exclusive_walk(src):
@@ -111,16 +111,18 @@ class LocalRepo(Repo):
                     progress_bar.update(os.path.getsize(src_path))
 
             module = Module(where)
-            progress_bar.update(data={
-                'module_spec': module_spec,
-                'module': module,
-            })
+            progress_bar.update(
+                data={
+                    "module_spec": module_spec,
+                    "module": module,
+                }
+            )
 
         return module
 
     def upload(self, module, overwrite=False):
         if not overwrite and module.path.startswith(self.path):
-            raise OSError('Module already exists in repo...')
+            raise OSError("Module already exists in repo...")
 
         if module.version.string in module.real_name:
             # Use flat hierarchy when version already in module name
@@ -136,16 +138,16 @@ class LocalRepo(Repo):
             if overwrite:
                 paths.rmtree(new_module_path)
             else:
-                raise OSError('Module already exists in repo...')
+                raise OSError("Module already exists in repo...")
 
         src = module.path
         dst = new_module_path
 
         reporter = get_reporter()
         progress_bar = reporter.progress_bar(
-            label='Upload %s' % module.name,
+            label="Upload %s" % module.name,
             max_size=self.get_size(module),
-            data={'module': module, 'to_repo': self},
+            data={"module": module, "to_repo": self},
         )
         with progress_bar as progress_bar:
             for root, _, files in paths.exclusive_walk(src):
@@ -165,36 +167,38 @@ class LocalRepo(Repo):
                     progress_bar.update(os.path.getsize(src_path))
 
             module_spec = Module(new_module_path).to_spec()
-            progress_bar.update(data={
-                'module': module,
-                'module_spec': module_spec,
-            })
+            progress_bar.update(
+                data={
+                    "module": module,
+                    "module_spec": module_spec,
+                }
+            )
 
         return module_spec
 
     def remove(self, module_spec):
-        '''Remove a module by module_spec.'''
+        """Remove a module by module_spec."""
 
         if module_spec.repo is not self:
             raise OSError(
-                'You can only remove modules from a repo '
-                'that the module is actually in!'
+                "You can only remove modules from a repo "
+                "that the module is actually in!"
             )
 
         module = Module(module_spec.path)
         module.remove()
 
     def get_data(self, module_spec):
-        '''Read a modules config data.'''
+        """Read a modules config data."""
 
         if not os.path.isdir(module_spec.path):
-            raise OSError('module_spec.path does not appear to exist.')
+            raise OSError("module_spec.path does not appear to exist.")
 
         module = Module(module_spec.path)
         return yaml.safe_load(module.raw_config)
 
     def get_size(self, module_spec):
-        '''Sums the size of all files in the modules directory.'''
+        """Sums the size of all files in the modules directory."""
 
         if not os.path.isdir(module_spec.path):
             return -1
@@ -202,12 +206,12 @@ class LocalRepo(Repo):
         return paths.get_folder_size(module_spec.path)
 
     def get_thumbnail(self, module_spec):
-        '''Returns the path to a modules icon.png file'''
+        """Returns the path to a modules icon.png file"""
 
         if not os.path.isdir(module_spec.path):
             return
 
-        icon_path = paths.normalize(module_spec.path, 'icon.png')
+        icon_path = paths.normalize(module_spec.path, "icon.png")
         if not os.path.isfile(icon_path):
             return
 
@@ -217,49 +221,45 @@ class LocalRepo(Repo):
         errors = {}
         name = filters.get(name)
         if name and not isinstance(name, compat.string_types):
-            errors['name'] = 'Name must be a string.'
+            errors["name"] = "Name must be a string."
 
-        requires = filters.get('requires')
-        requires_error = 'requires must be a list of strings.'
+        requires = filters.get("requires")
+        requires_error = "requires must be a list of strings."
         if requires:
             if not isinstance(requires, list):
-                errors['requires'] = requires_error
+                errors["requires"] = requires_error
             else:
                 for require in requires:
                     if not isinstance(require, compat.string_types):
-                        errors['requires'] = requires_error
+                        errors["requires"] = requires_error
 
         return not bool(errors), errors
 
     def list_environments(self, filters=None):
-        '''Returns a list of environments matching the provided filters.'''
-
+        """Returns a list of environments matching the provided filters."""
 
         if filters:
             valid, errors = self.validate_filters(filters)
             if not valid:
                 _log.debug(
-                    'Provided filters are incompatible with LocalRepo.\n'
-                    'The following errors were found: %s',
+                    "Provided filters are incompatible with LocalRepo.\n"
+                    "The following errors were found: %s",
                     errors,
                 )
 
         filters = {}
-        name_filter = filters.get('name', None)
-        requires_filter = filters.get('requires', None)
+        name_filter = filters.get("name", None)
+        requires_filter = filters.get("requires", None)
 
         environments = []
-        for file in glob(self.relative_path('..', 'environments', '*.yml')):
+        for file in glob(self.relative_path("..", "environments", "*.yml")):
 
             try:
-                with open(file, 'r') as f:
+                with open(file, "r") as f:
                     data = yaml.safe_load(f.read())
 
                 env = Environment(
-                    name=data.get(
-                        'name',
-                        os.path.basename(file).rsplit('.', 1)[0]
-                    ),
+                    name=data.get("name", os.path.basename(file).rsplit(".", 1)[0]),
                     data=data,
                     path=paths.normalize(file),
                 )
@@ -269,35 +269,33 @@ class LocalRepo(Repo):
                     continue
 
                 if requires_filter:
-                    if not set(requires_filter) - set(env['requires']):
+                    if not set(requires_filter) - set(env["requires"]):
                         continue
 
                 environments.append(env)
 
             except Exception as e:
-                _log.error('Invalid Environment file: ' + file)
+                _log.error("Invalid Environment file: " + file)
                 print(str(e))
 
         return environments
 
     def save_environment(self, name, data, force=False):
-        '''Saves an Environment to a yml file in the LocalRepo.'''
+        """Saves an Environment to a yml file in the LocalRepo."""
 
-        file = self.relative_path('..', 'environments', name + '.yml')
+        file = self.relative_path("..", "environments", name + ".yml")
         if not force and os.path.isfile(file):
-            raise ValueError(
-                'Environment "%s" because it already exists.' % name
-            )
+            raise ValueError('Environment "%s" because it already exists.' % name)
 
         encoded = yaml.safe_dump(data)
-        with open(file, 'w') as f:
+        with open(file, "w") as f:
             f.write(encoded)
 
         return True
 
     def remove_environment(self, name):
-        '''Removes an Environment from the LocalRepo.'''
+        """Removes an Environment from the LocalRepo."""
 
-        file = self.relative_path('..', 'environments', name + '.yml')
+        file = self.relative_path("..", "environments", name + ".yml")
         if os.path.isfile(file):
             os.remove(file)

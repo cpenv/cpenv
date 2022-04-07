@@ -57,10 +57,40 @@ def version(
 
 
 @app.command()
-def code_quality():
-    '''Run code quality tools.'''
+def code_quality(fix: bool = False):
+    '''Run code quality tools locally.'''
 
-    subprocess.run('poetry run isort')
+    if not fix:
+        typer.echo()
+        typer.echo('ISORT: Check order of imports.')
+        isort_result = subprocess.run('poetry run isort -c')
+        isort_code = isort_result.returncode
+        isort_status = ('FAILED!', 'PASSED!')[isort_code == 0]
+        typer.echo(f'ISORT: {isort_status}')
+
+        typer.echo()
+        typer.echo('BLACK: Check code formatting.')
+        black_result = subprocess.run('poetry run black cpenv tests --check')
+        black_code = black_result.returncode
+        black_status = ('FAILED!', 'PASSED!')[black_code == 0]
+        typer.echo(f'BLACK: {black_status}')
+    else:
+        typer.echo()
+        typer.echo('ISORT: Sort imports.')
+        isort_result = subprocess.run('poetry run isort')
+        isort_code = isort_result.returncode
+        isort_status = ('FAILED!', 'PASSED!')[isort_code == 0]
+        typer.echo(f'ISORT: {isort_status}')
+
+        typer.echo()
+        typer.echo('BLACK: Fix code formatting.')
+        black_result = subprocess.run('poetry run black cpenv tests')
+        black_code = black_result.returncode
+        black_status = ('FAILED!', 'PASSED!')[black_code == 0]
+        typer.echo(f'BLACK: {black_status}')
+
+    if isort_status != 0 or black_status != 0:
+        return sys.exit(1)
 
 
 @app.command()

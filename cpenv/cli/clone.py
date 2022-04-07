@@ -7,7 +7,7 @@ from cpenv.resolver import ResolveError
 
 
 class Clone(core.CLI):
-    '''
+    """
     Clone a Module for development.
 
     The following repos are available by default:
@@ -16,28 +16,28 @@ class Clone(core.CLI):
 
     For a full listing of available repos use the repo cli command:
         cpenv repo list
-    '''
+    """
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'module',
-            help='Module to clone.',
+            "module",
+            help="Module to clone.",
         )
         parser.add_argument(
-            'where',
-            help='Destination directory. (./<module_name>)',
-            nargs='?',
+            "where",
+            help="Destination directory. (./<module_name>)",
+            nargs="?",
             default=None,
         )
         parser.add_argument(
-            '--from_repo',
-            help='Specific repo to clone from.',
+            "--from_repo",
+            help="Specific repo to clone from.",
             default=None,
         )
         parser.add_argument(
-            '--overwrite',
-            help='Overwrite the destination directory. (False)',
-            action='store_true',
+            "--overwrite",
+            help="Overwrite the destination directory. (False)",
+            action="store_true",
         )
 
     def run(self, args):
@@ -50,15 +50,15 @@ class Clone(core.CLI):
                 module_spec = from_repo.find(args.module)[0]
         except Exception:
             core.echo()
-            core.echo('Error: Failed to resolve ' + args.module)
+            core.echo("Error: Failed to resolve " + args.module)
             core.exit(1)
 
-        where = paths.normalize(args.where or '.', module_spec.real_name)
+        where = paths.normalize(args.where or ".", module_spec.real_name)
         if os.path.isdir(where):
-            core.echo('Error: Directory already exists - ' + where)
+            core.echo("Error: Directory already exists - " + where)
             core.exit(1)
 
-        core.echo('- Cloning %s...' % module_spec.real_name)
+        core.echo("- Cloning %s..." % module_spec.real_name)
         core.echo()
         try:
             module = module_spec.repo.download(
@@ -68,13 +68,13 @@ class Clone(core.CLI):
             )
         except Exception as e:
             core.echo()
-            core.echo('Error: ' + str(e))
+            core.echo("Error: " + str(e))
             core.exit(1)
 
         core.echo()
-        core.echo('Navigate to the following folder to make changes:')
-        core.echo('  ' + module.path)
+        core.echo("Navigate to the following folder to make changes:")
+        core.echo("  " + module.path)
         core.echo()
         core.echo("Use one of the following commands to publish your changes:")
-        core.echo('  cpenv publish .')
+        core.echo("  cpenv publish .")
         core.echo('  cpenv publish . --to_repo="repo_name"')

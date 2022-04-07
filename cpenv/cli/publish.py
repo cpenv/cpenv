@@ -5,24 +5,24 @@ from cpenv.resolver import Resolver
 
 
 class Publish(core.CLI):
-    '''Publish a Module to a repo.'''
+    """Publish a Module to a repo."""
 
     def setup_parser(self, parser):
         parser.add_argument(
-            'module',
+            "module",
             help='Path of module to publish. (".")',
-            default='.',
-            nargs='?',
+            default=".",
+            nargs="?",
         )
         parser.add_argument(
-            '--to_repo',
-            help='Specific repo to clone from.',
+            "--to_repo",
+            help="Specific repo to clone from.",
             default=None,
         )
         parser.add_argument(
-            '--overwrite',
-            help='Overwrite the destination directory. (False)',
-            action='store_true',
+            "--overwrite",
+            help="Overwrite the destination directory. (False)",
+            action="store_true",
         )
 
     def run(self, args):
@@ -35,8 +35,8 @@ class Publish(core.CLI):
         else:
             to_repo = core.prompt_for_repo(
                 api.get_repos(),
-                'Choose a repo to publish to',
-                default_repo_name='home',
+                "Choose a repo to publish to",
+                default_repo_name="home",
             )
 
         # Resolve module
@@ -45,9 +45,9 @@ class Publish(core.CLI):
         core.echo()
 
         # Confirm publication
-        choice = core.prompt('Publish module to %s?[y/n] ' % to_repo.name)
-        if choice.lower() not in ['y', 'yes', 'yup']:
-            core.echo('Aborted.')
+        choice = core.prompt("Publish module to %s?[y/n] " % to_repo.name)
+        if choice.lower() not in ["y", "yes", "yup"]:
+            core.echo("Aborted.")
             sys.exit(1)
 
         # Publish
@@ -55,6 +55,6 @@ class Publish(core.CLI):
         published = to_repo.upload(module, args.overwrite)
         core.echo()
 
-        core.echo('Activate your module:')
-        core.echo('  cpenv activate %s' % published.real_name)
+        core.echo("Activate your module:")
+        core.echo("  cpenv activate %s" % published.real_name)
         core.echo()
