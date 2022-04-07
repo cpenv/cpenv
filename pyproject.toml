@@ -12,7 +12,7 @@ cpenv = "cpenv.__main__:main"
 
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.6.2"
 tqdm = "^4.46.0"
 colorama = "^0.4.3"
 psutil = "^5.7.0"
@@ -25,6 +25,7 @@ rope = "^0.17.0"
 pytest = "^6.2.5"
 pytest-cov = "^2.12.1"
 typer = "^0.4.0"
+black = "^22.3.0"
 
 
 [tool.coverage.run]
@@ -34,10 +35,18 @@ omit = ["cpenv/vendor/*"]
 [tool.isort]
 profile = "black"
 known_first_party = "cpenv"
-known_third_party = "libsass,pytest,setuptools"
 skip = "venv,cpenv/vendor,docs,.venv"
 multi_line_output = "3"
 include_trailing_comma = "True"
+
+
+[tool.black]
+extend-exclude = '''
+^/(
+    cpenv/vendor
+    | docs
+)/
+'''
 
 [build-system]
 requires = ["poetry>=0.12"]
