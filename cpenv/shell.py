@@ -6,15 +6,16 @@ import fnmatch
 import os
 import subprocess
 
+# Local imports
+from . import compat
+
 # Third party imports
 try:
     import psutil
+
     psutil_available = True
 except ImportError:
     psutil_available = False
-
-# Local imports
-from . import compat
 
 
 def binpath(*paths):
