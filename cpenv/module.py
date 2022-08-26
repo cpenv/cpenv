@@ -8,7 +8,7 @@ from collections import namedtuple
 from string import Template
 
 # Local imports
-from . import compat, paths
+from . import compat, paths, mappings
 from .hooks import HookFinder, get_global_hook_path
 from .vendor import yaml
 from .versions import ParseError, Version, default_version, parse_version
@@ -65,6 +65,7 @@ class Module(object):
         self._raw_config = None
         self._config = None
         self._env = None
+        self.env_overwrite = {}
 
         # Determine name, version, qual_name, and real_name
 
@@ -150,15 +151,6 @@ class Module(object):
         if hook:
             return hook.run(self)
 
-    def activate(self):
-        """Add this module to active modules"""
-
-        from . import api
-
-        self.run_hook("pre_activate")
-        api.add_active_module(self)
-        self.run_hook("post_activate")
-
     def remove(self):
         """Delete this module"""
 
@@ -224,11 +216,11 @@ class Module(object):
             self._env = self.config.get("environment", {})
             self._env["CPENV_ACTIVE_MODULES"] = {"append": self.real_name}
 
-        return self._env
+        return mappings.join_dicts(self._env, self.env_overwrite)
 
     @property
     def requires(self):
-        return self.config.get("email", [])
+        return self.config.get("requires", [])
 
     @property
     def icon(self):
