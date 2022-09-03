@@ -93,6 +93,7 @@ class ShotgunRepo(Repo):
             "sg_data",
         ]
         self.archive_fields = ["sg_archive", "sg_archive_size"]
+        self._supports_large_modules = None
         self.cache = TTLCache(maxsize=10, ttl=60)
 
     @property
@@ -222,10 +223,25 @@ class ShotgunRepo(Repo):
         )
 
         with progress_bar as progress_bar:
-            # 1. Create archive
+            # 1. Create archive and get archive size
             archive = api.get_cache_path("tmp", module.qual_name + ".zip")
             paths.zip_folder(module.path, archive)
-            archive_size = os.path.getsize(archive)
+
+            # Show a useful error message if the module is too large for the repo.
+            raw_archive_size = os.path.getsize(archive)
+            if not self.supports_large_modules and raw_archive_size >= 2147483647:
+                try:
+                    os.unlink(archive)
+                except Exception:
+                    pass
+
+                raise RuntimeError(
+                    "Unable to upload module larger than 2.14gb or 2147483647b because "
+                    "your Module Entity's sg_archive_size field is a number type. "
+                    "Change your sg_archive_size field to a text type to enable "
+                    "larger modules!"
+                )
+            archive_size = self._encode_archive_size(raw_archive_size)
             progress_bar.update(1)
 
             # 2. Upload archive
@@ -333,10 +349,52 @@ class ShotgunRepo(Repo):
 
         return icon_path
 
+    @property
+    def supports_large_modules(self):
+        """Returns True if the ModuleEntity.sg_archive_size field is a `text` type.
+
+        This check allows us to choose the correct data type to save into the SG
+        database. If the sg_archive_size field is a number, module size is capped at
+        2.14gb or 2147483647b. If it's a text field, we can support much larger modules!
+        """
+
+        if self._supports_large_modules is None:
+            schema = self.shotgun.schema_field_read(
+                self.module_entity,
+                'sg_archive_size',
+            )
+            if not schema:
+                raise ValueError(
+                    "ShotGrid Entity %s has no field 'sg_archive_size'"
+                    % self.module_entity
+                )
+            self._supports_large_modules = schema['data_type']['value'] == 'text'
+        return self._supports_large_modules
+
+    def _encode_archive_size(self, value):
+        """Encodes an archive size value to be stored in the SG database.
+
+        Arguments:
+            value (int): The size of a module archive in bytes.
+        """
+
+        if self.supports_large_modules:
+            return str(value)
+        return int(value)
+
+    def _decode_archive_size(self, value):
+        """Decodes an archive size value retrieved from SG.
+
+        Arguments:
+            value (str or int): The size of a module archive in bytes.
+        """
+
+        return int(value)
+
     def get_size(self, spec):
         """Query Shotgun for archive size."""
 
-        return int(
+        return self._decode_archive_size(
             self.shotgun.find_one(
                 self.module_entity,
                 filters=[
