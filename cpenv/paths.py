@@ -205,6 +205,43 @@ def exclusive_walk(folder, excludes=None, includes=None):
         yield root, subdirs, included_files
 
 
+def get_folder_info(folder):
+    """Get info about a folder and it's contents.
+
+    Returns:
+        A dict containing the size, file count, and list of files in, a folder.
+    """
+
+    info = {
+        "size": 0,
+        "file_count": 0,
+        "files": [],
+    }
+    for root, subdirs, files in exclusive_walk(folder):
+        rel_root = os.path.relpath(root, folder)
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_path = os.path.join(rel_root, file)
+            info["size"] += os.path.getsize(file_path)
+            info["file_count"] += 1
+            info["files"].append((file_path, rel_path))
+    return info
+
+
+def zip_folder_from_info(info, where, progress_cb=None):
+    """Zips a folder using info provided by `get_folder_info`."""
+
+    parent = os.path.dirname(where)
+    if not os.path.isdir(parent):
+        os.makedirs(parent)
+
+    with zipfile.ZipFile(where, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for full_path, rel_path in info["files"]:
+            zip_file.write(full_path, arcname=rel_path)
+            if progress_cb:
+                progress_cb(1)
+
+
 def zip_folder(folder, where):
     """Zip the contents of a folder."""
 

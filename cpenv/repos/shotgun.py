@@ -16,6 +16,18 @@ from ..versions import parse_version
 from .base import Repo
 
 
+MODULE_SIZE_UNSUPPORTED = (
+    "Module is too large ({}) for your ShotGrid site's configuration. Your Module "
+    "Entity's 'sg_archive_size' is a number field and supports a maximum value of "
+    "2147483647(2.14 gb). To support larger modules, convert the data type of your "
+    "sg_archive_size field to 'text'."
+)
+
+
+class UploadError(Exception):
+    pass
+
+
 class ShotgunRepo(Repo):
     """Use Shotgun's database as a Repo for modules.
 
@@ -215,32 +227,37 @@ class ShotgunRepo(Repo):
             else:
                 raise Exception("Module already uploaded.")
 
+        # Get module folder info
+        folder_info = paths.get_folder_info(module.path)
         reporter = get_reporter()
         progress_bar = reporter.progress_bar(
             label="Upload %s" % module.name,
-            max_size=3,
+            max_size=folder_info["file_count"] + 3,
             data={"module": module, "unit": "iT", "to_repo": self},
         )
 
         with progress_bar as progress_bar:
             # 1. Create archive and get archive size
             archive = api.get_cache_path("tmp", module.qual_name + ".zip")
-            paths.zip_folder(module.path, archive)
 
-            # Show a useful error message if the module is too large for the repo.
+            # Check folder size before zipping.
+            if not self.supports_large_modules and folder_info["size"] >= 2147483647:
+                nice_size = paths.format_size(folder_info["size"])
+                raise UploadError(MODULE_SIZE_UNSUPPORTED.format(nice_size))
+
+            # Create zip of module using folder_info.
+            paths.zip_folder_from_info(folder_info, archive, progress_bar.update)
+
+            # Check actual byte size of zip archive.
             raw_archive_size = os.path.getsize(archive)
             if not self.supports_large_modules and raw_archive_size >= 2147483647:
                 try:
                     os.unlink(archive)
                 except Exception:
                     pass
+                nice_size = paths.format_size(raw_archive_size)
+                raise UploadError(MODULE_SIZE_UNSUPPORTED.format(nice_size))
 
-                raise RuntimeError(
-                    "Unable to upload module larger than 2.14gb or 2147483647b because "
-                    "your Module Entity's sg_archive_size field is a number type. "
-                    "Change your sg_archive_size field to a text type to enable "
-                    "larger modules!"
-                )
             archive_size = self._encode_archive_size(raw_archive_size)
             progress_bar.update(1)
 
@@ -368,7 +385,8 @@ class ShotgunRepo(Repo):
                     "ShotGrid Entity %s has no field 'sg_archive_size'"
                     % self.module_entity
                 )
-            self._supports_large_modules = schema['data_type']['value'] == 'text'
+            data_type = schema['sg_archive_size']['data_type']['value']
+            self._supports_large_modules = data_type == 'text'
         return self._supports_large_modules
 
     def _encode_archive_size(self, value):

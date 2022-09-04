@@ -52,9 +52,14 @@ class Publish(core.CLI):
 
         # Publish
         module = Module(module_spec.path)
-        published = to_repo.upload(module, args.overwrite)
-        core.echo()
+        try:
+            published = to_repo.upload(module, args.overwrite)
+        except Exception as e:
+            core.echo()
+            core.echo("{}: {}".format(type(e).__name__, e))
+            return
 
+        core.echo()
         core.echo("Activate your module:")
         core.echo("  cpenv activate %s" % published.real_name)
         core.echo()
