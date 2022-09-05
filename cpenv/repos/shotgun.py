@@ -16,6 +16,18 @@ from ..versions import parse_version
 from .base import Repo
 
 
+MODULE_SIZE_UNSUPPORTED = (
+    "Module is too large ({}) for your ShotGrid site's configuration. Your Module "
+    "Entity's 'sg_archive_size' is a number field and supports a maximum value of "
+    "2147483647(2.14 gb). To support larger modules, convert the data type of your "
+    "sg_archive_size field to 'text'."
+)
+
+
+class UploadError(Exception):
+    pass
+
+
 class ShotgunRepo(Repo):
     """Use Shotgun's database as a Repo for modules.
 
@@ -93,6 +105,7 @@ class ShotgunRepo(Repo):
             "sg_data",
         ]
         self.archive_fields = ["sg_archive", "sg_archive_size"]
+        self._supports_large_modules = None
         self.cache = TTLCache(maxsize=10, ttl=60)
 
     @property
@@ -214,18 +227,38 @@ class ShotgunRepo(Repo):
             else:
                 raise Exception("Module already uploaded.")
 
+        # Get module folder info
+        folder_info = paths.get_folder_info(module.path)
         reporter = get_reporter()
         progress_bar = reporter.progress_bar(
             label="Upload %s" % module.name,
-            max_size=3,
+            max_size=folder_info["file_count"] + 3,
             data={"module": module, "unit": "iT", "to_repo": self},
         )
 
         with progress_bar as progress_bar:
-            # 1. Create archive
+            # 1. Create archive and get archive size
             archive = api.get_cache_path("tmp", module.qual_name + ".zip")
-            paths.zip_folder(module.path, archive)
-            archive_size = os.path.getsize(archive)
+
+            # Check folder size before zipping.
+            if not self.supports_large_modules and folder_info["size"] >= 2147483647:
+                nice_size = paths.format_size(folder_info["size"])
+                raise UploadError(MODULE_SIZE_UNSUPPORTED.format(nice_size))
+
+            # Create zip of module using folder_info.
+            paths.zip_folder_from_info(folder_info, archive, progress_bar.update)
+
+            # Check actual byte size of zip archive.
+            raw_archive_size = os.path.getsize(archive)
+            if not self.supports_large_modules and raw_archive_size >= 2147483647:
+                try:
+                    os.unlink(archive)
+                except Exception:
+                    pass
+                nice_size = paths.format_size(raw_archive_size)
+                raise UploadError(MODULE_SIZE_UNSUPPORTED.format(nice_size))
+
+            archive_size = self._encode_archive_size(raw_archive_size)
             progress_bar.update(1)
 
             # 2. Upload archive
@@ -333,10 +366,53 @@ class ShotgunRepo(Repo):
 
         return icon_path
 
+    @property
+    def supports_large_modules(self):
+        """Returns True if the ModuleEntity.sg_archive_size field is a `text` type.
+
+        This check allows us to choose the correct data type to save into the SG
+        database. If the sg_archive_size field is a number, module size is capped at
+        2.14gb or 2147483647b. If it's a text field, we can support much larger modules!
+        """
+
+        if self._supports_large_modules is None:
+            schema = self.shotgun.schema_field_read(
+                self.module_entity,
+                'sg_archive_size',
+            )
+            if not schema:
+                raise ValueError(
+                    "ShotGrid Entity %s has no field 'sg_archive_size'"
+                    % self.module_entity
+                )
+            data_type = schema['sg_archive_size']['data_type']['value']
+            self._supports_large_modules = data_type == 'text'
+        return self._supports_large_modules
+
+    def _encode_archive_size(self, value):
+        """Encodes an archive size value to be stored in the SG database.
+
+        Arguments:
+            value (int): The size of a module archive in bytes.
+        """
+
+        if self.supports_large_modules:
+            return str(value)
+        return int(value)
+
+    def _decode_archive_size(self, value):
+        """Decodes an archive size value retrieved from SG.
+
+        Arguments:
+            value (str or int): The size of a module archive in bytes.
+        """
+
+        return int(value)
+
     def get_size(self, spec):
         """Query Shotgun for archive size."""
 
-        return int(
+        return self._decode_archive_size(
             self.shotgun.find_one(
                 self.module_entity,
                 filters=[
