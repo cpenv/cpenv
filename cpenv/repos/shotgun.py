@@ -15,7 +15,6 @@ from ..vendor.shotgun_api3 import Shotgun
 from ..versions import parse_version
 from .base import Repo
 
-
 MODULE_SIZE_UNSUPPORTED = (
     "Module is too large ({}) for your ShotGrid site's configuration. Your Module "
     "Entity's 'sg_archive_size' is a number field and supports a maximum value of "
@@ -378,15 +377,15 @@ class ShotgunRepo(Repo):
         if self._supports_large_modules is None:
             schema = self.shotgun.schema_field_read(
                 self.module_entity,
-                'sg_archive_size',
+                "sg_archive_size",
             )
             if not schema:
                 raise ValueError(
                     "ShotGrid Entity %s has no field 'sg_archive_size'"
                     % self.module_entity
                 )
-            data_type = schema['sg_archive_size']['data_type']['value']
-            self._supports_large_modules = data_type == 'text'
+            data_type = schema["sg_archive_size"]["data_type"]["value"]
+            self._supports_large_modules = data_type == "text"
         return self._supports_large_modules
 
     def _encode_archive_size(self, value):
