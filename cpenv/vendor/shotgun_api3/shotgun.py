@@ -35,7 +35,6 @@ from .lib import sgsix
 from .lib.six import BytesIO               # used for attachment upload
 from .lib.six.moves import map
 
-import base64
 from .lib.six.moves import http_cookiejar  # used for attachment upload
 import datetime
 import logging
@@ -56,6 +55,12 @@ from .lib.sgtimezone import SgTimezone
 # Import Error and ResponseError (even though they're unused in this file) since they need
 # to be exposed as part of the API.
 from .lib.six.moves.xmlrpc_client import Error, ProtocolError, ResponseError  # noqa
+
+if six.PY3:
+    from base64 import encodebytes as base64encode
+else:
+    from base64 import encodestring as base64encode
+
 
 LOG = logging.getLogger("shotgun_api3")
 """
@@ -117,7 +122,7 @@ except ImportError as e:
 
 # ----------------------------------------------------------------------------
 # Version
-__version__ = "3.3.3"
+__version__ = "3.3.6"
 
 # ----------------------------------------------------------------------------
 # Errors
@@ -651,18 +656,20 @@ class Shotgun(object):
         # if the service contains user information strip it out
         # copied from the xmlrpclib which turned the user:password into
         # and auth header
-        # Do NOT urlsplit(self.base_url) here, as it contains the lower case version
-        # of the base_url argument. Doing so would base64-encode the lowercase
-        # version of the credentials.
-        auth, self.config.server = urllib.parse.splituser(urllib.parse.urlsplit(base_url).netloc)
+
+        # Do NOT self._split_url(self.base_url) here, as it contains the lower
+        # case version of the base_url argument. Doing so would base64encode
+        # the lowercase version of the credentials.
+        auth, self.config.server = self._split_url(base_url)
         if auth:
-            auth = base64.encodestring(six.ensure_binary(urllib.parse.unquote(auth))).decode("utf-8")
+            auth = base64encode(six.ensure_binary(
+                urllib.parse.unquote(auth))).decode("utf-8")
             self.config.authorization = "Basic " + auth.strip()
 
         # foo:bar@123.456.789.012:3456
         if http_proxy:
-            # check if we're using authentication. Start from the end since there might be
-            # @ in the user's password.
+            # check if we're using authentication. Start from the end since
+            # there might be @ in the user's password.
             p = http_proxy.rsplit("@", 1)
             if len(p) > 1:
                 self.config.proxy_user, self.config.proxy_pass = \
@@ -709,6 +716,33 @@ class Shotgun(object):
             self.config.user_login = None
             self.config.user_password = None
             self.config.auth_token = None
+
+    def _split_url(self, base_url):
+        """
+        Extract the hostname:port and username/password/token from base_url
+        sent when connect to the API.
+
+        In python 3.8 `urllib.parse.splituser` was deprecated warning devs to
+        use `urllib.parse.urlparse`.
+        """
+        if six.PY38:
+            auth = None
+            results = urllib.parse.urlparse(base_url)
+            server = results.hostname
+            if results.port:
+                server = "{}:{}".format(server, results.port)
+
+            if results.username:
+                auth = results.username
+
+                if results.password:
+                    auth = "{}:{}".format(auth, results.password)
+
+        else:
+            auth, server = urllib.parse.splituser(
+                urllib.parse.urlsplit(base_url).netloc)
+
+        return auth, server
 
     # ========================================================================
     # API Functions
@@ -816,14 +850,17 @@ class Shotgun(object):
             Defaults to ``["id"]``.
         :param int order: Optional list of fields to order the results by. List has the format::
 
-            [{'field_name':'foo', 'direction':'asc'}, {'field_name':'bar', 'direction':'desc'}]
+                [
+                    {'field_name':'foo', 'direction':'asc'},
+                    {'field_name':'bar', 'direction':'desc'}
+                ]
 
             Defaults to sorting by ``id`` in ascending order.
         :param str filter_operator: Operator to apply to the filters. Supported values are ``"all"``
             and ``"any"``. These are just another way of defining if the query is an AND or OR
             query. Defaults to ``"all"``.
         :param bool retired_only: Optional boolean when ``True`` will return only entities that have
-            been retried. Defaults to ``False`` which returns only entities which have not been
+            been retired. Defaults to ``False`` which returns only entities which have not been
             retired. There is no option to return both retired and non-retired entities in the
             same query.
         :param bool include_archived_projects: Optional boolean flag to include entities whose projects
@@ -831,7 +868,11 @@ class Shotgun(object):
         :param additional_filter_presets: Optional list of presets to further filter the result
             set, list has the form::
 
-                [{"preset_name": <preset_name>, <optional_param1>: <optional_value1>, ... }]
+                [{
+                    "preset_name": <preset_name>,
+                    <optional_param1>: <optional_value1>,
+                    ...
+                }]
 
             Note that these filters are ANDed together and ANDed with the 'filter'
             argument.
@@ -840,6 +881,9 @@ class Shotgun(object):
             :ref:`additional_filter_presets`
         :returns: Dictionary representing a single matching entity with the requested fields,
             and the defaults ``"id"`` and ``"type"`` which are always included.
+
+            .. seealso:: :ref:`entity-fields`
+
         :rtype: dict
         """
 
@@ -876,7 +920,7 @@ class Shotgun(object):
              {'code': 'Wet Gopher', 'id': 149, 'sg_asset_type': 'Character', 'type': 'Asset'}]
 
         You can drill through single entity links to filter on fields or display linked fields.
-        This is often called "deep linking" or using "dot syntax".
+        This is often called "deep linking" or using "dot notation".
 
             .. seealso:: :ref:`filter_syntax`
 
@@ -899,15 +943,21 @@ class Shotgun(object):
         :param str entity_type: Shotgun entity type to find.
         :param list filters: list of filters to apply to the query.
 
-            .. seealso:: :ref:`filter_syntax`
+            .. seealso:: :ref:`filter_syntax`, :ref:`combining-related-queries`
 
         :param list fields: Optional list of fields to include in each entity record returned.
             Defaults to ``["id"]``.
+
+            .. seealso:: :ref:`combining-related-queries`
+            
         :param list order: Optional list of dictionaries defining how to order the results of the
             query. Each dictionary contains the ``field_name`` to order by and  the ``direction``
             to sort::
 
-                [{'field_name':'foo', 'direction':'asc'}, {'field_name':'bar', 'direction':'desc'}]
+                [
+                    {'field_name':'foo', 'direction':'asc'},
+                    {'field_name':'bar', 'direction':'desc'}
+                ]
 
             Defaults to sorting by ``id`` in ascending order.
         :param str filter_operator: Operator to apply to the filters. Supported values are ``"all"``
@@ -919,7 +969,7 @@ class Shotgun(object):
             parameter to control how your query results are paged. Defaults to ``0`` which returns
             all entities that match.
         :param bool retired_only: Optional boolean when ``True`` will return only entities that have
-            been retried. Defaults to ``False`` which returns only entities which have not been
+            been retired. Defaults to ``False`` which returns only entities which have not been
             retired. There is no option to return both retired and non-retired entities in the
             same query.
         :param bool include_archived_projects: Optional boolean flag to include entities whose projects
@@ -927,7 +977,11 @@ class Shotgun(object):
         :param additional_filter_presets: Optional list of presets to further filter the result
             set, list has the form::
 
-                [{"preset_name": <preset_name>, <optional_param1>: <optional_value1>, ... }]
+                [{
+                    "preset_name": <preset_name>,
+                    <optional_param1>: <optional_value1>,
+                    ...
+                }]
 
             Note that these filters are ANDed together and ANDed with the 'filter'
             argument.
@@ -936,6 +990,9 @@ class Shotgun(object):
             :ref:`additional_filter_presets`
         :returns: list of dictionaries representing each entity with the requested fields, and the
             defaults ``"id"`` and ``"type"`` which are always included.
+
+            .. seealso:: :ref:`entity-fields`
+
         :rtype: list
         """
 
@@ -1298,10 +1355,16 @@ class Shotgun(object):
             to the server automatically.
         :param list return_fields: Optional list of additional field values to return from the new
             entity. Defaults to ``id`` field.
+
+            .. seealso:: :ref:`combining-related-queries`
+
         :returns: Shotgun entity dictionary containing the field/value pairs of all of the fields
             set from the ``data`` parameter as well as the defaults ``type`` and ``id``. If any
             additional fields were provided using the ``return_fields`` parameter, these would be
             included as well.
+
+            .. seealso:: :ref:`entity-fields`
+
         :rtype: dict
         """
 
@@ -3291,7 +3354,7 @@ class Shotgun(object):
         .. deprecated:: 3.0.0
            Use :meth:`~shotgun_api3.Shotgun.schema_field_read` instead.
         """
-        raise ShotgunError("Deprecated: use schema_field_read('type':'%s') instead" % entity_type)
+        raise ShotgunError("Deprecated: use schema_field_read('%s') instead" % entity_type)
 
     def entity_types(self):
         """
@@ -3495,7 +3558,7 @@ class Shotgun(object):
                 # get raised as well.
                 #
                 # For more info see:
-                # http://blog.shotgunsoftware.com/2016/01/important-ssl-certificate-renewal-and.html
+                # https://www.shotgridsoftware.com/blog/important-ssl-certificate-renewal-and-sha-2/
                 #
                 # SHA-2 errors look like this:
                 #   [Errno 1] _ssl.c:480: error:0D0C50A1:asn1 encoding routines:ASN1_item_verify:
@@ -3509,8 +3572,8 @@ class Shotgun(object):
                 if self.config.no_ssl_validation is False:
                     LOG.warning("SSL Error: this Python installation is incompatible with "
                                 "certificates signed with SHA-2. Disabling certificate validation. "
-                                "For more information, see http://blog.shotgunsoftware.com/2016/01/"
-                                "important-ssl-certificate-renewal-and.html")
+                                "For more information, see https://www.shotgridsoftware.com/blog/"
+                                "important-ssl-certificate-renewal-and-sha-2/")
                     self._turn_off_ssl_validation()
                     # reload user agent to reflect that we have turned off ssl validation
                     req_headers["user-agent"] = "; ".join(self._user_agents)
@@ -3553,6 +3616,18 @@ class Shotgun(object):
         LOG.debug("Response body is %s" % resp_body)
 
         return (http_status, resp_headers, resp_body)
+
+    def _make_upload_request(self, request, opener):
+        """
+        Open the given request object, return the
+        response, raises URLError on protocol errors.
+        """
+        try:
+            result = opener.open(request)
+
+        except urllib.error.HTTPError:
+            raise
+        return result
 
     def _parse_http_status(self, status):
         """
@@ -4015,21 +4090,40 @@ class Shotgun(object):
         :returns: upload url.
         :rtype: str
         """
-        try:
-            opener = self._build_opener(urllib.request.HTTPHandler)
+        opener = self._build_opener(urllib.request.HTTPHandler)
 
-            request = urllib.request.Request(storage_url, data=data)
-            request.add_header("Content-Type", content_type)
-            request.add_header("Content-Length", size)
-            request.get_method = lambda: "PUT"
-            result = opener.open(request)
-            etag = result.info()["Etag"]
-        except urllib.error.HTTPError as e:
-            if e.code == 500:
-                raise ShotgunError("Server encountered an internal error.\n%s\n%s\n\n" % (storage_url, e))
+        request = urllib.request.Request(storage_url, data=data)
+        request.add_header("Content-Type", content_type)
+        request.add_header("Content-Length", size)
+        request.get_method = lambda: "PUT"
+
+        attempt = 1
+        max_attempts = 4  # Three retries on failure
+        backoff = 0.75  # Seconds to wait before retry, times the attempt number
+
+        while attempt <= max_attempts:
+            try:
+                result = self._make_upload_request(request, opener)
+
+                LOG.debug("Completed request to %s" % request.get_method())
+
+            except urllib.error.HTTPError as e:
+                if e.code == 500:
+                    raise ShotgunError("Server encountered an internal error.\n%s\n%s\n\n" % (storage_url, e))
+                elif attempt != max_attempts and e.code == 503:
+                    LOG.debug("Got a 503 response. Waiting and retrying...")
+                    time.sleep(float(attempt) * backoff)
+                    attempt += 1
+                    continue
+                else:
+                    if e.code == 503:
+                        raise ShotgunError("Got a 503 response when uploading to %s: %s" % (storage_url, e))
+                    raise ShotgunError("Unanticipated error occurred uploading to %s: %s" % (storage_url, e))
+
             else:
-                raise ShotgunError("Unanticipated error occurred uploading to %s: %s" % (storage_url, e))
+                break
 
+        etag = result.info()["Etag"]
         LOG.debug("Part upload completed successfully.")
         return etag
 
