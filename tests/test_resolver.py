@@ -202,3 +202,15 @@ def test_parse_redirect():
     ]
     for test, expected in tests:
         assert cpenv.parse_redirect(test) == expected
+
+
+def test_ignore_unresolved():
+    """Test ignore_unresolved parameter."""
+
+    r = cpenv.Resolver(cpenv.get_repos())
+
+    resolved = r.resolve(
+        ["testmod", "DOESNOTEXISTA", "DOESNOTEXISTB"],
+        ignore_unresolved=True,
+    )
+    assert len(resolved) == 1
