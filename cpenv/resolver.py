@@ -47,7 +47,7 @@ class Resolver(object):
         self.repos = repos
         self.reporter = get_reporter()
 
-    def resolve(self, requirements):
+    def resolve(self, requirements, ignore_unresolved=False):
         """Given a list of requirement strings, resolve ModuleSpecs.
 
         Returns:
@@ -90,7 +90,7 @@ class Resolver(object):
 
         self.reporter.end_resolve(resolved, unresolved)
 
-        if unresolved:
+        if unresolved and not ignore_unresolved:
             raise ResolveError("Could not resolve: " + " ".join(unresolved))
 
         return resolved
@@ -133,7 +133,6 @@ class Copier(object):
 
         copied = []
         for module_spec in module_specs:
-
             matches = self.to_repo.find(module_spec.qual_name)
             already_exists = False
             for match in matches:
@@ -251,10 +250,8 @@ def old_resolve_algorithm(resolver, paths):
 
     modules = []
     for path in list(paths):
-
         for module_resolver in module_resolvers:
             try:
-
                 resolved = module_resolver(resolver, path)
                 paths.remove(path)
 

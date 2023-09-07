@@ -44,7 +44,6 @@ class ProgressBar(object):
 
 
 class Reporter(object):
-
     ProgressBar = ProgressBar
 
     def start_resolve(self, requirements):
@@ -54,7 +53,7 @@ class Reporter(object):
         """Called just before attempting to resolve a requirement."""
 
     def resolve_requirement(self, requirement, module_spec):
-        """Called when a a requirement is resolved."""
+        """Called when a requirement is resolved."""
 
     def end_resolve(self, resolved, unresolved):
         """Called when Resolver.resolve is done."""

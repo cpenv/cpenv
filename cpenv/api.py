@@ -49,21 +49,21 @@ _active_modules = []
 missing = object()
 
 
-def resolve(requirements):
+def resolve(requirements, ignore_unresolved=False):
     """Resolve a list of module requirements."""
 
     resolver = Resolver(get_repos())
-    return resolver.resolve(requirements)
+    return resolver.resolve(requirements, ignore_unresolved)
 
 
-def localize(requirements, to_repo="home", overwrite=False):
+def localize(requirements, to_repo="home", overwrite=False, ignore_unresolved=False):
     """Localize a list of requirements."""
 
     to_repo = get_repo(to_repo)
 
     # Resolve modules
     resolver = Resolver(get_repos())
-    module_specs = resolver.resolve(requirements)
+    module_specs = resolver.resolve(requirements, ignore_unresolved)
 
     # Localize modules from remote repos
     localizer = Localizer(to_repo)
@@ -72,7 +72,7 @@ def localize(requirements, to_repo="home", overwrite=False):
     return modules
 
 
-def activate(requirements):
+def activate(requirements, ignore_unresolved=False):
     """Resolve and active a list of module requirements.
 
     Usage:
@@ -87,7 +87,7 @@ def activate(requirements):
 
     # Resolve modules
     resolver = Resolver(get_repos())
-    module_specs = resolver.resolve(requirements)
+    module_specs = resolver.resolve(requirements, ignore_unresolved)
 
     # Activate modules
     activator = Activator()
