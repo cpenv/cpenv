@@ -108,7 +108,7 @@ def test_LocalRepo_upload():
     )
 
     # Upload module and check spec
-    local_repo = cpenv.LocalRepo("test_modules", data_path("modules"))
+    local_repo = cpenv.LocalRepo("test_modules", data_path("modules"), nested=True)
     spec = local_repo.upload(module)
 
     assert spec.path == data_path("modules", "upload_module", "2090.1.0")
@@ -129,3 +129,26 @@ def test_LocalRepo_get_data():
     assert data["name"] == "testmod"
     assert data["version"] == "0.2.0"
     assert data["description"] == "A test module"
+
+
+def test_localize_from_RemoteRepo_to_LocalRepo():
+    """Localize a module from a RemoteRepo to a LocalRepo"""
+
+    # Create a module in a RemoteRepo
+    cpenv.create(
+        where=data_path("remote", "modules", "remote_module-0.1.0"),
+        name="remote_module",
+        version="0.1.0",
+        description="A remote module...",
+    )
+    remote_repo = cpenv.RemoteRepo("remote_repo", data_path("remote", "modules"))
+    remote_spec = remote_repo.find("remote_module-0.1.0")[0]
+
+    # Localize module to a LocalRepo
+    local_repo = cpenv.LocalRepo("local_repo", data_path("local", "modules"))
+    local_spec = cpenv.Localizer(local_repo).localize([remote_spec])[0]
+
+    assert local_spec.name == "remote_module"
+    assert local_spec.path == data_path("local", "modules", "remote_module-0.1.0")
+    assert local_spec.version.string == "0.1.0"
+    assert os.path.isdir(data_path("local", "modules", "remote_module-0.1.0"))
