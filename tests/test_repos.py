@@ -5,6 +5,7 @@ import os
 
 # Local imports
 import cpenv
+from cpenv import paths
 
 from . import data_path
 
@@ -40,6 +41,9 @@ def setup_module():
         version="0.2.0",
         description="A test module",
     )
+
+def teardown_module():
+    paths.rmtree(data_path("modules"))
 
 
 def test_LocalRepo_init():
