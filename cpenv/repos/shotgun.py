@@ -436,7 +436,6 @@ def entity_to_module_spec(entity, repo):
     )
     return ModuleSpec(
         name=entity["code"],
-        real_name=qual_name,
         qual_name=qual_name,
         version=version,
         path=url,

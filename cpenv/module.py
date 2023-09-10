@@ -33,7 +33,7 @@ module_header = """
 
 ModuleSpec = namedtuple(
     "ModuleSpec",
-    ["name", "real_name", "qual_name", "version", "path", "repo"],
+    ["name", "qual_name", "version", "path", "repo"],
 )
 
 
@@ -66,8 +66,7 @@ class Module(object):
         self._config = None
         self._env = None
 
-        # Determine name, version, qual_name, and real_name
-
+        # Determine name, version, qual_name
         if name and version:
 
             # Use name and version if explicitly passed
@@ -91,12 +90,6 @@ class Module(object):
             self.version = version
 
         self.qual_name = self.name + "-" + self.version.string
-
-        base_name = os.path.basename(self.path)
-        if self.version.string != base_name:
-            self.real_name = base_name
-        else:
-            self.real_name = self.qual_name
 
     def __eq__(self, other):
         if hasattr(other, "path"):
@@ -133,7 +126,6 @@ class Module(object):
             name=kwargs.get("name", self.name),
             path=kwargs.get("path", self.path),
             qual_name=kwargs.get("qual_name", self.qual_name),
-            real_name=kwargs.get("real_name", self.real_name),
             repo=kwargs.get("repo", self.repo),
             version=kwargs.get("version", self.version),
         )
@@ -173,7 +165,7 @@ class Module(object):
     def is_active(self):
         from . import api
 
-        return self.real_name in api.get_active_modules()
+        return self.qual_name in api.get_active_modules()
 
     @property
     def exists(self):
@@ -222,7 +214,7 @@ class Module(object):
     def environment(self):
         if self._env is None:
             self._env = self.config.get("environment", {})
-            self._env["CPENV_ACTIVE_MODULES"] = {"append": self.real_name}
+            self._env["CPENV_ACTIVE_MODULES"] = {"append": self.qual_name}
 
         return self._env
 
@@ -266,7 +258,7 @@ def read_config(module_file, config_vars=None, data=None):
 def sort_modules(modules, reverse=False):
     """Sort a list of Modules or ModuleSpecs by version."""
 
-    return sorted(modules, key=lambda m: (m.real_name, m.version), reverse=reverse)
+    return sorted(modules, key=lambda m: (m.qual_name, m.version), reverse=reverse)
 
 
 def is_module(path):
@@ -328,7 +320,6 @@ def is_exact_match(requirement, module_spec):
     name, version = parse_module_requirement(requirement)
     return (
         module_spec.qual_name == requirement
-        or module_spec.real_name == requirement
         or (version and module_spec.name == name and module_spec.version == version)
     )
 

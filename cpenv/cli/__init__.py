@@ -68,7 +68,7 @@ class CliReporter(Reporter):
         core.echo()
 
     def resolve_requirement(self, requirement, module_spec):
-        core.echo("  %s - %s" % (module_spec.real_name, module_spec.path))
+        core.echo("  %s - %s" % (module_spec.qual_name, module_spec.path))
 
     def end_resolve(self, resolved, unresolved):
         core.echo()
@@ -89,12 +89,12 @@ class CliReporter(Reporter):
         if "download" in label.lower():
             spec = data["module_spec"]
             core.echo("  Downloading %s from %s..." % (spec.qual_name, spec.repo.name))
-            desc = spec.real_name
+            desc = spec.qual_name
         elif "upload" in label.lower():
             module = data["module"]
             to_repo = data["to_repo"]
             core.echo("  Uploading %s to %s..." % (module.qual_name, to_repo.name))
-            desc = module.real_name
+            desc = module.qual_name
         else:
             desc = label
 

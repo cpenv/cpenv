@@ -53,12 +53,12 @@ class Clone(core.CLI):
             core.echo("Error: Failed to resolve " + args.module)
             core.exit(1)
 
-        where = paths.normalize(args.where or ".", module_spec.real_name)
+        where = paths.normalize(args.where or ".", module_spec.qual_name)
         if os.path.isdir(where):
             core.echo("Error: Directory already exists - " + where)
             core.exit(1)
 
-        core.echo("- Cloning %s..." % module_spec.real_name)
+        core.echo("- Cloning %s..." % module_spec.qual_name)
         core.echo()
         try:
             module = module_spec.repo.download(

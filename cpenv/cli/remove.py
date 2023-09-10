@@ -39,7 +39,7 @@ class Remove(core.CLI):
             if not module:
                 core.echo("Error: %s not found..." % requirement)
                 core.exit(1)
-            core.echo("  %s - %s" % (module.real_name, module.path))
+            core.echo("  %s - %s" % (module.qual_name, module.path))
             modules_to_remove.append(module)
 
         core.echo()
@@ -52,7 +52,7 @@ class Remove(core.CLI):
         core.echo("- Removing modules...")
         core.echo()
         for module in modules_to_remove:
-            core.echo("  " + module.real_name)
+            core.echo("  " + module.qual_name)
             api.remove(module, from_repo)
 
         core.echo()
