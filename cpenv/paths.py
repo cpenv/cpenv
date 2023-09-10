@@ -41,7 +41,7 @@ def is_writable(path):
     try:
         os.makedirs(path)
         touch(normalize(path, "tmpfile"))
-    except OSError as e:
+    except OSError:
         return False
     else:
         rmtree(path)
