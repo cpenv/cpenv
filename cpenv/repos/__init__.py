@@ -1,10 +1,11 @@
 # Local imports
 from .base import Repo
-from .local import LocalRepo
+from .filesystem import LocalRepo, RemoteRepo
 from .shotgun import ShotgunRepo
 
 registry = {
     LocalRepo.type_name: LocalRepo,
+    RemoteRepo.type_name: RemoteRepo,
     ShotgunRepo.type_name: ShotgunRepo,
 }
 

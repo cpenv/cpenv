@@ -30,15 +30,27 @@ class LocalRepo(Repo):
 
     Nested:
         <repo_path>/<name>/<version>/module.yml
+
+    Arguments:
+        name (str): Name of the repository.
+        path (str): Path to repository folder.
+        priority (int): Sort order of repositories. Lower priority repositories take
+            precedence over higher priority. Defaults to 10.
+        nested (bool): When True the Repository will use the Nested hierarchy. Defaults
+            to False.
     """
 
     type_name = "local"
     priority = 10
 
-    def __init__(self, name, path, priority=None):
+    def __init__(self, name, path, priority=None, nested=None):
         super(LocalRepo, self).__init__(name, priority)
         self.path = paths.normalize(path)
         self.cache = TTLCache(maxsize=10, ttl=60)
+
+        self.nested = nested
+        if nested is None:
+            self.nested = bool(os.getenv("CPENV_LOCALREPO_NESTED", False))
 
     def relative_path(self, *parts):
         return paths.normalize(self.path, *parts)
@@ -124,15 +136,14 @@ class LocalRepo(Repo):
         if not overwrite and module.path.startswith(self.path):
             raise OSError("Module already exists in repo...")
 
-        if module.version.string in module.real_name:
-            # Use flat hierarchy when version already in module name
-            new_module_path = self.relative_path(module.real_name)
-        else:
-            # Use nested hierarchy when version is not in module name
+        # Generate a new module path in to_repo
+        if self.nested:
             new_module_path = self.relative_path(
                 module.name,
                 module.version.string,
             )
+        else:
+            new_module_path = self.relative_path(module.qual_name)
 
         if os.path.isdir(new_module_path):
             if overwrite:
@@ -219,7 +230,7 @@ class LocalRepo(Repo):
 
     def validate_filters(self, filters):
         errors = {}
-        name = filters.get(name)
+        name = filters.get("name")
         if name and not isinstance(name, compat.string_types):
             errors["name"] = "Name must be a string."
 
@@ -299,3 +310,16 @@ class LocalRepo(Repo):
         file = self.relative_path("..", "environments", name + ".yml")
         if os.path.isfile(file):
             os.remove(file)
+
+
+class RemoteRepo(LocalRepo):
+    """This Repository is identical to the LocalRepo but can be used to represent
+    network locations. The idea being that in some cases you may want to localize
+    packages from a network share to a truly local path like your CPENV_HOME.
+
+    By configuring a RemoteRepo, modules can be stored on a network shared, but
+    will be localized before being activated.
+    """
+
+    type_name = "remote"
+    priority = 15
