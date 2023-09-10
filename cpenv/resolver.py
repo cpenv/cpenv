@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Standard library imports
+import contextlib
 import os
 import shlex
 
@@ -8,7 +9,8 @@ import shlex
 from . import mappings, paths
 from .module import Module, best_match, is_exact_match, is_module
 from .reporter import get_reporter
-from .repos import LocalRepo
+from .repos import LocalRepo, RemoteRepo
+from .vendor.fasteners import InterProcessLock
 
 __all__ = [
     "ResolveError",
@@ -127,44 +129,49 @@ class Copier(object):
 
         self.to_repo = get_repo(to_repo)
 
+    def _is_in_repo(self, module_spec, overwrite=False):
+        """Check if a module_spec can be resolved in to_repo."""
+
+        matches = self.to_repo.find(module_spec.qual_name)
+        for match in matches:
+            if is_exact_match(module_spec.qual_name, match) and not overwrite:
+                return True
+
     def copy(self, module_specs, overwrite=False):
         """Given ModuleSpecs, copy them to this copiers to_repo."""
         from .api import get_cache_path
 
         copied = []
         for module_spec in module_specs:
-            matches = self.to_repo.find(module_spec.qual_name)
-            already_exists = False
-            for match in matches:
-                if is_exact_match(module_spec.qual_name, match):
-                    already_exists = True
-                    break
 
-            if already_exists and not overwrite:
-                continue
+            with ModuleInterProcessLock(self.to_repo, module_spec):
 
-            # Get local module or download module from repo
-            if isinstance(module_spec.repo, LocalRepo):
-                module = Module.from_spec(module_spec)
-            else:
-                download_path = get_cache_path(
-                    "tmp",
-                    str(hash(module_spec.repo.name)),
-                    module_spec.name,
-                    module_spec.version.string,
-                )
-                module = module_spec.repo.download(
-                    module_spec,
-                    where=download_path,
+                # Check if module_spec can be resolved in to_repo
+                if self._is_in_repo(module_spec):
+                    continue
+
+                # Get local module or download module from repo
+                if isinstance(module_spec.repo, LocalRepo):
+                    module = Module.from_spec(module_spec)
+                else:
+                    download_path = get_cache_path(
+                        "tmp",
+                        str(hash(module_spec.repo.name)),
+                        module_spec.name,
+                        module_spec.version.string,
+                    )
+                    module = module_spec.repo.download(
+                        module_spec,
+                        where=download_path,
+                        overwrite=overwrite,
+                    )
+
+                # Upload module to_repo
+                new_module_spec = self.to_repo.upload(
+                    module,
                     overwrite=overwrite,
                 )
-
-            # Upload module to_repo
-            new_module_spec = self.to_repo.upload(
-                module,
-                overwrite=overwrite,
-            )
-            copied.append(new_module_spec)
+                copied.append(new_module_spec)
 
         tmp = get_cache_path("tmp")
         if os.path.isdir(tmp):
@@ -193,6 +200,19 @@ class Localizer(object):
         if not isinstance(self.to_repo, LocalRepo):
             raise ValueError("Localizer expected LocalRepo got %s" % type(to_repo))
 
+    def _resolve_local_module(self, module_spec, overwrite=False):
+        """Resolves the module_spec as a Module object in a LocalRepo if one exists."""
+
+        # Check if module is already in a LocalRepo
+        if module_spec.repo.type_name == "local":
+            return Module(module_spec.path)
+
+        # Check if module exists in to_repo
+        matches = self.to_repo.find(module_spec.qual_name)
+        for match in matches:
+            if is_exact_match(module_spec.qual_name, match) and not overwrite:
+                return Module(match.path)
+
     def localize(self, module_specs, overwrite=False):
         """Given ModuleSpecs, download them to this Localizers repo."""
 
@@ -201,38 +221,29 @@ class Localizer(object):
         for module_spec in module_specs:
             self.reporter.localize_module(module_spec, None)
 
-            # Module is already local
-            if isinstance(module_spec.repo, LocalRepo):
-                localized.append(Module(module_spec.path))
-                continue
+            with ModuleInterProcessLock(self.to_repo, module_spec):
 
-            # Module already exists in to_repo
-            matches = self.to_repo.find(module_spec.qual_name)
-            already_exists = False
-            for match in matches:
-                if is_exact_match(module_spec.qual_name, match):
-                    already_exists = True
-                    localized.append(Module(match.path))
-                    break
+                # Resolve the module_spec in a LocalRepo if possible. Any repo will do.
+                module = self._resolve_local_module(module_spec, overwrite)
+                if module:
+                    localized.append(module)
+                    continue
 
-            if already_exists and not overwrite:
-                continue
+                # Generate a new module path in to_repo
+                if self.to_repo.nested:
+                    new_module_path = self.to_repo.relative_path(
+                        module_spec.name,
+                        module_spec.version.string,
+                    )
+                else:
+                    new_module_path = self.to_repo.relative_path(module_spec.qual_name)
 
-            # Generate a new module path in to_repo
-            if module_spec.version.string in module_spec.real_name:
-                new_module_path = self.to_repo.relative_path(module_spec.real_name)
-            else:
-                new_module_path = self.to_repo.relative_path(
-                    module_spec.name,
-                    module_spec.version.string,
+                module = module_spec.repo.download(
+                    module_spec,
+                    where=new_module_path,
+                    overwrite=overwrite,
                 )
-
-            module = module_spec.repo.download(
-                module_spec,
-                where=new_module_path,
-                overwrite=overwrite,
-            )
-            localized.append(module)
+                localized.append(module)
 
         self.reporter.end_localize(localized)
 
@@ -240,6 +251,28 @@ class Localizer(object):
         self.to_repo.clear_cache()
 
         return localized
+
+
+@contextlib.contextmanager
+def ModuleInterProcessLock(repo, module_spec):
+
+    # We can only create locks in LocalRepos
+    repo_supports_locks = isinstance(repo, LocalRepo)
+    if repo_supports_locks:
+
+        # Acquire a lock for the module_spec so other processes / users
+        # pointing at the same to_repo location do not step on each others toes.
+        lock_file = repo.relative_path(".locks", module_spec.qual_name + ".lock")
+        with InterProcessLock(lock_file) as lock:
+
+            # Clear the LocalRepo cache in case a Module was created while acquiring
+            # the lock.
+            repo.clear_cache()
+
+            yield lock
+    else:
+        # No op
+        yield
 
 
 def old_resolve_algorithm(resolver, paths):
