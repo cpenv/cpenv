@@ -229,7 +229,7 @@ def clone(module, from_repo=None, where=None, overwrite=False):
 
     module = module_spec.repo.download(
         module_spec,
-        where=paths.normalize(where or ".", module_spec.real_name),
+        where=paths.normalize(where or ".", module_spec.qual_name),
         overwrite=overwrite,
     )
 
@@ -286,7 +286,7 @@ def add_active_module(module):
     if module not in _active_modules:
         _active_modules.append(module)
 
-    module_names = os.pathsep.join([m.real_name for m in _active_modules])
+    module_names = os.pathsep.join([m.qual_name for m in _active_modules])
     os.environ["CPENV_ACTIVE_MODULES"] = str(module_names)
 
 
@@ -300,7 +300,7 @@ def remove_active_module(module):
     if module in _active_modules:
         _active_modules.remove(module)
 
-    module_names = os.pathsep.join([m.real_name for m in _active_modules])
+    module_names = os.pathsep.join([m.qual_name for m in _active_modules])
     os.environ["CPENV_ACTIVE_MODULES"] = str(module_names)
 
 

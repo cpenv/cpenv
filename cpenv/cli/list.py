@@ -41,7 +41,7 @@ class List(core.CLI):
             core.echo(
                 core.format_columns(
                     "[*] Active",
-                    [m.real_name for m in sort_modules(active_modules)],
+                    [m.qual_name for m in sort_modules(active_modules)],
                 )
             )
             core.echo()
@@ -59,9 +59,9 @@ class List(core.CLI):
             module_names = []
             for module in sort_modules(repo_modules):
                 if module in active_modules:
-                    module_names.append("* " + module.real_name)
+                    module_names.append("* " + module.qual_name)
                 else:
-                    module_names.append("  " + module.real_name)
+                    module_names.append("  " + module.qual_name)
 
             if module_names:
                 found_modules = True

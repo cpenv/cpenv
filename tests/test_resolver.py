@@ -73,6 +73,7 @@ def setup_module():
 
 
 def teardown_module():
+    paths.rmtree(data_path("modules"))
     paths.rmtree(data_path("home"))
     paths.rmtree(data_path("not_home"))
 

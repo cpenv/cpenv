@@ -16,6 +16,10 @@ from . import data_path
 @pytest.fixture(scope="session", autouse=True)
 def setup_and_teardown():
 
+    # Clear all locally configured repositories...
+    for repo in cpenv.get_repos():
+        cpenv.remove_repo(repo)
+
     # Setup
     cpenv.set_home_path(data_path("home"))
 

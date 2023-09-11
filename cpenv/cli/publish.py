@@ -60,5 +60,5 @@ class Publish(core.CLI):
 
         core.echo()
         core.echo("Activate your module:")
-        core.echo("  cpenv activate %s" % published.real_name)
+        core.echo("  cpenv activate %s" % published.qual_name)
         core.echo()
