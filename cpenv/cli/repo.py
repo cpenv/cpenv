@@ -79,7 +79,7 @@ class AddRepo(core.CLI):
         parser.add_argument(
             "--type",
             help="Type of repo",
-            choices=["local", "shotgun"],
+            choices=list(repos.registry.keys()),
             default="local",
         )
         parser.add_argument(
