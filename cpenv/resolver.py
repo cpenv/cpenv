@@ -110,13 +110,21 @@ class Activator(object):
 
     def activate(self, module_specs):
         """Activate a list of module specs."""
+        from . import api
 
         modules = self.localizer.localize(module_specs)
+
+        for module in modules:
+            module.run_hook("pre_activate")
+
         env = self.combine_modules(modules)
         mappings.set_env(env)
 
         for module in modules:
-            module.activate()
+            api.add_active_module(module)
+
+        for module in modules:
+            module.run_hook("post_activate")
 
         return modules
 
