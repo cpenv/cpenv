@@ -201,7 +201,7 @@ class Shotgun(object):
         if schema_path is None or schema_entity_path is None:
             raise MockgunError("Cannot create Mockgun instance because no schema files have been defined. "
                                "Before creating a Mockgun instance, please call Mockgun.set_schema_paths() "
-                               "in order to specify which ShotGrid schema Mockgun should operate against.")
+                               "in order to specify which Flow Production Tracking schema Mockgun should operate against.")
 
         self._schema, self._schema_entity = SchemaFactory.get_schemas(schema_path, schema_entity_path)
 
@@ -425,6 +425,12 @@ class Shotgun(object):
     def upload_thumbnail(self, entity_type, entity_id, path, **kwargs):
         pass
 
+    def add_user_agent(self, agent):
+        pass
+
+    def set_session_uuid(self, session_uuid):
+        pass
+
     ###################################################################################################
     # internal methods and members
 
@@ -496,14 +502,16 @@ class Shotgun(object):
                                    "percent": int,
                                    "text": six.string_types,
                                    "serializable": dict,
-                                   "date": datetime.date,
+                                   "entity_type": six.string_types,
+                                   "date": six.string_types,
                                    "date_time": datetime.datetime,
+                                   "duration": int,
                                    "list": six.string_types,
                                    "status_list": six.string_types,
                                    "url": dict}[sg_type]
                 except KeyError:
                     raise ShotgunError(
-                        "Field %s.%s: Handling for ShotGrid type %s is not implemented" %
+                        "Field %s.%s: Handling for Flow Production Tracking type %s is not implemented" %
                         (entity_type, field, sg_type)
                     )
 
