@@ -2,7 +2,6 @@
 # Standard library imports
 import os
 import ssl
-from json import dumps as json_dump
 from json import loads as json_load
 
 try:
@@ -10,13 +9,6 @@ try:
     from httplib import HTTPException
 except ImportError:
     from urllib.request import urlopen
-    from urllib.error import HTTPError, URLError
-    from http.client import HTTPException
-
-try:
-    import certifi
-except ImportError:
-    from .vendor import certifi
 
 
 def get(url):
