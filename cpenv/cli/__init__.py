@@ -54,13 +54,14 @@ class CliReporter(Reporter):
     def __init__(self):
         self._bars = {}
 
-    def get_bar_style(self, desc, total, unit=None):
+    def get_bar_style(self, desc, total, unit=None, unit_divisor=None, unit_scale=None):
         return {
             "desc": desc,
             "total": total,
             "bar_format": "  {desc} {bar} {n_fmt}/{total_fmt}",
             "unit": unit or "iB",
-            "unit_scale": True,
+            "unit_divisor": unit_divisor or 1024,
+            "unit_scale": unit_scale or True,
         }
 
     def start_resolve(self, requirements):
@@ -98,7 +99,13 @@ class CliReporter(Reporter):
         else:
             desc = label
 
-        style = self.get_bar_style(desc, max_size, data.get("unit", None))
+        style = self.get_bar_style(
+            desc,
+            max_size,
+            data.get("unit", None),
+            data.get("unit_divisor", 1024),
+            data.get("unit_scale", True),
+        )
         self._bars[label] = tqdm.tqdm(**style)
 
     def update_progress(self, label, chunk_size, data):
