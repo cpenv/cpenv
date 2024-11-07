@@ -9,7 +9,7 @@ import shlex
 from . import mappings, paths
 from .module import Module, best_match, is_exact_match, is_module
 from .reporter import get_reporter
-from .repos import LocalRepo, RemoteRepo
+from .repos import LocalRepo
 from .vendor.fasteners import InterProcessLock
 
 __all__ = [
@@ -253,12 +253,19 @@ class Localizer(object):
         return localized
 
 
+def lock_required(repo):
+    """Check if locks are enabled..."""
+    try:
+        return isinstance(repo, LocalRepo) and int(os.getenv("CPENV_ENABLE_LOCKFILES", 0))
+    except Exception:
+        return 0
+
+
 @contextlib.contextmanager
 def ModuleInterProcessLock(repo, module_spec):
 
     # We can only create locks in LocalRepos
-    repo_supports_locks = isinstance(repo, LocalRepo)
-    if repo_supports_locks:
+    if lock_required(repo):
 
         # Acquire a lock for the module_spec so other processes / users
         # pointing at the same to_repo location do not step on each others toes.
