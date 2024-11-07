@@ -34,6 +34,7 @@ Cpenv is a cli tool and python library used to create, edit, publish, and activa
 | CPENV_DISABLE_PROMPT     | Disable prompt when modules activated  | 0       |
 | CPENV_ACTIVE_MODULES     | List of activated modules              |         |
 | CPENV_SHELL              | Preferred subshell like "powershell"   |         |
+| CPENV_ENABLE_LOCKFILES   | Enable lockfiles during localization   | 0       |
 
 ## Example Modules
 - [snack](https://github.com/cpenv/snack)
@@ -192,3 +193,6 @@ Requirements are strings used to resolve and activate modules in Repos. They can
 version like `my_module-0.1.0`. Cpenv supports semver/calver, simple versions (v1), and what I like to call *weird* versions
 like 12.0v2 (The Foundry products). In the future cpenv may support more complex requirements by utilizing
 [resolvelib](https://github.com/sarugaku/resolvelib).
+
+# Locking
+It may be desirable to have interprocess locking around module localization. One use case I've run into is with Deadline rendering on workers with multiple gpus. In that case, a single worker may be rendering multiple frames simultaneously, and therefore, it's possible that the worked may try to download the same module at the same time. To enable interprocess locking via lockfiles, set the environment variable `CPENV_ENABLE_LOCKFILES` to 1.
